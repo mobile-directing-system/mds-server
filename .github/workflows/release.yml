@@ -1,8 +1,10 @@
 name: Release
 
 on:
-  push:
-    branches: [ main, alpha ]
+  workflow_dispatch:
+# Auto run on push disabled until stable version with minimum feature set.
+#  push:
+#    branches: [ main ]
 
 jobs:
   build:
@@ -36,10 +38,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
         with:
-          cache: npm
-      - run: npm install @semantic-release/changelog @semantic-release/git @semantic-release/github
-      - run: npx semantic-release
+          node-version: 'lts/*'
+      - name: Install dependencies
+        run: npm ci
+      - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
