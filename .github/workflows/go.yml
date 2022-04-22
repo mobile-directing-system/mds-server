@@ -90,7 +90,7 @@ jobs:
       - name: Lint
         run: make lint
 
-  cove_coverage:
+  code_coverage:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
