@@ -1,6 +1,7 @@
 # Taken from https://github.com/marketplace/actions/sphinx-build.
 
 name: "Docs Check"
+
 on:
   - push
   - pull_request
