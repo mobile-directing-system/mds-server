@@ -1,4 +1,4 @@
-package mds_server
+package mdsserver
 
 func main() {
 }
