@@ -8,10 +8,18 @@ import (
 // Mall holds the goqu.DialectWrapper for correct SQL-queries and the
 // redis.Client for caching.
 type Mall struct {
-	Dialect goqu.DialectWrapper
-	Redis   *redis.Client
+	dialect goqu.DialectWrapper
+	redis   *redis.Client
 }
 
 const (
 	redisSessionTokenPrefix = "session_token"
 )
+
+// NewMall creates a new Mall.
+func NewMall(redisClient *redis.Client) *Mall {
+	return &Mall{
+		dialect: goqu.Dialect("postgres"),
+		redis:   redisClient,
+	}
+}

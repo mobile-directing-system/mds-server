@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/lefinal/meh"
+	"github.com/lefinal/meh/mehhttp"
 	"go.uber.org/zap"
 	"log"
 	"net/http"
@@ -61,4 +62,21 @@ func Serve(lifetime context.Context, engine *gin.Engine, addr string) error {
 		return meh.NewInternalErrFromErr(err, "listen and serve", meh.Details{"addr": addr})
 	}
 	return nil
+}
+
+// ApplyDefaultErrorHTTPMapping applies a default mapping of meh.Code to HTTP
+// status codes.
+func ApplyDefaultErrorHTTPMapping() {
+	mehhttp.SetHTTPStatusCodeMapping(func(code meh.Code) int {
+		switch code {
+		case meh.ErrBadInput:
+			return http.StatusBadRequest
+		case meh.ErrNotFound:
+			return http.StatusNotFound
+		case meh.ErrUnauthorized:
+			return http.StatusUnauthorized
+		default:
+			return http.StatusInternalServerError
+		}
+	})
 }

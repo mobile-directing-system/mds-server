@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/lefinal/meh"
+	"github.com/lefinal/meh/mehlog"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
 	"github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
@@ -135,7 +136,6 @@ func WriteMessages(w *kafka.Writer, messages ...Message) error {
 func NewWriter(logger *zap.Logger, addr string) *kafka.Writer {
 	return &kafka.Writer{
 		Addr:        kafka.TCP(addr),
-		Logger:      kafkaLogger(logger),
 		ErrorLogger: kafkaErrorLogger(logger),
 		MaxAttempts: 16,
 	}
@@ -150,5 +150,44 @@ func kafkaLogger(logger *zap.Logger) kafka.LoggerFunc {
 func kafkaErrorLogger(logger *zap.Logger) kafka.LoggerFunc {
 	return func(message string, args ...interface{}) {
 		logger.Error(fmt.Sprintf(message, args...))
+	}
+}
+
+// NewReader creates a new kafka.Reader with the given parameters.
+func NewReader(logger *zap.Logger, addr string, groupID string, groupTopics []string) *kafka.Reader {
+	return kafka.NewReader(kafka.ReaderConfig{
+		Brokers:       []string{addr},
+		GroupTopics:   groupTopics,
+		GroupID:       groupID,
+		RetentionTime: time.Hour * 3600,
+		ErrorLogger:   kafkaErrorLogger(logger),
+		MaxAttempts:   16,
+	})
+}
+
+// HandlerFunc is a handler function for usage in Read.
+type HandlerFunc func(ctx context.Context, message Message) error
+
+// Read from the given kafka.Reader until the given context is done. For each
+// read message, the given HandlerFunc will be called. It blocks until the
+// handler has finished running. If reading fails, we try again until the
+// context is done. This also applies to failing handlers.
+func Read(ctx context.Context, logger *zap.Logger, reader *kafka.Reader, handlerFn HandlerFunc) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
+		kafkaMessage, err := reader.ReadMessage(ctx)
+		if err != nil {
+			return meh.NewInternalErrFromErr(err, "read message", nil)
+		}
+		convertedMessage := messageFromKafkaMessage(kafkaMessage)
+		err = handlerFn(ctx, convertedMessage)
+		if err != nil {
+			mehlog.Log(logger, meh.Wrap(err, "handle message", meh.Details{"message": convertedMessage}))
+			continue
+		}
 	}
 }

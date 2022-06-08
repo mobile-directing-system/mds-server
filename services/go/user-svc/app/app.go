@@ -10,6 +10,7 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pgconnect"
 	"github.com/mobile-directing-system/mds-server/services/go/user-svc/controller"
 	"github.com/mobile-directing-system/mds-server/services/go/user-svc/endpoints"
+	"github.com/mobile-directing-system/mds-server/services/go/user-svc/eventport"
 	"github.com/mobile-directing-system/mds-server/services/go/user-svc/store"
 	"golang.org/x/sync/errgroup"
 	"io/fs"
@@ -48,15 +49,17 @@ func Run(ctx context.Context) error {
 	if err != nil {
 		return meh.Wrap(err, "await hosts reachable", nil)
 	}
+	// Setup.
+	eventPort := eventport.NewPort(kafkautil.NewWriter(logger.Named("kafka"), c.KafkaAddr))
+	ctrl := &controller.Controller{
+		Logger:   logger.Named("controller"),
+		DB:       sqlDB,
+		Store:    store.NewMall(),
+		Notifier: eventPort,
+	}
 	eg, egCtx := errgroup.WithContext(ctx)
 	// Run controller.
 	eg.Go(func() error {
-		ctrl := &controller.Controller{
-			Logger:      logger.Named("controller"),
-			DB:          sqlDB,
-			Mall:        store.NewMall(),
-			KafkaWriter: kafkautil.NewWriter(logger.Named("kafka"), c.KafkaAddr),
-		}
 		err := ctrl.Run(egCtx)
 		if err != nil {
 			return meh.Wrap(err, "run controller", nil)
@@ -65,7 +68,7 @@ func Run(ctx context.Context) error {
 	})
 	// Serve endpoints.
 	eg.Go(func() error {
-		err = endpoints.Serve(egCtx, logger.Named("endpoints"), c.ServeAddr)
+		err = endpoints.Serve(egCtx, logger.Named("endpoints"), c.ServeAddr, c.AuthTokenSecret)
 		if err != nil {
 			return meh.Wrap(err, "serve endpoints", meh.Details{"serve_addr": c.ServeAddr})
 		}

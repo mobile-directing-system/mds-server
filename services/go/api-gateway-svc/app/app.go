@@ -3,9 +3,15 @@ package app
 import (
 	"context"
 	"embed"
+	"github.com/go-redis/redis/v8"
 	"github.com/lefinal/meh"
 	"github.com/mobile-directing-system/mds-server/services/go/api-gateway-svc/controller"
 	"github.com/mobile-directing-system/mds-server/services/go/api-gateway-svc/endpoints"
+	"github.com/mobile-directing-system/mds-server/services/go/api-gateway-svc/eventport"
+	"github.com/mobile-directing-system/mds-server/services/go/api-gateway-svc/store"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/connectutil"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/kafkautil"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/logging"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pgconnect"
 	"golang.org/x/sync/errgroup"
@@ -25,6 +31,8 @@ func init() {
 	}
 }
 
+const kafkaGroupID = "mds-api-gateway-svc"
+
 // Run the gateway.
 func Run(ctx context.Context) error {
 	c, err := parseConfigFromEnv()
@@ -36,17 +44,41 @@ func Run(ctx context.Context) error {
 		return meh.Wrap(err, "new logger", nil)
 	}
 	defer func() { _ = logger.Sync() }()
+	err = connectutil.AwaitHostsReachable(ctx, c.KafkaAddr, c.RedisAddr)
+	if err != nil {
+		return meh.Wrap(err, "await hosts reachable", nil)
+	}
 	// Connect to database.
-	_, err = pgconnect.ConnectAndRunMigrations(ctx, logger, c.DBConnString, dbMigrations)
+	sqlDB, err := pgconnect.ConnectAndRunMigrations(ctx, logger, c.DBConnString, dbMigrations)
 	if err != nil {
 		return meh.Wrap(err, "connect db and run migrations", meh.Details{"db_conn_string": c.DBConnString})
 	}
+	// Setup Redis.
+	redisClient := redis.NewClient(&redis.Options{Addr: c.RedisAddr})
+	// Setup Kafka.
+	kafkaWriter := kafkautil.NewWriter(logger.Named("kafka-writer"), c.KafkaAddr)
+	eventPort := eventport.NewPort(kafkaWriter)
 	// Setup controller.
 	ctrl := &controller.Controller{
-		Logger:     logger.Named("controller"),
-		HMACSecret: "meow", // TODO: CHANGE
+		Logger:                logger.Named("controller"),
+		PublicAuthTokenSecret: c.PublicAuthTokenSecret,
+		AuthTokenSecret:       c.AuthTokenSecret,
+		Store:                 store.NewMall(redisClient),
+		DB:                    sqlDB,
+		Notifier:              eventPort,
 	}
 	eg, egCtx := errgroup.WithContext(ctx)
+	// Read messages.
+	eg.Go(func() error {
+		logger := logger.Named("kafka-reader")
+		kafkaReader := kafkautil.NewReader(logger, c.KafkaAddr, kafkaGroupID,
+			[]string{event.UsersTopic})
+		err := kafkautil.Read(egCtx, logger, kafkaReader, eventPort.HandlerFn(ctrl))
+		if err != nil {
+			return meh.Wrap(err, "read kafka messages", nil)
+		}
+		return nil
+	})
 	// Serve endpoints.
 	eg.Go(func() error {
 		err := endpoints.Serve(egCtx, logger.Named("endpoints"), c.ServeAddr, c.ForwardAddr, ctrl)
@@ -55,7 +87,5 @@ func Run(ctx context.Context) error {
 		}
 		return nil
 	})
-	// TODO
-	// redis.NewClient(&redis.Options{Addr: c.RedisAddr})
 	return eg.Wait()
 }

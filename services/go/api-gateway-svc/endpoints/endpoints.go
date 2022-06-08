@@ -11,6 +11,7 @@ import (
 
 // Serve endpoints over HTTP.
 func Serve(lifetime context.Context, logger *zap.Logger, serveAddr string, forwardAddr string, ctrl *controller.Controller) error {
+	httpendpoints.ApplyDefaultErrorHTTPMapping()
 	router := httpendpoints.NewEngine(logger)
 	populateAPIV1Routes(router, logger.Named("api-v1"), ctrl, forwardAddr)
 	err := httpendpoints.Serve(lifetime, router, serveAddr)
@@ -22,5 +23,6 @@ func Serve(lifetime context.Context, logger *zap.Logger, serveAddr string, forwa
 
 func populateAPIV1Routes(router *gin.Engine, logger *zap.Logger, ctrl *controller.Controller, forwardAddr string) {
 	router.POST("/login", handleLogin(logger, ctrl))
-	router.NoRoute(handleProxy(logger, forwardAddr))
+	router.POST("/logout", handleLogout(logger, ctrl))
+	router.NoRoute(handleProxy(logger, ctrl, forwardAddr))
 }

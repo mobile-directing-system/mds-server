@@ -38,6 +38,7 @@ func NewLogger(serviceName string, level zapcore.Level) (*zap.Logger, error) {
 	config.OutputPaths = []string{"stdout"}
 	config.Level = zap.NewAtomicLevelAt(level)
 	config.DisableCaller = true
+	config.DisableStacktrace = true
 	logger, err := config.Build()
 	if err != nil {
 		return nil, meh.NewInternalErrFromErr(err, "new zap production logger", meh.Details{"config": config})
