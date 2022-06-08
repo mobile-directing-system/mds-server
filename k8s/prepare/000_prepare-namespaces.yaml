@@ -1,0 +1,7 @@
+# Kafka namespace.
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: kafka
+  labels:
+    name: kafka

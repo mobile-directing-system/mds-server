@@ -1,0 +1,119 @@
+# Database config.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mds-user-svc-postgres-config
+  labels:
+    app: mds-user-svc-postgres
+data:
+  POSTGRES_DB: mds-user-svc
+  POSTGRES_USER: mds
+  POSTGRES_PASSWORD: mds
+---
+# Database pvc.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mds-user-svc-postgres-pvc
+  labels:
+    app: mds-user-svc-postgres
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+---
+# Database service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mds-user-svc-postgres-service
+  labels:
+    app: mds-user-svc-postgres-service
+spec:
+  ports:
+    - port: 5432
+  selector:
+    app: mds-user-svc-postgres
+---
+# Database deployment.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mds-user-svc-postgres-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mds-user-svc-postgres
+  template:
+    metadata:
+      labels:
+        app: mds-user-svc-postgres
+    spec:
+      containers:
+        - name: mds-user-svc-postgres
+          image: postgres:14.2
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: mds-user-svc-postgres-config
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgres-data
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: mds-user-svc-postgres-pvc
+---
+# User svc config.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mds-user-svc-config
+  labels:
+    app: mds-user-svc
+data:
+  MDS_DB_CONN_STRING: postgresql://mds:mds@mds-user-svc-postgres-service/mds-user-svc
+  MDS_KAFKA_ADDR: kafka-cluster-kafka-bootstrap.kafka:9092
+  MDS_SERVE_ADDR: :8080
+---
+# User svc service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mds-user-svc-service
+spec:
+  selector:
+    app: mds-user-svc
+  ports:
+    - port: 3000
+      targetPort: 8080
+---
+# User svc deployment.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mds-user-svc-deployment
+  annotations:
+    reloader.stakater.com/auto: "true"
+spec:
+  selector:
+    matchLabels:
+      app: mds-user-svc
+  template:
+    metadata:
+      labels:
+        app: mds-user-svc
+    spec:
+      containers:
+        - name: mds-user-svc
+          image: mds-user-svc
+          envFrom:
+            - configMapRef:
+                name: mds-user-svc-config
+          ports:
+            - containerPort: 8080

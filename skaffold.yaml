@@ -1,0 +1,38 @@
+apiVersion: skaffold/v2beta28
+kind: Config
+metadata:
+  name: mds-server
+profiles:
+  - name: prepare
+    deploy:
+      kubectl:
+        manifests:
+          - k8s/prepare/000_prepare-namespaces.yaml
+          - k8s/prepare/010_prepare-strimzi.yaml
+          - k8s/prepare/020_public-ingress-nginx.yaml
+          - k8s/prepare/021_internal-ingress-nginx.yaml
+  - name: mds
+    build:
+      local:
+        concurrency: 8
+      artifacts:
+        - image: mds-api-gateway-svc
+          context: ./
+          docker:
+            dockerfile: services/go/api-gateway-svc/Dockerfile
+        - image: mds-user-svc
+          context: ./
+          docker:
+            dockerfile: services/go/user-svc/Dockerfile
+    deploy:
+      kubectl:
+        manifests:
+          - k8s/100_namespaces.yaml
+          - k8s/210_strimzi.yaml
+          - k8s/300_kafka.yaml
+          - k8s/310_kafka-topics.yaml
+          - k8s/500_mds-api-gateway-svc.yaml
+          - k8s/510_mds-user-svc.yaml
+          - k8s/811_public-ingress.yaml
+          - k8s/821_internal-ingress.yaml
+
