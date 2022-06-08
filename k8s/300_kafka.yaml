@@ -60,12 +60,13 @@ metadata:
     app: kafka-ui
 spec:
   ports:
-    - port: 8080
+    - port: 30010
       targetPort: http
       protocol: TCP
       name: http
   selector:
     app: kafka-ui
+  type: NodePort
 ---
 # Kafka UI deployment.
 apiVersion: apps/v1

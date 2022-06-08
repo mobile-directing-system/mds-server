@@ -4,6 +4,8 @@ package basicconfig
 
 import (
 	"github.com/lefinal/meh"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/logging"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"
 )
@@ -13,10 +15,12 @@ const (
 	EnvDBConnString = "MDS_DB_CONN_STRING"
 	// EnvLogLevel for Config.LogLevel.
 	EnvLogLevel = "MDS_LOG_LEVEL"
-	// EnvServeAddr for Config.ServeAddr
+	// EnvServeAddr for Config.ServeAddr.
 	EnvServeAddr = "MDS_SERVE_ADDR"
 	// EnvKafkaAddr for Config.KafkaAddr.
 	EnvKafkaAddr = "MDS_KAFKA_ADDR"
+	// EnvAuthTokenSecret for Config.AuthTokenSecret.
+	EnvAuthTokenSecret = "MDS_AUTH_TOKEN_SECRET"
 )
 
 // Config is a basic configuration with support for database and Kafka
@@ -30,6 +34,9 @@ type Config struct {
 	ServeAddr string `json:"serve_addr"`
 	// KafkaAddr is the address under which Kafka is reachable.
 	KafkaAddr string `json:"kafka_addr"`
+	// AuthTokenSecret is the secret to use for signing and validating internal
+	// authentication tokens.
+	AuthTokenSecret string `json:"auth_token_secret"`
 }
 
 // ParseFromEnv parses a Config from the related environment variables like
@@ -62,6 +69,12 @@ func ParseFromEnv() (Config, error) {
 	c.KafkaAddr = os.Getenv(EnvKafkaAddr)
 	if c.KafkaAddr == "" {
 		return Config{}, meh.NewBadInputErr("missing kafka address", meh.Details{"env": EnvKafkaAddr})
+	}
+	// Auth token secret.
+	c.AuthTokenSecret = os.Getenv(EnvAuthTokenSecret)
+	if c.AuthTokenSecret == "" {
+		// For development purposes, we only print a warning.
+		logging.DebugLogger().Warn("no authentication token secret provided", zap.String("env", EnvAuthTokenSecret))
 	}
 	return c, nil
 }

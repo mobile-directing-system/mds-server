@@ -3,19 +3,20 @@ package store
 import (
 	"context"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4"
 	"github.com/lefinal/meh"
 	"github.com/lefinal/meh/mehpg"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/permission"
 )
 
-// PermissionsByUsername retrieves a list of granted permission.Permission for
-// the user with the given username.
-func (m *Mall) PermissionsByUsername(ctx context.Context, tx pgx.Tx, username string) ([]permission.Permission, error) {
+// PermissionsByUserID retrieves a list of granted permission.Permission for the
+// user with the given id.
+func (m *Mall) PermissionsByUserID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) ([]permission.Permission, error) {
 	// Build query.
-	q, _, err := m.Dialect.From(goqu.T("permissions")).
+	q, _, err := m.dialect.From(goqu.T("permissions")).
 		Select(goqu.C("permission")).
-		Where(goqu.C("username").Eq(username)).ToSQL()
+		Where(goqu.C("user").Eq(userID)).ToSQL()
 	if err != nil {
 		return nil, meh.NewInternalErrFromErr(err, "query to sql", nil)
 	}

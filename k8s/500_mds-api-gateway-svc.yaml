@@ -124,7 +124,7 @@ spec:
     spec:
       containers:
         - name: mds-api-gateway-svc-redis
-          image: "docker.io/redis:6.0.5"
+          image: "docker.io/redis"
           ports:
             - containerPort: 6379
           volumeMounts:
@@ -148,6 +148,7 @@ data:
   MDS_REDIS_ADDR: mds-api-gateway-svc-redis-service:6379
   MDS_SERVE_ADDR: :8080
   MDS_FORWARD_ADDR: internal-ingress-nginx-controller.internal-ingress-nginx
+  MDS_LOG_LEVEL: debug
 ---
 # API Gateway svc service.
 apiVersion: v1

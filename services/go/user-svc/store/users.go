@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4"
 	"github.com/lefinal/meh"
 	"github.com/lefinal/meh/mehpg"
@@ -10,7 +11,9 @@ import (
 
 // User contains all stored user information.
 type User struct {
-	// Username that identifies the user.
+	// ID identifies the user.
+	ID uuid.UUID
+	// Username for the user.
 	Username string
 	// FirstName of the user.
 	FirstName string
@@ -22,11 +25,49 @@ type User struct {
 	Pass []byte
 }
 
+// UserByID retrieves a User by its User.ID.
+func (m *Mall) UserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) (User, error) {
+	// Build query.
+	q, _, err := m.dialect.From(goqu.T("users")).
+		Select(goqu.C("id"),
+			goqu.C("username"),
+			goqu.C("first_name"),
+			goqu.C("last_name"),
+			goqu.C("is_admin"),
+			goqu.C("pass")).
+		Where(goqu.C("id").Eq(userID)).ToSQL()
+	if err != nil {
+		return User{}, meh.NewInternalErrFromErr(err, "query to sql", nil)
+	}
+	// Query.
+	rows, err := tx.Query(ctx, q)
+	if err != nil {
+		return User{}, mehpg.NewQueryDBErr(err, "query db", q)
+	}
+	defer rows.Close()
+	// Scan.
+	if !rows.Next() {
+		return User{}, meh.NewNotFoundErr("user not found", nil)
+	}
+	var user User
+	err = rows.Scan(&user.ID,
+		&user.Username,
+		&user.FirstName,
+		&user.LastName,
+		&user.IsAdmin,
+		&user.Pass)
+	if err != nil {
+		return User{}, mehpg.NewScanRowsErr(err, "scan row", q)
+	}
+	return user, nil
+}
+
 // UserByUsername retrieves a User by its User.Username.
 func (m *Mall) UserByUsername(ctx context.Context, tx pgx.Tx, username string) (User, error) {
 	// Build query.
 	q, _, err := m.dialect.From(goqu.T("users")).
-		Select(goqu.C("username"),
+		Select(goqu.C("id"),
+			goqu.C("username"),
 			goqu.C("first_name"),
 			goqu.C("last_name"),
 			goqu.C("is_admin"),
@@ -46,7 +87,8 @@ func (m *Mall) UserByUsername(ctx context.Context, tx pgx.Tx, username string) (
 		return User{}, meh.NewNotFoundErr("user not found", nil)
 	}
 	var user User
-	err = rows.Scan(&user.Username,
+	err = rows.Scan(&user.ID,
+		&user.Username,
 		&user.FirstName,
 		&user.LastName,
 		&user.IsAdmin,
@@ -66,14 +108,22 @@ func (m *Mall) CreateUser(ctx context.Context, tx pgx.Tx, user User) (User, erro
 		"last_name":  user.LastName,
 		"is_admin":   user.IsAdmin,
 		"pass":       user.Pass,
-	}).ToSQL()
+	}).Returning(goqu.C("id")).ToSQL()
 	if err != nil {
 		return User{}, meh.NewInternalErrFromErr(err, "query to sql", nil)
 	}
 	// Exec.
-	_, err = tx.Exec(ctx, q)
+	rows, err := tx.Query(ctx, q)
 	if err != nil {
 		return User{}, mehpg.NewQueryDBErr(err, "exec query", q)
+	}
+	defer rows.Close()
+	if !rows.Next() {
+		return User{}, meh.NewInternalErr("no rows returned", meh.Details{"query": q})
+	}
+	err = rows.Scan(&user.ID)
+	if err != nil {
+		return User{}, mehpg.NewScanRowsErr(err, "scan row", q)
 	}
 	return user, nil
 }
