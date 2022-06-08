@@ -1,0 +1,188 @@
+# Database config.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mds-api-gateway-svc-postgres-config
+  labels:
+    app: mds-api-gateway-svc-postgres
+data:
+  POSTGRES_DB: mds-api-gateway-svc
+  POSTGRES_USER: mds
+  POSTGRES_PASSWORD: mds
+---
+# Database pvc.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mds-api-gateway-svc-postgres-pvc
+  labels:
+    app: mds-api-gateway-svc-postgres
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+---
+# Database service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mds-api-gateway-svc-postgres-service
+  labels:
+    app: mds-api-gateway-svc-postgres-service
+spec:
+  ports:
+    - port: 5432
+  selector:
+    app: mds-api-gateway-svc-postgres
+---
+# Database deployment.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mds-api-gateway-svc-postgres-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mds-api-gateway-svc-postgres
+  template:
+    metadata:
+      labels:
+        app: mds-api-gateway-svc-postgres
+    spec:
+      containers:
+        - name: mds-api-gateway-svc-postgres
+          image: postgres:14.2
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: mds-api-gateway-svc-postgres-config
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgres-data
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: mds-api-gateway-svc-postgres-pvc
+---
+# Redis config.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-redis-config
+data:
+  redis-config: ""
+---
+# Redis pvc.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mds-api-gateway-svc-redis-pvc
+  labels:
+    app: mds-api-gateway-svc-redis
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+---
+# Redis service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mds-api-gateway-svc-redis-service
+  labels:
+    app: mds-api-gateway-svc-redis
+spec:
+  ports:
+    - port: 6379
+      targetPort: 6379
+  selector:
+    app: mds-api-gateway-svc-redis
+---
+# Redis deployment.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mds-api-gateway-svc-redis-deployment
+  labels:
+    app: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mds-api-gateway-svc-redis
+  template:
+    metadata:
+      labels:
+        app: mds-api-gateway-svc-redis
+    spec:
+      containers:
+        - name: mds-api-gateway-svc-redis
+          image: "docker.io/redis:6.0.5"
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: mds-api-gateway-svc-redis-pvc
+---
+# API Gateway svc config.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mds-api-gateway-svc-config
+  labels:
+    app: mds-api-gateway-svc
+data:
+  MDS_DB_CONN_STRING: postgresql://mds:mds@mds-api-gateway-svc-postgres-service/mds-api-gateway-svc
+  MDS_KAFKA_ADDR: kafka-cluster-kafka-bootstrap.kafka:9092
+  MDS_REDIS_ADDR: mds-api-gateway-svc-redis-service:6379
+  MDS_SERVE_ADDR: :8080
+  MDS_FORWARD_ADDR: internal-ingress-nginx-controller.internal-ingress-nginx
+---
+# API Gateway svc service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mds-api-gateway-svc-service
+spec:
+  type: ClusterIP
+  selector:
+    app: mds-api-gateway-svc
+  ports:
+    - port: 3000
+      targetPort: 8080
+---
+# API Gateway svc deployment.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mds-api-gateway-svc-deployment
+  annotations:
+    reloader.stakater.com/auto: "true"
+spec:
+  selector:
+    matchLabels:
+      app: mds-api-gateway-svc
+  template:
+    metadata:
+      labels:
+        app: mds-api-gateway-svc
+    spec:
+      containers:
+        - name: mds-api-gateway-svc
+          image: mds-api-gateway-svc
+          envFrom:
+            - configMapRef:
+                name: mds-api-gateway-svc-config
+          ports:
+            - containerPort: 8080

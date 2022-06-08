@@ -1,0 +1,17 @@
+# Internal ingress.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: internal-ingress
+spec:
+  ingressClassName: internal-nginx
+  rules:
+    - http:
+        paths:
+          - path: /users
+            pathType: Prefix
+            backend:
+              service:
+                name: mds-user-svc-service
+                port:
+                  number: 3000

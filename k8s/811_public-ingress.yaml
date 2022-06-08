@@ -1,0 +1,26 @@
+### Public ingress class.
+##apiVersion: networking.k8s.io/v1
+##kind: IngressClass
+##metadata:
+##  name: public-ingress
+##  namespace: ingress-nginx
+##spec:
+##  controller: haproxy.org/ingress-controller/public-ingress
+---
+# Public ingress.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: public-ingress
+spec:
+  ingressClassName: public-nginx
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mds-api-gateway-svc-service
+                port:
+                  number: 8080

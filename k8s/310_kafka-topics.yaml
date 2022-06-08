@@ -1,0 +1,14 @@
+# Naming convention: <domain>.<topic>.<version>
+# Example: testing.cats.0
+
+# Test topic.
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: core.users.0
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: kafka-cluster
+spec:
+  partitions: 1
+  replicas: 1
