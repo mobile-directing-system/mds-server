@@ -5,6 +5,7 @@ import (
 	"embed"
 	"github.com/lefinal/meh"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/connectutil"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/kafkautil"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/logging"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pgconnect"
@@ -50,6 +51,10 @@ func Run(ctx context.Context) error {
 		return meh.Wrap(err, "await hosts reachable", nil)
 	}
 	// Setup.
+	err = kafkautil.AwaitTopics(ctx, logger, c.KafkaAddr, event.UsersTopic)
+	if err != nil {
+		return meh.Wrap(err, "await topics", meh.Details{"kafka_addr": c.KafkaAddr})
+	}
 	eventPort := eventport.NewPort(kafkautil.NewWriter(logger.Named("kafka"), c.KafkaAddr))
 	ctrl := &controller.Controller{
 		Logger:   logger.Named("controller"),
