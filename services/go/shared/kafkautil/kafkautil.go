@@ -24,7 +24,7 @@ const kafkaMessageEventTypeHeader = "event-type"
 type Message struct {
 	// Topic indicates the topic the message was consumed from or should be written
 	// to if not specified otherwise.
-	Topic string
+	Topic event.Topic
 	// Key is message key (translated to and from byte slice).
 	Key string
 	// EventType is the type of event, taken from/put into Headers.
@@ -49,7 +49,7 @@ type MessageHeader struct {
 func messageFromKafkaMessage(kafkaMessage kafka.Message) Message {
 	headers, eventType := headersFromKafkaHeaders(kafkaMessage.Headers)
 	return Message{
-		Topic:     kafkaMessage.Topic,
+		Topic:     event.Topic(kafkaMessage.Topic),
 		Key:       string(kafkaMessage.Key),
 		EventType: eventType,
 		Value:     kafkaMessage.Value,
@@ -103,7 +103,7 @@ func kafkaMessageFromMessage(message Message) (kafka.Message, error) {
 		}
 	}
 	return kafka.Message{
-		Topic:   message.Topic,
+		Topic:   string(message.Topic),
 		Key:     []byte(message.Key),
 		Value:   message.RawValue,
 		Headers: kafkaHeadersFromHeaders(message.Headers, message.EventType),
@@ -154,10 +154,14 @@ func kafkaErrorLogger(logger *zap.Logger) kafka.LoggerFunc {
 }
 
 // NewReader creates a new kafka.Reader with the given parameters.
-func NewReader(logger *zap.Logger, addr string, groupID string, groupTopics []string) *kafka.Reader {
+func NewReader(logger *zap.Logger, addr string, groupID string, groupTopics []event.Topic) *kafka.Reader {
+	groupTopicsStr := make([]string, 0, len(groupTopics))
+	for _, topic := range groupTopics {
+		groupTopicsStr = append(groupTopicsStr, string(topic))
+	}
 	return kafka.NewReader(kafka.ReaderConfig{
 		Brokers:       []string{addr},
-		GroupTopics:   groupTopics,
+		GroupTopics:   groupTopicsStr,
 		GroupID:       groupID,
 		RetentionTime: time.Hour * 3600,
 		ErrorLogger:   kafkaErrorLogger(logger),
