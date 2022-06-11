@@ -28,8 +28,25 @@ author = 'Yves Haas, Laurin Todt, Lennart Altenhof'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    "sphinx.ext.duration"
+    "sphinx.ext.duration",
+    "sphinx.ext.extlinks"
 ]
+
+# Add external URLs.
+
+extlinks = {
+    "docker-homepage": ("https://www.docker.com/", "Docker"),
+    "docker-install": ("https://docs.docker.com/get-docker/", "Install Docker"),
+    "git-homepage": ("https://git-scm.com/", "Git"),
+    "github-repo": ("https://github.com/mobile-directing-system/mds-server", "GitHub Repository"),
+    "goland-homepage": ("https://www.jetbrains.com/go/", "GoLand"),
+    "intellij-cloud-code-plugin-homepage": ("https://plugins.jetbrains.com/plugin/8079-cloud-code", "IntelliJ Cloud Code Plugin"),
+    "intellij-cloud-code-plugin-install": ("https://cloud.google.com/code/docs/intellij/install", "Cloud Code Instructions"),
+    "minikube-homepage": ("https://minikube.sigs.k8s.io/", "minikube Homepage"),
+    "minikube-install": ("https://minikube.sigs.k8s.io/docs/start/", "Install minikube"),
+    "skaffold-homepage": ("https://skaffold.dev/", "Skaffold Homepage"),
+    "skaffold-install": ("https://skaffold.dev/docs/install/", "Install Skaffold"),
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
