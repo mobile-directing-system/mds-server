@@ -1,10 +1,11 @@
 <!doctype html>
-<html class="no-js" lang="en">
+<html class="no-js">
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="prev" title="Configuration" href="configuration.html" />
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Development" href="development.html" /><link rel="prev" title="Configuration" href="configuration.html" />
 
-    <meta name="generator" content="sphinx-5.0.1, furo 2022.06.04.1"/>
+    <meta name="generator" content="sphinx-4.5.0, furo 2022.06.04.1"/>
         <title>API Gateway - MDS Server documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=40978830699223671f4072448e654b5958f38b89" />
@@ -157,6 +158,7 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">API Gateway</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
 </ul>
 
 </div>
@@ -190,8 +192,8 @@
           </label>
         </div>
         <article role="main">
-          <div class="section" id="api-gateway">
-<h1>API Gateway<a class="headerlink" href="#api-gateway" title="Permalink to this heading">#</a></h1>
+          <section id="api-gateway">
+<h1>API Gateway<a class="headerlink" href="#api-gateway" title="Permalink to this headline">#</a></h1>
 <p>MDS Server uses a concept of passing authentication information via HTTP headers.
 The public Ingress forwards HTTP requests to the API Gateway.
 This one manages sessions and handles login as well as logout.
@@ -201,8 +203,8 @@ If he seems to be, user details are retrieved from the database regarding the lo
 The HTTP request is forwarded with the generated “internal” token to the internal Ingress, that forwards to internal services.
 Each service can then parse and validate the token, containing all relevant user information like username, permissions, etc.
 Therefore, each service can check permissions, if needed, but session management only needs to be handled by the API Gateway.</p>
-<div class="section" id="logging-in">
-<h2>Logging in<a class="headerlink" href="#logging-in" title="Permalink to this heading">#</a></h2>
+<section id="logging-in">
+<h2>Logging in<a class="headerlink" href="#logging-in" title="Permalink to this headline">#</a></h2>
 <p>Login with username and password via:</p>
 <p><cite>POST /login</cite></p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
@@ -218,28 +220,36 @@ Therefore, each service can check permissions, if needed, but session management
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="making-requests">
-<h2>Making requests<a class="headerlink" href="#making-requests" title="Permalink to this heading">#</a></h2>
+</section>
+<section id="making-requests">
+<h2>Making requests<a class="headerlink" href="#making-requests" title="Permalink to this headline">#</a></h2>
 <p>Each request should be made with the HTTP header:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Authorization</span><span class="p">:</span> <span class="n">Bearer</span> <span class="o">&lt;</span><span class="n">the</span><span class="o">-</span><span class="n">access</span><span class="o">-</span><span class="n">token</span><span class="o">&gt;</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="logging-out">
-<h2>Logging out<a class="headerlink" href="#logging-out" title="Permalink to this heading">#</a></h2>
+</section>
+<section id="logging-out">
+<h2>Logging out<a class="headerlink" href="#logging-out" title="Permalink to this headline">#</a></h2>
 <p>Logging out is done via:</p>
 <p><cite>POST /logout</cite></p>
 <p>This returns <cite>200</cite>, if logging out was successful.</p>
-</div>
-</div>
+</section>
+</section>
 
         </article>
       </div>
       <footer>
         
         <div class="related-pages">
-          
+          <a class="next-page" href="development.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Development</div>
+              </div>
+              <svg><use href="#svg-arrow-right"></use></svg>
+            </a>
           <a class="prev-page" href="configuration.html">
               <svg><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
@@ -301,7 +311,6 @@ Therefore, each service can check permissions, if needed, but session management
 </div><script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
     <script src="../_static/jquery.js"></script>
     <script src="../_static/underscore.js"></script>
-    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../_static/doctools.js"></script>
     <script src="../_static/scripts/furo.js"></script>
     </body>
