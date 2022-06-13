@@ -73,7 +73,7 @@ func Run(ctx context.Context) error {
 	})
 	// Serve endpoints.
 	eg.Go(func() error {
-		err = endpoints.Serve(egCtx, logger.Named("endpoints"), c.ServeAddr, c.AuthTokenSecret)
+		err = endpoints.Serve(egCtx, logger.Named("endpoints"), c.ServeAddr, c.AuthTokenSecret, ctrl)
 		if err != nil {
 			return meh.Wrap(err, "serve endpoints", meh.Details{"serve_addr": c.ServeAddr})
 		}
