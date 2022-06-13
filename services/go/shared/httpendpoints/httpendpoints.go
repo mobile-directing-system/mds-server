@@ -5,7 +5,9 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/lefinal/meh"
+	"github.com/lefinal/meh/mehgin"
 	"github.com/lefinal/meh/mehhttp"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/auth"
 	"go.uber.org/zap"
 	"log"
 	"net/http"
@@ -75,8 +77,35 @@ func ApplyDefaultErrorHTTPMapping() {
 			return http.StatusNotFound
 		case meh.ErrUnauthorized:
 			return http.StatusUnauthorized
+		case meh.ErrForbidden:
+			return http.StatusForbidden
 		default:
 			return http.StatusInternalServerError
 		}
 	})
+}
+
+// HandlerFunc is meant to be used with GinHandlerFunc and acts similarly to
+// gin.HandlerFunc. If used with GinHandlerFunc, this will also append the
+// auth.Token to error details.
+type HandlerFunc func(c *gin.Context, token auth.Token) error
+
+// GinHandlerFunc creaets a gin.HandlerFunc from the given HandlerFunc. The
+// error returned is passed to mehgin.LogAndRespondError with the given
+// zap.Logger.
+func GinHandlerFunc(logger *zap.Logger, secret string, fn HandlerFunc) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Parse auth token.
+		token, err := auth.ParseJWTTokenFromHeader(c, secret)
+		if err != nil {
+			mehgin.LogAndRespondError(logger, c, meh.Wrap(err, "parse jwt token from header", nil))
+			return
+		}
+		// Call handler.
+		err = fn(c, token)
+		if err != nil {
+			mehgin.LogAndRespondError(logger, c, meh.ApplyDetails(err, meh.Details{"token": token}))
+			return
+		}
+	}
 }

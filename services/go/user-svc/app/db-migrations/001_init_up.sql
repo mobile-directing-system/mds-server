@@ -17,3 +17,6 @@ comment on column users.username is 'The username for logging in.';
 comment on column users.first_name is 'The first name of the user.';
 comment on column users.last_name is 'The last name of the user.';
 comment on column users.pass is 'The hashed password of the user.';
+
+create unique index users_username_uindex
+    on users (username);
