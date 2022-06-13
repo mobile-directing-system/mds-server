@@ -1,4 +1,4 @@
-name: "Go Service {{SERVICE}}"
+name: "Service {{SERVICE}} (Go)"
 
 on: [ push, pull_request ]
 

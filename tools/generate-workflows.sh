@@ -19,5 +19,5 @@ for SERVICE in $(ls ${GO_SERVICES}); do
   # Replace workflow name.
   WORKFLOW=$(echo "${GO_WORKFLOW_TEMPLATE}" | sed "s/{{SERVICE}}/${SERVICE}/g")
   # Save workflow.
-  echo "${WORKFLOW}" > ${WORKFLOW_DIR}/${GEN_PREFIX}go_${SERVICE}.yaml
+  echo "${WORKFLOW}" > ${WORKFLOW_DIR}/${GEN_PREFIX}service_go_${SERVICE}.yaml
 done
