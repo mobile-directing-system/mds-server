@@ -8,7 +8,7 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.3.0
 	github.com/jackc/pgx/v4 v4.16.1
-	github.com/lefinal/meh v1.3.0
+	github.com/lefinal/meh v1.5.0
 	github.com/lefinal/nulls v1.2.0
 	github.com/segmentio/kafka-go v0.4.31
 	github.com/stretchr/testify v1.7.1

@@ -35,19 +35,22 @@ func (c *Controller) AssureAdminUser(ctx context.Context) error {
 			return meh.NewInternalErrFromErr(err, "hash password", nil)
 		}
 		// Admin user does not exist -> create.
-		adminUser = store.User{
-			Username:  adminUsername,
-			FirstName: "Admin",
-			LastName:  "Admin",
-			IsAdmin:   true,
-			Pass:      adminPassHashed,
+		adminUserWithPass := store.UserWithPass{
+			User: store.User{
+				Username:  adminUsername,
+				FirstName: "Admin",
+				LastName:  "Admin",
+				IsAdmin:   true,
+			},
+			Pass: adminPassHashed,
 		}
-		adminUser, err = c.Store.CreateUser(ctx, tx, adminUser)
+		adminUser, err = c.Store.CreateUser(ctx, tx, adminUserWithPass)
 		if err != nil {
 			return meh.Wrap(err, "create admin user", nil)
 		}
 		// Write events.
-		err = c.Notifier.NotifyUserCreated(adminUser)
+		adminUserWithPass.User = adminUser
+		err = c.Notifier.NotifyUserCreated(adminUserWithPass)
 		if err != nil {
 			return meh.Wrap(err, "notify user created", nil)
 		}

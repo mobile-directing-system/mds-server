@@ -1,4 +1,4 @@
-name: "Go Service {{SERVICE}}"
+name: "Service {{SERVICE}} (Go)"
 
 on: [ push, pull_request ]
 
@@ -21,6 +21,22 @@ jobs:
       - name: Build
         working-directory: services/go/{{SERVICE}}
         run: go build -i -v main.go
+
+  docker_build:
+    if: ${{ '{{SERVICE}}' != 'shared' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          file: services/go/{{SERVICE}}/Dockerfile
+          context: ./
+          push: false
 
   test:
     runs-on: ubuntu-latest

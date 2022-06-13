@@ -15,9 +15,12 @@ GO_WORKFLOW_TEMPLATE=$(cat ${BASE_DIR}/tools/workflow-template-go.yaml)
 
 # Iterate over each go-service.
 for SERVICE in $(ls ${GO_SERVICES}); do
+  if [ "${SERVICE}" = "shared" ]; then
+    continue
+  fi
   echo "generating workflow for go-service ${SERVICE}..."
   # Replace workflow name.
   WORKFLOW=$(echo "${GO_WORKFLOW_TEMPLATE}" | sed "s/{{SERVICE}}/${SERVICE}/g")
   # Save workflow.
-  echo "${WORKFLOW}" > ${WORKFLOW_DIR}/${GEN_PREFIX}go_${SERVICE}.yaml
+  echo "${WORKFLOW}" > ${WORKFLOW_DIR}/${GEN_PREFIX}service_go_${SERVICE}.yaml
 done

@@ -56,6 +56,10 @@ func Run(ctx context.Context) error {
 	// Setup Redis.
 	redisClient := redis.NewClient(&redis.Options{Addr: c.RedisAddr})
 	// Setup Kafka.
+	err = kafkautil.AwaitTopics(ctx, logger, c.KafkaAddr, event.UsersTopic, event.AuthTopic)
+	if err != nil {
+		return meh.Wrap(err, "await topics", meh.Details{"kafka_addr": c.KafkaAddr})
+	}
 	kafkaWriter := kafkautil.NewWriter(logger.Named("kafka-writer"), c.KafkaAddr)
 	eventPort := eventport.NewPort(kafkaWriter)
 	// Setup controller.
@@ -72,7 +76,7 @@ func Run(ctx context.Context) error {
 	eg.Go(func() error {
 		logger := logger.Named("kafka-reader")
 		kafkaReader := kafkautil.NewReader(logger, c.KafkaAddr, kafkaGroupID,
-			[]string{event.UsersTopic})
+			[]event.Topic{event.UsersTopic})
 		err := kafkautil.Read(egCtx, logger, kafkaReader, eventPort.HandlerFn(ctrl))
 		if err != nil {
 			return meh.Wrap(err, "read kafka messages", nil)

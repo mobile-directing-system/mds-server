@@ -44,29 +44,31 @@ func GenJWTToken(token Token, secret string) (string, error) {
 	return signedJWTToken, nil
 }
 
-// ParseJWTToken validates and parses the given signed JWT token.
+// ParseJWTToken validates and parses the given signed JWT token. Errors
+// regarding parsing are returned as meh.ErrInternal because we expect the token
+// to be valid as it is supplied by the API Gateway.
 func ParseJWTToken(signedToken string, secret string) (Token, error) {
 	// Parse JWT token.
 	jwtToken, err := jwt.Parse(signedToken, func(token *jwt.Token) (interface{}, error) {
 		// Validate signing method.
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, meh.NewBadInputErr("unexpected signing method",
+			return nil, meh.NewInternalErr("unexpected signing method",
 				meh.Details{"was": token.Header["alg"]})
 		}
 		return []byte(secret), nil
 	})
 	if err != nil {
-		return Token{}, meh.NewBadInputErrFromErr(err, "parse jwt token", nil)
+		return Token{}, meh.NewInternalErrFromErr(err, "parse jwt token", nil)
 	}
 	// Extract claims.
 	claims, ok := jwtToken.Claims.(jwt.MapClaims)
 	if !ok {
-		return Token{}, meh.NewBadInputErr("cannot cast jwt token claims",
+		return Token{}, meh.NewInternalErr("cannot cast jwt token claims",
 			meh.Details{"was": reflect.TypeOf(jwtToken.Claims)})
 	}
 	tokenRawMap, ok := claims[jwtClaimName]
 	if !ok {
-		return Token{}, meh.NewBadInputErr("missing token payload", nil)
+		return Token{}, meh.NewInternalErr("missing token payload", nil)
 	}
 	// We get the token as a raw go map with strings. Currently, we cannot unmarshal
 	// it into struct directly, so we simply marshal it as JSOn and then unmarshal
@@ -74,13 +76,13 @@ func ParseJWTToken(signedToken string, secret string) (Token, error) {
 	// libraries for that job.
 	tokenRaw, err := json.Marshal(tokenRawMap)
 	if err != nil {
-		return Token{}, meh.NewBadInputErrFromErr(err, "cannot marshal raw token map", nil)
+		return Token{}, meh.NewInternalErrFromErr(err, "cannot marshal raw token map", nil)
 	}
 	// Parse token.
 	var token Token
 	err = json.Unmarshal(tokenRaw, &token)
 	if err != nil {
-		return Token{}, meh.NewBadInputErrFromErr(err, "unmarshal token", nil)
+		return Token{}, meh.NewInternalErrFromErr(err, "unmarshal token", nil)
 	}
 	return token, nil
 }
@@ -98,20 +100,6 @@ func ParseJWTTokenFromHeader(c *gin.Context, secret string) (Token, error) {
 		return Token{}, meh.Wrap(err, "parse jwt token", meh.Details{"jwt_token": jwtToken})
 	}
 	return token, nil
-}
-
-// HasPermissionFromJWTTokenFromHeader parses the JWT token from the given
-// gin.Context and checks for permissions using HasPermission.
-func HasPermissionFromJWTTokenFromHeader(c *gin.Context, secret string, permissionMatcher permission.Matcher) (bool, error) {
-	token, err := ParseJWTTokenFromHeader(c, secret)
-	if err != nil {
-		return false, meh.Wrap(err, "parse jwt token from header", nil)
-	}
-	ok, err := HasPermission(token, permissionMatcher)
-	if err != nil {
-		return false, meh.Wrap(err, "check for permissions", meh.Details{"token": token})
-	}
-	return ok, nil
 }
 
 // HasPermission matches the given Token against the permission.Matcher.
