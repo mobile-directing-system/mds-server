@@ -11,7 +11,7 @@ jobs:
     name: Lines of Code
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
 
       - name: Make LoC Badge
         uses: shadowmoose/GHA-LoC-Badge@1.0.0
@@ -20,7 +20,7 @@ jobs:
           debug: true
           directory: ./
           badge: ./output/badge-loc.svg
-          patterns: '*.go'  # Patterns in the format of a '.gitignore' file, separated by pipes.
+          patterns: '**/*.go'
 
       - name: Print the output
         run: |
