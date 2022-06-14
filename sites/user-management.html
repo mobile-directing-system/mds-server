@@ -3,10 +3,10 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Users" href="user-management.html" /><link rel="prev" title="General HTTP API" href="general-http-api.html" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Permissions" href="permissions.html" /><link rel="prev" title="API Gateway" href="api-gateway.html" />
 
     <meta name="generator" content="sphinx-4.5.0, furo 2022.06.04.1"/>
-        <title>API Gateway - MDS Server documentation</title>
+        <title>Users - MDS Server documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=40978830699223671f4072448e654b5958f38b89" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
@@ -158,8 +158,8 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="general-http-api.html">General HTTP API</a></li>
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">API Gateway</a></li>
-<li class="toctree-l1"><a class="reference internal" href="user-management.html">Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api-gateway.html">API Gateway</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Users</a></li>
 <li class="toctree-l1"><a class="reference internal" href="permissions.html">Permissions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
 </ul>
@@ -195,47 +195,94 @@
           </label>
         </div>
         <article role="main">
-          <section id="api-gateway">
-<span id="chapter-api-gateway"></span><h1>API Gateway<a class="headerlink" href="#api-gateway" title="Permalink to this headline">#</a></h1>
-<p>MDS Server uses a concept of passing authentication information via HTTP headers.
-The public Ingress forwards HTTP requests to the API Gateway.
-This one manages sessions and handles login as well as logout.
-After having logged in, the client is supplied with a public token, that it uses for all request.
-For each request, the API Gateway uses the public token for checking if the client is logged in.
-If he seems to be, user details are retrieved from the database regarding the logged in user and an internal signed JWT token is generated.
-The HTTP request is forwarded with the generated “internal” token to the internal Ingress, that forwards to internal services.
-Each service can then parse and validate the token, containing all relevant user information like username, permissions, etc.
-Therefore, each service can check permissions, if needed, but session management only needs to be handled by the API Gateway.</p>
-<section id="logging-in">
-<h2>Logging in<a class="headerlink" href="#logging-in" title="Permalink to this headline">#</a></h2>
-<p>Login with username and password via:</p>
-<p><cite>POST /login</cite></p>
+          <section id="users">
+<h1>Users<a class="headerlink" href="#users" title="Permalink to this headline">#</a></h1>
+<p>This section covers all user-related actions and API endpoints.</p>
+<section id="create-user">
+<h2>Create user<a class="headerlink" href="#create-user" title="Permalink to this headline">#</a></h2>
+<p>In order to create a user, the <a class="reference internal" href="permissions.html#permission-user-create"><span class="std std-ref">user.create</span></a> permission is needed.
+Creating a user is done by calling:</p>
+<p><cite>POST /users</cite></p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;username_for_logging_in&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;first_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Max&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mustermann&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;is_admin&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;pass&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;password_in_plaintext&gt;&quot;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+<p>Response:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assigned_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;username&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;pass&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;password&gt;&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;first_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Max&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mustermann&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;is_admin&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-<p>Response <cite>200</cite>:</p>
+<p>Keep in mind, that for creating a user with <code class="docutils literal notranslate"><span class="pre">is_admin</span></code> set to <code class="docutils literal notranslate"><span class="pre">true</span></code>, the <a class="reference internal" href="permissions.html#permission-user-set-admin"><span class="std std-ref">user.set-admin</span></a> permission is needed as well.</p>
+</section>
+<section id="update-user">
+<h2>Update user<a class="headerlink" href="#update-user" title="Permalink to this headline">#</a></h2>
+<p>Updating a user requires the <a class="reference internal" href="permissions.html#permission-user-update"><span class="std std-ref">user.update</span></a> permission.
+If provided, updating is done via:</p>
+<p><cite>PUT /users/&lt;user_id&gt;</cite></p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;access_token&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;the-access-token&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;token_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Bearer&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="nt">&quot;&lt;user_id&gt;&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;username_for_logging_in&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;first_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Max&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mustermann&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;is_admin&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+<p>As with creating a user, changing the <code class="docutils literal notranslate"><span class="pre">is_admin</span></code>-field requires the <a class="reference internal" href="permissions.html#permission-user-set-admin"><span class="std std-ref">user.set-admin</span></a> permission, too.</p>
+</section>
+<section id="update-user-password">
+<h2>Update user password<a class="headerlink" href="#update-user-password" title="Permalink to this headline">#</a></h2>
+<p>Updating a user’s password, not being the caller, requires the <a class="reference internal" href="permissions.html#permission-user-update-pass"><span class="std std-ref">user.update-pass</span></a> permission and is done via:</p>
+<p><cite>PUT /users/&lt;user_id/pass</cite></p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;user_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;user_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;new_pass&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;new_password_in_plaintext&gt;&quot;</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
 </section>
-<section id="making-requests">
-<h2>Making requests<a class="headerlink" href="#making-requests" title="Permalink to this headline">#</a></h2>
-<p>Each request should be made with the HTTP header:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Authorization</span><span class="p">:</span> <span class="n">Bearer</span> <span class="o">&lt;</span><span class="n">the</span><span class="o">-</span><span class="n">access</span><span class="o">-</span><span class="n">token</span><span class="o">&gt;</span>
+<section id="delete-user">
+<h2>Delete user<a class="headerlink" href="#delete-user" title="Permalink to this headline">#</a></h2>
+<p>Deleting a user requires the <a class="reference internal" href="permissions.html#permission-user-delete"><span class="std std-ref">user.delete</span></a> permission and is done via:</p>
+<p><cite>DELETE /users/&lt;user_id&gt;</cite></p>
+</section>
+<section id="retrieve-users">
+<h2>Retrieve users<a class="headerlink" href="#retrieve-users" title="Permalink to this headline">#</a></h2>
+<p>Retrieving users, not being the caller, requires the <a class="reference internal" href="permissions.html#permission-user-view"><span class="std std-ref">user.view</span></a> permission.
+A single user can be retrieved using:</p>
+<p><cite>GET /users/&lt;user_id&gt;</cite></p>
+<p>Response:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assigned_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;username&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;first_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Max&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mustermann&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;is_admin&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-</section>
-<section id="logging-out">
-<h2>Logging out<a class="headerlink" href="#logging-out" title="Permalink to this headline">#</a></h2>
-<p>Logging out is done via:</p>
-<p><cite>POST /logout</cite></p>
-<p>This returns <cite>200</cite>, if logging out was successful.</p>
+<p><a class="reference internal" href="general-http-api.html#http-api-pagination"><span class="std std-ref">Paginated</span></a> user lists can be retrieved via:</p>
+<p><cite>GET /users</cite></p>
+<p>Entry payload:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assigned_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;username&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;first_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Max&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mustermann&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;is_admin&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
 </section>
 </section>
 
@@ -244,23 +291,23 @@ Therefore, each service can check permissions, if needed, but session management
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="user-management.html">
+          <a class="next-page" href="permissions.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Users</div>
+                <div class="title">Permissions</div>
               </div>
               <svg><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="general-http-api.html">
+          <a class="prev-page" href="api-gateway.html">
               <svg><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">General HTTP API</div>
+                <div class="title">API Gateway</div>
                 
               </div>
             </a>
@@ -296,10 +343,12 @@ Therefore, each service can check permissions, if needed, but session management
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">API Gateway</a><ul>
-<li><a class="reference internal" href="#logging-in">Logging in</a></li>
-<li><a class="reference internal" href="#making-requests">Making requests</a></li>
-<li><a class="reference internal" href="#logging-out">Logging out</a></li>
+<li><a class="reference internal" href="#">Users</a><ul>
+<li><a class="reference internal" href="#create-user">Create user</a></li>
+<li><a class="reference internal" href="#update-user">Update user</a></li>
+<li><a class="reference internal" href="#update-user-password">Update user password</a></li>
+<li><a class="reference internal" href="#delete-user">Delete user</a></li>
+<li><a class="reference internal" href="#retrieve-users">Retrieve users</a></li>
 </ul>
 </li>
 </ul>
