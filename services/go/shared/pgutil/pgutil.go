@@ -14,7 +14,7 @@ import (
 // logging.DebugLogger.
 func Rollback(ctx context.Context, tx pgx.Tx) {
 	err := tx.Rollback(ctx)
-	if err != nil {
+	if err != nil && err != pgx.ErrTxClosed {
 		mehlog.Log(logging.DebugLogger(), meh.NewInternalErrFromErr(err, "rollback tx", nil))
 		return
 	}
