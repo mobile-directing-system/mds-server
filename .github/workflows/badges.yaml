@@ -1,10 +1,14 @@
-on: [push]
 name: Badges
 
+on:
+  push:
+    branches:
+      - main
+
 jobs:
-  hello_world_job:
+  lines_of_code:
     runs-on: ubuntu-latest
-    name: Test Run
+    name: Lines of Code
     steps:
       - name: Checkout
         uses: actions/checkout@v1
@@ -13,6 +17,7 @@ jobs:
         uses: shadowmoose/GHA-LoC-Badge@1.0.0
         id: badge
         with:
+          debug: true
           directory: ./
           badge: ./output/badge-loc.svg
           patterns: '*.go'  # Patterns in the format of a '.gitignore' file, separated by pipes.
