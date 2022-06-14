@@ -11,6 +11,7 @@ import (
 
 // Serve the endpoints via HTTP.
 func Serve(lifetime context.Context, logger *zap.Logger, addr string, authSecret string, ctrl *controller.Controller) error {
+	httpendpoints.ApplyDefaultErrorHTTPMapping()
 	r := httpendpoints.NewEngine(logger)
 	populateRoutes(r, logger, authSecret, ctrl)
 	err := httpendpoints.Serve(lifetime, r, addr)
