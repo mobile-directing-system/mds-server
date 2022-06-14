@@ -20,7 +20,8 @@ var (
 // is returned.
 func ParamsFromRequest(c *gin.Context) (Params, error) {
 	params := Params{
-		Limit: DefaultLimit,
+		Limit:          DefaultLimit,
+		OrderDirection: "asc",
 	}
 	// Extract limit.
 	limitStr := c.Query(LimitQueryParam)
@@ -45,6 +46,12 @@ func ParamsFromRequest(c *gin.Context) (Params, error) {
 	if orderBy != "" {
 		params.OrderBy = nulls.NewString(orderBy)
 	}
-	params.OrderDirection = c.Query(OrderDirQueryParam)
+	orderDirection := c.Query(OrderDirQueryParam)
+	if orderDirection != "" {
+		if orderDirection != "asc" && orderDirection != "desc" {
+			return Params{}, meh.NewBadInputErr("invalid order direction", meh.Details{"was": orderDirection})
+		}
+		params.OrderDirection = orderDirection
+	}
 	return params, nil
 }

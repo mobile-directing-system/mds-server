@@ -703,7 +703,6 @@ type ControllerUsersSuite struct {
 func (suite *ControllerUsersSuite) SetupTest() {
 	suite.ctrl = NewMockController()
 	suite.params = pagination.Params{
-		Limit:          nulls.Int{},
 		Offset:         89,
 		OrderBy:        nulls.NewString("hi"),
 		OrderDirection: "desc",

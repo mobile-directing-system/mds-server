@@ -37,6 +37,11 @@ func (suite *ParamsFromRequestSuite) TestBadOffset() {
 	suite.Error(err, "should fail")
 }
 
+func (suite *ParamsFromRequestSuite) TestOrderDirection() {
+	_, err := ParamsFromRequest(suite.genContext("", "hello", "", "abc"))
+	suite.Error(err, "should fail")
+}
+
 func (suite *ParamsFromRequestSuite) TestOK1() {
 	params, err := ParamsFromRequest(suite.genContext("1", "", "hello", ""))
 	suite.Require().NoError(err, "should not fail")
@@ -44,7 +49,7 @@ func (suite *ParamsFromRequestSuite) TestOK1() {
 		Limit:          1,
 		Offset:         0,
 		OrderBy:        nulls.NewString("hello"),
-		OrderDirection: "",
+		OrderDirection: "asc",
 	}, params, "should return correct params")
 }
 
@@ -66,18 +71,18 @@ func (suite *ParamsFromRequestSuite) TestOK3() {
 		Limit:          1,
 		Offset:         1,
 		OrderBy:        nulls.String{},
-		OrderDirection: "",
+		OrderDirection: "asc",
 	}, params, "should return correct params")
 }
 
 func (suite *ParamsFromRequestSuite) TestOK4() {
-	params, err := ParamsFromRequest(suite.genContext("1", "2", "3", "4"))
+	params, err := ParamsFromRequest(suite.genContext("1", "2", "3", "asc"))
 	suite.Require().NoError(err, "should not fail")
 	suite.Equal(Params{
 		Limit:          1,
 		Offset:         2,
 		OrderBy:        nulls.NewString("3"),
-		OrderDirection: "4",
+		OrderDirection: "asc",
 	}, params, "should return correct params")
 }
 

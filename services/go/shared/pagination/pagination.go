@@ -20,6 +20,11 @@ type Paginated[T any] struct {
 	Limit int `json:"limit"`
 	// Offset that was applied for retrieving the Entries.
 	Offset int `json:"offset"`
+	// OrderedBy is the optional field the entries are ordered by.
+	OrderedBy nulls.String `json:"ordered_by"`
+	// OrderDirection is the direction, the fields are ordered by, if OrderedBy is
+	// set.
+	OrderDirection string `json:"order_direction"`
 	// Retrieves is the amount of entries in Entries.
 	Retrieved int `json:"retrieved"`
 	// Entries are the actually retrieved entries.
@@ -35,18 +40,20 @@ type Params struct {
 	// OrderBy is an optional field to order results by.
 	OrderBy nulls.String `json:"order_by"`
 	// OrderDirection is the optional direction to use for ordering with OrderBy.
-	OrderDirection string `json:"order_direction"`
+	OrderDirection string `json:"order_dir"`
 }
 
 // NewPaginated builds a Paginated from the given Params and entry
 // list.
 func NewPaginated[T any](params Params, entries []T, totalCount int) Paginated[T] {
 	return Paginated[T]{
-		Total:     totalCount,
-		Limit:     params.Limit,
-		Offset:    params.Offset,
-		Retrieved: len(entries),
-		Entries:   entries,
+		Total:          totalCount,
+		Limit:          params.Limit,
+		Offset:         params.Offset,
+		Retrieved:      len(entries),
+		OrderedBy:      params.OrderBy,
+		OrderDirection: params.OrderDirection,
+		Entries:        entries,
 	}
 }
 
@@ -57,10 +64,12 @@ func MapPaginated[From any, To any](paginatedFrom Paginated[From], mapFn func(fr
 		mappedEntries = append(mappedEntries, mapFn(from))
 	}
 	return Paginated[To]{
-		Total:     paginatedFrom.Total,
-		Limit:     paginatedFrom.Limit,
-		Offset:    paginatedFrom.Offset,
-		Retrieved: paginatedFrom.Retrieved,
-		Entries:   mappedEntries,
+		Total:          paginatedFrom.Total,
+		Limit:          paginatedFrom.Limit,
+		Offset:         paginatedFrom.Offset,
+		Retrieved:      paginatedFrom.Retrieved,
+		OrderedBy:      paginatedFrom.OrderedBy,
+		OrderDirection: paginatedFrom.OrderDirection,
+		Entries:        mappedEntries,
 	}
 }
