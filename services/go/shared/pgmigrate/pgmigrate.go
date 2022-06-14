@@ -88,7 +88,7 @@ func (m *migrator) Up(ctx context.Context, logger *zap.Logger, db *pgx.Conn) err
 	}
 	// Run migrations.
 	for i, migration := range migrationsToDo {
-		logger.Info(fmt.Sprintf("running database migration %d/%d", i, len(migrationsToDo)),
+		logger.Info(fmt.Sprintf("running database migration %d/%d", i+1, len(migrationsToDo)),
 			zap.String("name", migration.Name),
 			zap.Int("target_version", migration.TargetVersion))
 		err = m.runMigration(ctx, db, migration)
