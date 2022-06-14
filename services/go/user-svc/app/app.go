@@ -40,6 +40,7 @@ func Run(ctx context.Context) error {
 	if err != nil {
 		return meh.Wrap(err, "new logger", nil)
 	}
+	logging.SetDebugLogger(logger.Named("debug"))
 	// Connect to database.
 	sqlDB, err := pgconnect.ConnectAndRunMigrations(ctx, logger, c.DBConnString, dbMigrations)
 	if err != nil {

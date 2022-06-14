@@ -18,7 +18,7 @@ func DebugLogger() *zap.Logger {
 	debugLoggerMutex.RLock()
 	defer debugLoggerMutex.RUnlock()
 	if debugLogger == nil {
-		tempLogger, _ := zap.NewProduction()
+		tempLogger, _ := NewLogger("debug", zap.InfoLevel)
 		return tempLogger
 	}
 	return debugLogger
@@ -35,6 +35,21 @@ func SetDebugLogger(logger *zap.Logger) {
 // returned logged before exiting!
 func NewLogger(serviceName string, level zapcore.Level) (*zap.Logger, error) {
 	config := zap.NewProductionConfig()
+	config.Encoding = "console"
+	config.EncoderConfig = zapcore.EncoderConfig{
+		TimeKey:        "ts",
+		LevelKey:       "level",
+		NameKey:        "logger",
+		CallerKey:      "caller",
+		FunctionKey:    zapcore.OmitKey,
+		MessageKey:     "msg",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.CapitalLevelEncoder,
+		EncodeTime:     zapcore.RFC3339TimeEncoder,
+		EncodeDuration: zapcore.StringDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
+	}
 	config.OutputPaths = []string{"stdout"}
 	config.Level = zap.NewAtomicLevelAt(level)
 	config.DisableCaller = true
@@ -43,5 +58,5 @@ func NewLogger(serviceName string, level zapcore.Level) (*zap.Logger, error) {
 	if err != nil {
 		return nil, meh.NewInternalErrFromErr(err, "new zap production logger", meh.Details{"config": config})
 	}
-	return logger, nil
+	return logger.Named(serviceName), nil
 }

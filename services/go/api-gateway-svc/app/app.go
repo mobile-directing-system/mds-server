@@ -43,6 +43,7 @@ func Run(ctx context.Context) error {
 	if err != nil {
 		return meh.Wrap(err, "new logger", nil)
 	}
+	logging.SetDebugLogger(logger.Named("debug"))
 	defer func() { _ = logger.Sync() }()
 	err = connectutil.AwaitHostsReachable(ctx, c.KafkaAddr, c.RedisAddr)
 	if err != nil {
