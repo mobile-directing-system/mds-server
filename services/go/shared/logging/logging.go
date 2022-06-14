@@ -2,6 +2,7 @@ package logging
 
 import (
 	"github.com/lefinal/meh"
+	"github.com/lefinal/meh/mehlog"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"sync"
@@ -11,6 +12,19 @@ var (
 	debugLogger      *zap.Logger
 	debugLoggerMutex sync.RWMutex
 )
+
+func init() {
+	mehlog.SetDefaultLevelTranslator(func(code meh.Code) zapcore.Level {
+		switch code {
+		case meh.ErrNotFound,
+			meh.ErrUnauthorized,
+			meh.ErrBadInput:
+			return zapcore.DebugLevel
+		default:
+			return zapcore.ErrorLevel
+		}
+	})
+}
 
 // DebugLogger returns the logger set via SetDebugLogger. If none is set, a
 // zap.NewProduction will be created.
