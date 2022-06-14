@@ -187,8 +187,9 @@ func handleUpdateUserByID(s handleUpdateUserByIDStore) httpendpoints.HandlerFunc
 	}
 }
 
-// updateUserPassRequest is the request body for handleUpdateUserPassByUserID.
-type updateUserPassRequest struct {
+// updateUserPassByUserIDRequest is the request body for
+// handleUpdateUserPassByUserID.
+type updateUserPassByUserIDRequest struct {
 	// UserID is the id of the user to update the password for.
 	UserID uuid.UUID `json:"user_id"`
 	// NewPass is the new password in plaintext.
@@ -209,7 +210,7 @@ func handleUpdateUserPassByUserID(s handleUpdateUserPassByUserIDStore) httpendpo
 			return meh.NewUnauthorizedErr("not authenticated", nil)
 		}
 		// Parse body.
-		var reqBody updateUserPassRequest
+		var reqBody updateUserPassByUserIDRequest
 		err := json.NewDecoder(c.Request.Body).Decode(&reqBody)
 		if err != nil {
 			return meh.NewBadInputErrFromErr(err, "decode body", nil)

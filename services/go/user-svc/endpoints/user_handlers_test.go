@@ -462,14 +462,14 @@ type handleUpdateUserPassByUserIDSuite struct {
 	suite.Suite
 	s          *handleUpdateUserPassByUserIDStoreMock
 	r          *gin.Engine
-	updatePass updateUserPassRequest
+	updatePass updateUserPassByUserIDRequest
 }
 
 func (suite *handleUpdateUserPassByUserIDSuite) SetupTest() {
 	suite.s = &handleUpdateUserPassByUserIDStoreMock{}
 	suite.r = testutil.NewGinEngine()
 	suite.r.PUT("/:userID/pass", httpendpoints.GinHandlerFunc(zap.NewNop(), "", handleUpdateUserPassByUserID(suite.s)))
-	suite.updatePass = updateUserPassRequest{
+	suite.updatePass = updateUserPassByUserIDRequest{
 		UserID:  uuid.New(),
 		NewPass: "industry",
 	}
