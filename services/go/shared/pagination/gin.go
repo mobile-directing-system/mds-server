@@ -19,7 +19,9 @@ var (
 // parameters. In case of invalid format or other problems, an meh.ErrBadInput
 // is returned.
 func ParamsFromRequest(c *gin.Context) (Params, error) {
-	var params Params
+	params := Params{
+		Limit: DefaultLimit,
+	}
 	// Extract limit.
 	limitStr := c.Query(LimitQueryParam)
 	if limitStr != "" {
@@ -27,7 +29,7 @@ func ParamsFromRequest(c *gin.Context) (Params, error) {
 		if err != nil {
 			return Params{}, meh.NewBadInputErrFromErr(err, "parse limit", meh.Details{"was": limitStr})
 		}
-		params.Limit = nulls.NewInt(limit)
+		params.Limit = limit
 	}
 	// Extract offset.
 	offsetStr := c.Query(OffsetQueryParam)

@@ -41,7 +41,7 @@ func (suite *ParamsFromRequestSuite) TestOK1() {
 	params, err := ParamsFromRequest(suite.genContext("1", "", "hello", ""))
 	suite.Require().NoError(err, "should not fail")
 	suite.Equal(Params{
-		Limit:          nulls.NewInt(1),
+		Limit:          1,
 		Offset:         0,
 		OrderBy:        nulls.NewString("hello"),
 		OrderDirection: "",
@@ -52,7 +52,7 @@ func (suite *ParamsFromRequestSuite) TestOK2() {
 	params, err := ParamsFromRequest(suite.genContext("", "32", "", "desc"))
 	suite.Require().NoError(err, "should not fail")
 	suite.Equal(Params{
-		Limit:          nulls.Int{},
+		Limit:          DefaultLimit,
 		Offset:         32,
 		OrderBy:        nulls.String{},
 		OrderDirection: "desc",
@@ -63,7 +63,7 @@ func (suite *ParamsFromRequestSuite) TestOK3() {
 	params, err := ParamsFromRequest(suite.genContext("1", "1", "", ""))
 	suite.Require().NoError(err, "should not fail")
 	suite.Equal(Params{
-		Limit:          nulls.NewInt(1),
+		Limit:          1,
 		Offset:         1,
 		OrderBy:        nulls.String{},
 		OrderDirection: "",
@@ -74,7 +74,7 @@ func (suite *ParamsFromRequestSuite) TestOK4() {
 	params, err := ParamsFromRequest(suite.genContext("1", "2", "3", "4"))
 	suite.Require().NoError(err, "should not fail")
 	suite.Equal(Params{
-		Limit:          nulls.NewInt(1),
+		Limit:          1,
 		Offset:         2,
 		OrderBy:        nulls.NewString("3"),
 		OrderDirection: "4",

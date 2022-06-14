@@ -24,21 +24,18 @@ func QueryToSQLWithPagination(qb *goqu.SelectDataset, paginationParams Params, f
 	return q, params, nil
 }
 
-// QueryWithPagination uses the given Params to alter the
-// goqu.SelectDataset. A select-field with TotalCountColumn is added that allows
-// reading the total available amount of entries. Based on the Params,
-// offset and limit as well as order-by-clauses are added using the
-// PaginationParams.FieldMap.
+// QueryWithPagination uses the given Params to alter the goqu.SelectDataset. A
+// select-field with TotalCountColumn is added that allows reading the total
+// available amount of entries. Based on the Params, offset and limit as well as
+// order-by-clauses are added using the FieldMap.
 func QueryWithPagination(qb *goqu.SelectDataset, params Params, fieldMap FieldMap) (*goqu.SelectDataset, error) {
 	var err error
 	// Add total count.
 	qb = addTotalCountSelectToQuery(qb)
 	// Add limit.
-	if params.Limit.Valid {
-		qb, err = addLimitToQuery(qb, params.Limit.Int)
-		if err != nil {
-			return nil, meh.Wrap(err, "add limit to query", meh.Details{"limit": params.Limit.Int})
-		}
+	qb, err = addLimitToQuery(qb, params.Limit)
+	if err != nil {
+		return nil, meh.Wrap(err, "add limit to query", meh.Details{"limit": params.Limit})
 	}
 	// Add offset.
 	qb, err = addOffsetToQuery(qb, params.Offset)
@@ -73,7 +70,7 @@ func addLimitToQuery(qb *goqu.SelectDataset, limit int) (*goqu.SelectDataset, er
 		return nil, meh.NewBadInputErr("limit must not be negative", nil)
 	}
 	if limit == 0 {
-		limit = DefaultLimit
+		return qb, nil
 	}
 	return qb.Limit(uint(limit)), nil
 }
