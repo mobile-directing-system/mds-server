@@ -1,3 +1,5 @@
+.. _chapter.api-gateway:
+
 API Gateway
 ===========
 

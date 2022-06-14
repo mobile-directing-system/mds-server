@@ -8,7 +8,10 @@ Welcome to MDS Server's documentation!
     :caption: Contents:
 
     sites/configuration
+    sites/general-http-api
     sites/api-gateway
+    sites/user-management
+    sites/permissions
     sites/development
 
 
