@@ -3,12 +3,14 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: internal-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
 spec:
   ingressClassName: internal-nginx
   rules:
     - http:
         paths:
-          - path: /users
+          - path: /users/?(.*)
             pathType: Prefix
             backend:
               service:
