@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/auth"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/httpendpoints"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
@@ -1007,7 +1006,7 @@ func (suite *handleGetUsersSuite) TestStoreRetrievalFail() {
 }
 
 func (suite *handleGetUsersSuite) TestOK() {
-	params := pagination.Params{Limit: nulls.NewInt(7)}
+	params := pagination.Params{Limit: 7}
 	paginated := pagination.NewPaginated(params, []store.User{
 		{
 			ID:        uuid.New(),
@@ -1024,7 +1023,7 @@ func (suite *handleGetUsersSuite) TestOK() {
 			IsAdmin:   true,
 		},
 	}, 28)
-	suite.s.On("Users", mock.Anything, pagination.Params{Limit: nulls.NewInt(7)}).
+	suite.s.On("Users", mock.Anything, pagination.Params{Limit: 7, OrderDirection: "asc"}).
 		Return(paginated, nil)
 	defer suite.s.AssertExpectations(suite.T())
 
