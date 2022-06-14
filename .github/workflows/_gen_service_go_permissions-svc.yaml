@@ -54,7 +54,7 @@ jobs:
 
       - name: Test
         working-directory: services/go/permissions-svc
-        run: go test ./...
+        run: go test -v ./...
 
   race_detection:
     runs-on: ubuntu-latest
