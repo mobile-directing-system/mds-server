@@ -10,18 +10,23 @@ import (
 	"time"
 )
 
+// AwaitHostReachableCooldown is the cooldown to use in AwaitHostReachable when
+// the host was not reachable.
+var AwaitHostReachableCooldown = 3 * time.Second
+
 // AwaitHostReachable waits until the given host is reachable using
 // net.DialTimeout.
 func AwaitHostReachable(ctx context.Context, host string) error {
 	for {
-		select {
-		case <-ctx.Done():
-			return meh.NewInternalErrFromErr(ctx.Err(), "wait for host reachable", meh.Details{"host": host})
-		default:
-		}
 		conn, err := net.DialTimeout("tcp", host, 3*time.Second)
 		if err != nil {
 			logging.DebugLogger().Debug("awaiting host reachable", zap.String("host", host), zap.Error(err))
+			// Wait.
+			select {
+			case <-ctx.Done():
+				return meh.NewInternalErrFromErr(ctx.Err(), "wait for host reachable", meh.Details{"host": host})
+			case <-time.After(AwaitHostReachableCooldown):
+			}
 			continue
 		}
 		err = conn.Close()
