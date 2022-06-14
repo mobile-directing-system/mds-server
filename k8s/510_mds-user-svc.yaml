@@ -80,6 +80,7 @@ data:
   MDS_DB_CONN_STRING: postgresql://mds:mds@mds-user-svc-postgres-service/mds-user-svc
   MDS_KAFKA_ADDR: kafka-cluster-kafka-bootstrap.kafka:9092
   MDS_SERVE_ADDR: :8080
+  MDS_LOG_LEVEL: debug
 ---
 # User svc service.
 apiVersion: v1

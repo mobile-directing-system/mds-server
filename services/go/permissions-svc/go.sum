@@ -6,8 +6,9 @@ github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
-github.com/lefinal/meh v1.1.0 h1:J2O7iWucuWSz+Ti+8QcF3svUIf9NDs6lQjb3tR9/e3w=
-github.com/lefinal/meh v1.1.0/go.mod h1:0RRPHH2EyZN8lLkkbh0A8KjVOsbYjTF3OG3J5Cy/0sY=
+github.com/lefinal/meh v1.5.1 h1:4x9aMMxzK2SKEKA0SeZX+eHOJmY0lJNQRKTV3hYReXo=
+github.com/lefinal/meh v1.5.1/go.mod h1:0KvRjRaTBPwL9TaDyo9+0HkAaNR/SKA/mLtC8Ghabeo=
+github.com/lefinal/zaprec v1.0.0 h1:/UAvGJJ6hq9377G4K5G09XUT9gInIAD8nWXFNnC+4FY=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=

@@ -5,7 +5,7 @@ go 1.18
 replace github.com/mobile-directing-system/mds-server/services/go/shared => ../shared
 
 require (
-	github.com/lefinal/meh v1.1.0
+	github.com/lefinal/meh v1.5.1
 	github.com/mobile-directing-system/mds-server/services/go/shared v0.0.0-00010101000000-000000000000
 )
 
