@@ -14,6 +14,7 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/shared/kafkautil"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/logging"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pgconnect"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/ready"
 	"golang.org/x/sync/errgroup"
 	"io/fs"
 )
@@ -45,10 +46,12 @@ func Run(ctx context.Context) error {
 	}
 	logging.SetDebugLogger(logger.Named("debug"))
 	defer func() { _ = logger.Sync() }()
-	err = connectutil.AwaitHostsReachable(ctx, c.KafkaAddr, c.RedisAddr)
-	if err != nil {
-		return meh.Wrap(err, "await hosts reachable", nil)
-	}
+	eg, egCtx := errgroup.WithContext(ctx)
+	readyProbeServer, startUpCompleted := ready.NewServer(logger.Named("ready-probe"))
+	eg.Go(func() error {
+		err := readyProbeServer.Serve(egCtx, c.ReadyProbeServeAddr)
+		return meh.NilOrWrap(err, "serve ready-probe-server", meh.Details{"addr": c.ReadyProbeServeAddr})
+	})
 	// Connect to database.
 	sqlDB, err := pgconnect.ConnectAndRunMigrations(ctx, logger, c.DBConnString, dbMigrations)
 	if err != nil {
@@ -56,11 +59,36 @@ func Run(ctx context.Context) error {
 	}
 	// Setup Redis.
 	redisClient := redis.NewClient(&redis.Options{Addr: c.RedisAddr})
-	// Setup Kafka.
-	err = kafkautil.AwaitTopics(ctx, logger, c.KafkaAddr, event.UsersTopic, event.AuthTopic)
-	if err != nil {
-		return meh.Wrap(err, "await topics", meh.Details{"kafka_addr": c.KafkaAddr})
+	// Await ready.
+	readyCheck := func(ctx context.Context) error {
+		eg, egCtx := errgroup.WithContext(ctx)
+		// Check hosts.
+		eg.Go(func() error {
+			err := connectutil.AwaitHostsReachable(egCtx, c.KafkaAddr, c.RedisAddr)
+			return meh.NilOrWrap(err, "await hosts reachable", nil)
+		})
+		// Check Kafka topics.
+		eg.Go(func() error {
+			err := kafkautil.AwaitTopics(egCtx, c.KafkaAddr, event.UsersTopic, event.AuthTopic)
+			return meh.NilOrWrap(err, "await topics", meh.Details{"kafka_addr": c.KafkaAddr})
+		})
+		// Check Redis.
+		eg.Go(func() error {
+			err := redisClient.Ping(egCtx).Err()
+			return meh.NilOrWrap(err, "ping redis", meh.Details{"redis_addr": c.RedisAddr})
+		})
+		// Check database.
+		eg.Go(func() error {
+			err := sqlDB.Ping(egCtx)
+			return meh.NilOrWrap(err, "ping database", nil)
+		})
+		return eg.Wait()
 	}
+	err = ready.Await(ctx, readyCheck)
+	if err != nil {
+		return meh.Wrap(err, "await ready", nil)
+	}
+	// Setup Kafka.
 	kafkaWriter := kafkautil.NewWriter(logger.Named("kafka-writer"), c.KafkaAddr)
 	eventPort := eventport.NewPort(kafkaWriter)
 	// Setup controller.
@@ -72,7 +100,6 @@ func Run(ctx context.Context) error {
 		DB:                    sqlDB,
 		Notifier:              eventPort,
 	}
-	eg, egCtx := errgroup.WithContext(ctx)
 	// Read messages.
 	eg.Go(func() error {
 		logger := logger.Named("kafka-reader")
@@ -92,5 +119,6 @@ func Run(ctx context.Context) error {
 		}
 		return nil
 	})
+	startUpCompleted(readyCheck)
 	return eg.Wait()
 }

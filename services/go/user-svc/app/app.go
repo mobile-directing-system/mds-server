@@ -9,6 +9,7 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/shared/kafkautil"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/logging"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pgconnect"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/ready"
 	"github.com/mobile-directing-system/mds-server/services/go/user-svc/controller"
 	"github.com/mobile-directing-system/mds-server/services/go/user-svc/endpoints"
 	"github.com/mobile-directing-system/mds-server/services/go/user-svc/eventport"
@@ -40,22 +41,44 @@ func Run(ctx context.Context) error {
 	if err != nil {
 		return meh.Wrap(err, "new logger", nil)
 	}
+	defer func() { _ = logger.Sync() }()
 	logging.SetDebugLogger(logger.Named("debug"))
+	eg, egCtx := errgroup.WithContext(ctx)
+	probeServer, startUpCompleted := ready.NewServer(logger.Named("probe-server"))
+	eg.Go(func() error {
+		err := probeServer.Serve(egCtx, c.ReadyProbeServeAddr)
+		return meh.NilOrWrap(err, "serve ready-probe-server", meh.Details{"addr": c.ReadyProbeServeAddr})
+	})
 	// Connect to database.
 	sqlDB, err := pgconnect.ConnectAndRunMigrations(ctx, logger, c.DBConnString, dbMigrations)
 	if err != nil {
 		return meh.Wrap(err, "connect db and run migrations", meh.Details{"db_conn_string": c.DBConnString})
 	}
-	// Wait for Kafka.
-	err = connectutil.AwaitHostsReachable(ctx, c.KafkaAddr)
+	// Await ready.
+	readyCheck := func(ctx context.Context) error {
+		eg, egCtx := errgroup.WithContext(ctx)
+		// Check hosts.
+		eg.Go(func() error {
+			err := connectutil.AwaitHostsReachable(egCtx, c.KafkaAddr)
+			return meh.NilOrWrap(err, "await hosts reachable", nil)
+		})
+		// Check Kafka topics.
+		eg.Go(func() error {
+			err := kafkautil.AwaitTopics(egCtx, c.KafkaAddr, event.UsersTopic)
+			return meh.NilOrWrap(err, "await topics", meh.Details{"kafka_addr": c.KafkaAddr})
+		})
+		// Check database.
+		eg.Go(func() error {
+			err := sqlDB.Ping(egCtx)
+			return meh.NilOrWrap(err, "ping database", nil)
+		})
+		return eg.Wait()
+	}
+	err = ready.Await(ctx, readyCheck)
 	if err != nil {
-		return meh.Wrap(err, "await hosts reachable", nil)
+		return meh.Wrap(err, "await ready", nil)
 	}
 	// Setup.
-	err = kafkautil.AwaitTopics(ctx, logger, c.KafkaAddr, event.UsersTopic)
-	if err != nil {
-		return meh.Wrap(err, "await topics", meh.Details{"kafka_addr": c.KafkaAddr})
-	}
 	eventPort := eventport.NewPort(kafkautil.NewWriter(logger.Named("kafka"), c.KafkaAddr))
 	ctrl := &controller.Controller{
 		Logger:   logger.Named("controller"),
@@ -63,7 +86,6 @@ func Run(ctx context.Context) error {
 		Store:    store.NewMall(),
 		Notifier: eventPort,
 	}
-	eg, egCtx := errgroup.WithContext(ctx)
 	// Run controller.
 	eg.Go(func() error {
 		err := ctrl.Run(egCtx)
@@ -80,5 +102,6 @@ func Run(ctx context.Context) error {
 		}
 		return nil
 	})
+	startUpCompleted(readyCheck)
 	return eg.Wait()
 }

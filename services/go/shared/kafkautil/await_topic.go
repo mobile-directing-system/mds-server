@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/lefinal/meh"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/logging"
 	"github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
 	"time"
@@ -11,26 +12,10 @@ import (
 
 // AwaitTopics waits for each given event.Topic to exist. Once, all topics are
 // available, the waiting time will be logged to the given zap.Logger.
-func AwaitTopics(ctx context.Context, logger *zap.Logger, kafkaAddr string, topics ...event.Topic) error {
+func AwaitTopics(ctx context.Context, kafkaAddr string, topics ...event.Topic) error {
 	start := time.Now()
 	awaiter := newTopicAwaiter(topics...)
 	for {
-		select {
-		case <-ctx.Done():
-			return meh.NewInternalErrFromErr(ctx.Err(), "await topics", meh.Details{
-				"remaining_expected": awaiter.remainingExpected(),
-				"topics":             "topics",
-				"waiting_since":      time.Since(start),
-			})
-		default:
-		}
-		// Check if done.
-		if awaiter.remainingExpected() == 0 {
-			logger.Info("topics available",
-				zap.Any("topics", topics),
-				zap.Duration("took", time.Since(start)))
-			return nil
-		}
 		// Read and mark as available.
 		partitions, err := readPartitions(ctx, kafkaAddr, topics)
 		if err != nil {
@@ -41,6 +26,22 @@ func AwaitTopics(ctx context.Context, logger *zap.Logger, kafkaAddr string, topi
 		}
 		for _, partition := range partitions {
 			awaiter.markTopicAsAvailable(event.Topic(partition.Topic))
+		}
+		// Check if done.
+		if awaiter.remainingExpected() == 0 {
+			return nil
+		}
+		logging.DebugLogger().Debug("topics remaining while awaiting topics",
+			zap.Int("remaining_expected", awaiter.remainingExpected()),
+			zap.Any("topics", topics))
+		select {
+		case <-ctx.Done():
+			return meh.NewInternalErrFromErr(ctx.Err(), "await topics", meh.Details{
+				"remaining_expected": awaiter.remainingExpected(),
+				"topics":             "topics",
+				"waiting_since":      time.Since(start),
+			})
+		default:
 		}
 	}
 }
