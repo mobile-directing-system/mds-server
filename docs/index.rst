@@ -7,7 +7,6 @@ Welcome to MDS Server's documentation!
     :maxdepth: 2
     :caption: Contents:
 
-    sites/configuration
     sites/general-http-api
     sites/api-gateway
     sites/user-management
