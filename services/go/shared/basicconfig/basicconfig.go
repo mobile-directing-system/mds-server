@@ -5,6 +5,7 @@ package basicconfig
 import (
 	"github.com/lefinal/meh"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/logging"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/ready"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"
@@ -21,6 +22,8 @@ const (
 	EnvKafkaAddr = "MDS_KAFKA_ADDR"
 	// EnvAuthTokenSecret for Config.AuthTokenSecret.
 	EnvAuthTokenSecret = "MDS_AUTH_TOKEN_SECRET"
+	// EnvReadyProbeServeAddr for Config.ReadyProbeServeAddr.
+	EnvReadyProbeServeAddr = "MDS_READY_PROBE_SERVE_ADDR"
 )
 
 // Config is a basic configuration with support for database and Kafka
@@ -37,6 +40,10 @@ type Config struct {
 	// AuthTokenSecret is the secret to use for signing and validating internal
 	// authentication tokens.
 	AuthTokenSecret string `json:"auth_token_secret"`
+	// ReadyProbeServeAddr is the address undew chich to serve the
+	// ready-probe-endpoints. ParseFromEnv will set this to ready.DefaultServeAddr
+	// if not provided otherwise.
+	ReadyProbeServeAddr string `json:"ready_probe_serve_addr"`
 }
 
 // ParseFromEnv parses a Config from the related environment variables like
@@ -75,6 +82,11 @@ func ParseFromEnv() (Config, error) {
 	if c.AuthTokenSecret == "" {
 		// For development purposes, we only print a warning.
 		logging.DebugLogger().Warn("no authentication token secret provided", zap.String("env", EnvAuthTokenSecret))
+	}
+	// Ready probe serve address.
+	c.ReadyProbeServeAddr = os.Getenv(EnvReadyProbeServeAddr)
+	if c.ReadyProbeServeAddr == "" {
+		c.ReadyProbeServeAddr = ready.DefaultServeAddr
 	}
 	return c, nil
 }

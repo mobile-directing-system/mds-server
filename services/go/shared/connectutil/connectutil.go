@@ -18,7 +18,7 @@ var AwaitHostReachableCooldown = 3 * time.Second
 // net.DialTimeout.
 func AwaitHostReachable(ctx context.Context, host string) error {
 	for {
-		conn, err := net.DialTimeout("tcp", host, 3*time.Second)
+		err := AssureHostReachable(host)
 		if err != nil {
 			logging.DebugLogger().Debug("awaiting host reachable", zap.String("host", host), zap.Error(err))
 			// Wait.
@@ -29,12 +29,22 @@ func AwaitHostReachable(ctx context.Context, host string) error {
 			}
 			continue
 		}
-		err = conn.Close()
-		if err != nil {
-			return meh.NewInternalErrFromErr(err, "close opened connection", nil)
-		}
 		return nil
 	}
+}
+
+// AssureHostReachable checks if the given host is reachable with a timeout of 3
+// seconds.
+func AssureHostReachable(host string) error {
+	conn, err := net.DialTimeout("tcp", host, 3*time.Second)
+	if err != nil {
+		return meh.Wrap(err, "dial tcp", nil)
+	}
+	err = conn.Close()
+	if err != nil {
+		return meh.Wrap(err, "close connection in host-reachable-check", meh.Details{"host": host})
+	}
+	return nil
 }
 
 // AwaitHostsReachable waits until the given hosts are reachable. This is the
