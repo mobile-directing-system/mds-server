@@ -4,9 +4,9 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/mobile-directing-system/mds-server/services/go/api-gateway-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/permission"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/pgutil"
 	"go.uber.org/zap"
 )
 
@@ -16,7 +16,7 @@ type Controller struct {
 	PublicAuthTokenSecret string
 	AuthTokenSecret       string
 	Store                 Store
-	DB                    *pgxpool.Pool
+	DB                    pgutil.DBTxSupplier
 	Notifier              Notifier
 }
 
@@ -27,25 +27,35 @@ type Store interface {
 	PermissionsByUserID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) ([]permission.Permission, error)
 	// UserIDBySessionToken returns the user id for the given session token. If the
 	// token was not found, a meh.ErrNotFound will be returned.
-	UserIDBySessionToken(ctx context.Context, token string) (uuid.UUID, error)
-	// StoreUserIDBySessionToken stores the given user id for the session token.
-	StoreUserIDBySessionToken(ctx context.Context, token string, userID uuid.UUID) error
+	UserIDBySessionToken(ctx context.Context, txSupplier pgutil.DBTxSupplier, token string) (uuid.UUID, error)
+	// StoreSessionTokenForUser stores the given token for the user with the given
+	// id.
+	StoreSessionTokenForUser(ctx context.Context, tx pgx.Tx, token string, userID uuid.UUID) error
 	// GetAndDeleteUserIDBySessionToken gets and then deletes the mapping of the
 	// given session token to a user id.
-	GetAndDeleteUserIDBySessionToken(ctx context.Context, token string) (uuid.UUID, error)
+	GetAndDeleteUserIDBySessionToken(ctx context.Context, tx pgx.Tx, token string) (uuid.UUID, error)
+	// DeleteSessionTokensByUser deletes all session tokens for the given user from
+	// the database and from cache.
+	DeleteSessionTokensByUser(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error
 	// PassByUsername retrieves the hashed password for the user with the given
 	// username.
 	PassByUsername(ctx context.Context, tx pgx.Tx, username string) ([]byte, error)
-	// UserByUsername retrieves the store.User with the given username.
-	UserByUsername(ctx context.Context, tx pgx.Tx, username string) (store.User, error)
-	// UserByID retrieves the store.user with the given id.
-	UserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) (store.User, error)
-	// CreateUser creates the given store.User.
-	CreateUser(ctx context.Context, tx pgx.Tx, user store.User) error
+	// UserWithPassByUsername retrieves the store.UserWithPass with the given
+	// username.
+	UserWithPassByUsername(ctx context.Context, tx pgx.Tx, username string) (store.UserWithPass, error)
+	// UserWithPassByID retrieves the store.UserWithPass with the given id.
+	UserWithPassByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) (store.UserWithPass, error)
+	// CreateUser creates the given store.UserWithPass.
+	CreateUser(ctx context.Context, tx pgx.Tx, user store.UserWithPass) error
 	// UpdateUser updates the given User, identified by its id.
 	UpdateUser(ctx context.Context, tx pgx.Tx, user store.User) error
+	// UpdateUserPassByUserID updates the password for the user with the given id.
+	UpdateUserPassByUserID(ctx context.Context, tx pgx.Tx, userID uuid.UUID, newPass []byte) error
 	// DeleteUserByID deletes the user with the given id.
-	DeleteUserByID(ctx context.Context, tx pgx.Tx, userID string) error
+	DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error
+	// UpdatePermissionsByUser updates the permissions for the user with the given
+	// id.
+	UpdatePermissionsByUser(ctx context.Context, tx pgx.Tx, userID uuid.UUID, permissions []permission.Permission) error
 }
 
 // Notifier for event notifications.

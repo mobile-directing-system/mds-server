@@ -1,17 +1,17 @@
 package eventport
 
 import (
-	"github.com/segmentio/kafka-go"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/kafkautil"
 )
 
 // Port manages event messaging.
 type Port struct {
-	kafkaWriter *kafka.Writer
+	writer kafkautil.Writer
 }
 
 // NewPort creates a new port.
-func NewPort(kafkaWriter *kafka.Writer) *Port {
+func NewPort(writer kafkautil.Writer) *Port {
 	return &Port{
-		kafkaWriter: kafkaWriter,
+		writer: writer,
 	}
 }

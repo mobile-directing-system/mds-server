@@ -12,6 +12,12 @@ import (
 	"time"
 )
 
+// Writer is an abstraction for kafka.Writer for writing messages.
+type Writer interface {
+	// WriteMessages writes the given kafka.Message list.
+	WriteMessages(ctx context.Context, messages ...kafka.Message) error
+}
+
 // writeMessagesTimeout is the timeout to use when writing messages to kafka via
 // WriteMessages.
 const writeMessagesTimeout = 10 * time.Second
@@ -92,9 +98,9 @@ func kafkaHeadersFromHeaders(headers []MessageHeader, eventType event.Type) []ka
 	return kafkaHeaders
 }
 
-// kafkaMessageFromMessage converts a Message to kafka.Message and marshals the
+// KafkaMessageFromMessage converts a Message to kafka.Message and marshals the
 // Message.Value as JSON if not nil.
-func kafkaMessageFromMessage(message Message) (kafka.Message, error) {
+func KafkaMessageFromMessage(message Message) (kafka.Message, error) {
 	if message.Value != nil {
 		var err error
 		message.RawValue, err = json.Marshal(message.Value)
@@ -112,11 +118,11 @@ func kafkaMessageFromMessage(message Message) (kafka.Message, error) {
 
 // WriteMessages writes the given kafka.Message list to the kafka.Writer with a
 // predefined timeout.
-func WriteMessages(w *kafka.Writer, messages ...Message) error {
+func WriteMessages(w Writer, messages ...Message) error {
 	// Convert all messages.
 	kafkaMessages := make([]kafka.Message, 0, len(messages))
 	for _, message := range messages {
-		kafkaMessage, err := kafkaMessageFromMessage(message)
+		kafkaMessage, err := KafkaMessageFromMessage(message)
 		if err != nil {
 			return meh.Wrap(err, "convert message to kafka message", meh.Details{"message": message})
 		}
@@ -133,17 +139,11 @@ func WriteMessages(w *kafka.Writer, messages ...Message) error {
 }
 
 // NewWriter creates a new kafka.Writer with logging middleware.
-func NewWriter(logger *zap.Logger, addr string) *kafka.Writer {
+func NewWriter(logger *zap.Logger, addr string) Writer {
 	return &kafka.Writer{
 		Addr:        kafka.TCP(addr),
 		ErrorLogger: kafkaErrorLogger(logger),
 		MaxAttempts: 16,
-	}
-}
-
-func kafkaLogger(logger *zap.Logger) kafka.LoggerFunc {
-	return func(message string, args ...interface{}) {
-		logger.Debug(fmt.Sprintf(message, args...))
 	}
 }
 

@@ -20,8 +20,11 @@ func (suite *ParseJWTTokenSuite) SetupTest() {
 	var err error
 	suite.secret = "meow"
 	suite.originalToken = Token{
-		Username:    "admin",
-		Permissions: []permission.Permission{"say.hello", "be.nice"},
+		Username: "admin",
+		Permissions: []permission.Permission{
+			{Name: "say.hello"},
+			{Name: "be.nice"},
+		},
 	}
 	suite.jwtToken = jwt.NewWithClaims(jwt.SigningMethodHS512, jwt.MapClaims{jwtClaimName: suite.originalToken})
 	suite.signedJWTToken, err = suite.jwtToken.SignedString([]byte(suite.secret))
@@ -82,8 +85,10 @@ type HasPermissionSuite struct {
 func (suite *HasPermissionSuite) TestNotAuthenticated1() {
 	ok, err := HasPermission(Token{
 		IsAuthenticated: false,
-		Permissions:     []permission.Permission{"meow"},
-	}, permission.Has("meow"))
+		Permissions:     []permission.Permission{{Name: "meow"}},
+	}, permission.Matcher{MatchFn: func(_ map[permission.Name]permission.Permission) (bool, error) {
+		return true, nil
+	}})
 	suite.Require().NoError(err, "should not fail")
 	suite.False(ok, "should not have permission")
 }
@@ -92,7 +97,7 @@ func (suite *HasPermissionSuite) TestNotAuthenticated2() {
 	ok, err := HasPermission(Token{
 		IsAuthenticated: false,
 		IsAdmin:         true,
-	}, permission.Has("meow"))
+	})
 	suite.Require().NoError(err, "should not fail")
 	suite.False(ok, "should not have permission")
 }
@@ -101,7 +106,9 @@ func (suite *HasPermissionSuite) TestAdmin() {
 	ok, err := HasPermission(Token{
 		IsAuthenticated: true,
 		IsAdmin:         true,
-	}, permission.Has("meow"))
+	}, permission.Matcher{MatchFn: func(_ map[permission.Name]permission.Permission) (bool, error) {
+		return false, nil
+	}})
 	suite.Require().NoError(err, "should not fail")
 	suite.True(ok, "should have permission")
 }
@@ -109,8 +116,10 @@ func (suite *HasPermissionSuite) TestAdmin() {
 func (suite *HasPermissionSuite) TestNoPermission() {
 	ok, err := HasPermission(Token{
 		IsAuthenticated: true,
-		Permissions:     []permission.Permission{"meow", "woof"},
-	}, permission.Has("quack"))
+		Permissions:     []permission.Permission{{Name: "meow"}},
+	}, permission.Matcher{MatchFn: func(_ map[permission.Name]permission.Permission) (bool, error) {
+		return false, nil
+	}})
 	suite.Require().NoError(err, "should not fail")
 	suite.False(ok, "should not have permission")
 }
@@ -118,8 +127,10 @@ func (suite *HasPermissionSuite) TestNoPermission() {
 func (suite *HasPermissionSuite) TestOK() {
 	ok, err := HasPermission(Token{
 		IsAuthenticated: true,
-		Permissions:     []permission.Permission{"meow", "woof"},
-	}, permission.Has("woof"))
+		Permissions:     []permission.Permission{},
+	}, permission.Matcher{MatchFn: func(_ map[permission.Name]permission.Permission) (bool, error) {
+		return true, nil
+	}})
 	suite.Require().NoError(err, "should not fail")
 	suite.True(ok, "should have permission")
 }

@@ -1,0 +1,130 @@
+# Database config.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mds-permission-svc-postgres-config
+  labels:
+    app: mds-permission-svc-postgres
+data:
+  POSTGRES_DB: mds-permission-svc
+  POSTGRES_USER: mds
+  POSTGRES_PASSWORD: mds
+---
+# Database pvc.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mds-permission-svc-postgres-pvc
+  labels:
+    app: mds-permission-svc-postgres
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+---
+# Database service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mds-permission-svc-postgres-service
+  labels:
+    app: mds-permission-svc-postgres-service
+spec:
+  ports:
+    - port: 5432
+  selector:
+    app: mds-permission-svc-postgres
+---
+# Database deployment.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mds-permission-svc-postgres-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mds-permission-svc-postgres
+  template:
+    metadata:
+      labels:
+        app: mds-permission-svc-postgres
+    spec:
+      containers:
+        - name: mds-permission-svc-postgres
+          image: postgres:14.2
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: mds-permission-svc-postgres-config
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgres-data
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: mds-permission-svc-postgres-pvc
+---
+# Permission svc config.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mds-permission-svc-config
+  labels:
+    app: mds-permission-svc
+data:
+  MDS_DB_CONN_STRING: postgresql://mds:mds@mds-permission-svc-postgres-service/mds-permission-svc
+  MDS_KAFKA_ADDR: kafka-cluster-kafka-bootstrap.kafka:9092
+  MDS_SERVE_ADDR: :8080
+  MDS_LOG_LEVEL: debug
+---
+# Permission svc service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mds-permission-svc-service
+spec:
+  selector:
+    app: mds-permission-svc
+  ports:
+    - port: 3000
+      targetPort: 8080
+---
+# Permission svc deployment.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mds-permission-svc-deployment
+  annotations:
+    reloader.stakater.com/auto: "true"
+spec:
+  selector:
+    matchLabels:
+      app: mds-permission-svc
+  template:
+    metadata:
+      labels:
+        app: mds-permission-svc
+    spec:
+      containers:
+        - name: mds-permission-svc
+          image: mds-permission-svc
+          envFrom:
+            - configMapRef:
+                name: mds-permission-svc-config
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              port: 31234
+              path: /livez
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              port: 31234
+              path: /readyz
+            timeoutSeconds: 5
