@@ -1,10 +1,10 @@
 General HTTP API
-================
+################
 
 This chapter covers some general aspects regarding the HTTP API.
 
 Authentication and permissions
-------------------------------
+==============================
 
 For most endpoints, authentication is required.
 This is explained in the :ref:`chapter.api-gateway` chapter.
@@ -15,7 +15,7 @@ If a caller lacks required permissions, a `403` code is returned.
 .. _http-api.pagination:
 
 Pagination
-----------
+==========
 
 Most endpoints with list data use pagination in order to limit results and data exchange.
 The following query parameters are available:

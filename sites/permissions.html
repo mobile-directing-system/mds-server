@@ -196,31 +196,97 @@
         <article role="main">
           <section id="permissions">
 <h1>Permissions<a class="headerlink" href="#permissions" title="Permalink to this headline">#</a></h1>
+<p>Permissions always have a unique name like <cite>user.create</cite> and optional additional options.</p>
+<section id="setting-permissions">
+<h2>Setting permissions<a class="headerlink" href="#setting-permissions" title="Permalink to this headline">#</a></h2>
+<p>Setting permissions requires the <a class="reference internal" href="#permission-permissions-update"><span class="std std-ref">permissions.update</span></a> permission and is accomplished by calling:</p>
+<p><cite>PUT /permissions/user/&lt;user_id&gt;</cite></p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="w"></span>
+<span class="w">    </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;name_of_first_permission&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;options&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="w"></span>
+<span class="w">    </span><span class="p">},</span><span class="w"></span>
+<span class="w">    </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;name_of_second_permission&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;options&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">            </span><span class="nt">&quot;hello&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;world&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="p">]</span><span class="w"></span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">options</span></code>-field contains the options available for the certain permission.</p>
+</section>
+<section id="retrieving-permissions">
+<h2>Retrieving permissions<a class="headerlink" href="#retrieving-permissions" title="Permalink to this headline">#</a></h2>
+<p>Retrieving permissions for users requires the <a class="reference internal" href="#permission-permissions-view"><span class="std std-ref">permissions.view</span></a> permission, if not retrieving for the caller.
+Retrieval is done via:</p>
+<p><cite>GET /permissions/user/&lt;user_id&gt;</cite></p>
+<p>Response:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="w"></span>
+<span class="w">    </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;name_of_first_permission&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;options&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="w"></span>
+<span class="w">    </span><span class="p">},</span><span class="w"></span>
+<span class="w">    </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;name_of_second_permission&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;options&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">            </span><span class="nt">&quot;hello&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;world&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="p">]</span><span class="w"></span>
+</pre></div>
+</div>
+</section>
+<section id="permission-list">
+<h2>Permission list<a class="headerlink" href="#permission-list" title="Permalink to this headline">#</a></h2>
+<p>This is a list of all available permissions.</p>
+<section id="id1">
+<h3>Permissions<a class="headerlink" href="#id1" title="Permalink to this headline">#</a></h3>
+<p>Permissions regarding permissions themselves like updating or retrieving.</p>
+<section id="permissions-update">
+<span id="permission-permissions-update"></span><h4>permissions.update<a class="headerlink" href="#permissions-update" title="Permalink to this headline">#</a></h4>
+<p>Allows setting permissions for users.</p>
+<p>Options: <cite>none</cite></p>
+</section>
+<section id="permissions-view">
+<span id="permission-permissions-view"></span><h4>permissions.view<a class="headerlink" href="#permissions-view" title="Permalink to this headline">#</a></h4>
+<p>Allows retrieving permissions of users.</p>
+<p>Options: <cite>none</cite></p>
+</section>
+</section>
 <section id="users">
-<h2>Users<a class="headerlink" href="#users" title="Permalink to this headline">#</a></h2>
+<h3>Users<a class="headerlink" href="#users" title="Permalink to this headline">#</a></h3>
 <section id="user-create">
-<span id="permission-user-create"></span><h3>user.create<a class="headerlink" href="#user-create" title="Permalink to this headline">#</a></h3>
+<span id="permission-user-create"></span><h4>user.create<a class="headerlink" href="#user-create" title="Permalink to this headline">#</a></h4>
 <p>Allows creating users.</p>
+<p>Options: <cite>none</cite></p>
 </section>
 <section id="user-delete">
-<span id="permission-user-delete"></span><h3>user.delete<a class="headerlink" href="#user-delete" title="Permalink to this headline">#</a></h3>
+<span id="permission-user-delete"></span><h4>user.delete<a class="headerlink" href="#user-delete" title="Permalink to this headline">#</a></h4>
 <p>Allows deleting users.</p>
+<p>Options: <cite>none</cite></p>
 </section>
 <section id="user-set-admin">
-<span id="permission-user-set-admin"></span><h3>user.set-admin<a class="headerlink" href="#user-set-admin" title="Permalink to this headline">#</a></h3>
+<span id="permission-user-set-admin"></span><h4>user.set-admin<a class="headerlink" href="#user-set-admin" title="Permalink to this headline">#</a></h4>
 <p>Allows setting the is-admin-state of users.</p>
+<p>Options: <cite>none</cite></p>
 </section>
 <section id="user-update">
-<span id="permission-user-update"></span><h3>user.update<a class="headerlink" href="#user-update" title="Permalink to this headline">#</a></h3>
+<span id="permission-user-update"></span><h4>user.update<a class="headerlink" href="#user-update" title="Permalink to this headline">#</a></h4>
 <p>Allows updating a user. If the is-admin-state is wanted to be changed, the <a class="reference internal" href="#permission-user-set-admin"><span class="std std-ref">user.set-admin</span></a> permission is required, too.</p>
+<p>Options: <cite>none</cite></p>
 </section>
 <section id="user-update-pass">
-<span id="permission-user-update-pass"></span><h3>user.update-pass<a class="headerlink" href="#user-update-pass" title="Permalink to this headline">#</a></h3>
+<span id="permission-user-update-pass"></span><h4>user.update-pass<a class="headerlink" href="#user-update-pass" title="Permalink to this headline">#</a></h4>
 <p>Allows setting the password of other users.</p>
+<p>Options: <cite>none</cite></p>
 </section>
 <section id="user-view">
-<span id="permission-user-view"></span><h3>user.view<a class="headerlink" href="#user-view" title="Permalink to this headline">#</a></h3>
+<span id="permission-user-view"></span><h4>user.view<a class="headerlink" href="#user-view" title="Permalink to this headline">#</a></h4>
 <p>Allows retrieving information of other users.</p>
+<p>Options: <cite>none</cite></p>
+</section>
 </section>
 </section>
 </section>
@@ -283,6 +349,14 @@
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Permissions</a><ul>
+<li><a class="reference internal" href="#setting-permissions">Setting permissions</a></li>
+<li><a class="reference internal" href="#retrieving-permissions">Retrieving permissions</a></li>
+<li><a class="reference internal" href="#permission-list">Permission list</a><ul>
+<li><a class="reference internal" href="#id1">Permissions</a><ul>
+<li><a class="reference internal" href="#permissions-update">permissions.update</a></li>
+<li><a class="reference internal" href="#permissions-view">permissions.view</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#users">Users</a><ul>
 <li><a class="reference internal" href="#user-create">user.create</a></li>
 <li><a class="reference internal" href="#user-delete">user.delete</a></li>
@@ -290,6 +364,8 @@
 <li><a class="reference internal" href="#user-update">user.update</a></li>
 <li><a class="reference internal" href="#user-update-pass">user.update-pass</a></li>
 <li><a class="reference internal" href="#user-view">user.view</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

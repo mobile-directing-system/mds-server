@@ -1,7 +1,7 @@
 .. _chapter.api-gateway:
 
 API Gateway
-===========
+###########
 
 MDS Server uses a concept of passing authentication information via HTTP headers.
 The public Ingress forwards HTTP requests to the API Gateway.
@@ -14,7 +14,7 @@ Each service can then parse and validate the token, containing all relevant user
 Therefore, each service can check permissions, if needed, but session management only needs to be handled by the API Gateway.
 
 Logging in
-----------
+==========
 
 Login with username and password via:
 
@@ -37,7 +37,7 @@ Response `200`:
     }
 
 Making requests
----------------
+===============
 
 Each request should be made with the HTTP header:
 
@@ -46,7 +46,7 @@ Each request should be made with the HTTP header:
     Authorization: Bearer <the-access-token>
 
 Logging out
------------
+===========
 
 Logging out is done via:
 
