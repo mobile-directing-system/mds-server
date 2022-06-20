@@ -1,12 +1,12 @@
 Development
-===========
+###########
 
 This chapter provides instructions in order to explain the development setup with MDS Server.
 As MDS Server is meant to be deployed on a Kubernetes cluster, local development requires some adjustments.
 Here, we describe usage with :docker-homepage:`Docker <>`, :minikube-homepage:`minikube <>`, :skaffold-homepage:`Skaffold <>` and :intellij-cloud-code-plugin-homepage:`IntelliJ Cloud Code Plugin <>`.
 
 Setup Project
--------------
+=============
 
 MDS Server source code is stored in a :github-repo:`GitHub Repository <>`.
 If you want to contribute, create a fork and checkout the repository locally using :git-homepage:`Git <>`.
@@ -19,13 +19,13 @@ If you only want to run the server, you can clone the regular repository with:
 From now on, we expect you to use the repository root as your working directory.
 
 Setup Docker
-------------
+============
 
 Docker provides needed containerization for services.
 For installation instructions refer to the Docker documentation :docker-install:`here <>`.
 
 Setup minikube
---------------
+==============
 
 First, you need to install minikube.
 Installation instructions for your operating system are available :minikube-install:`here <>`.
@@ -42,7 +42,7 @@ You can also launch the Kubernetes dashboard by running:
     minikube dashboard
 
 Prepare deployment
-------------------
+==================
 
 Kubernetes uses YAML-files for deploying configurations.
 Skaffold simplifies working with these files as well as building Docker images, etc.
@@ -67,7 +67,7 @@ For deploying the profile, execute the following command:
 Now everything is setup for the actual deployment of MDS Server.
 
 Deploy for development using Skaffold
--------------------------------------
+=====================================
 
 For actually deploying MDS Server, we need to build required Docker images as well as deploy everything to Kubernetes.
 This job is handled by Skaffold.
@@ -123,7 +123,7 @@ If you want to, you can create a new entry in `/etc/hosts` file with your miniku
 This allows you accessing the HTTP service via `http://minikube:30080`.
 
 If something goes wrong
------------------------
+=======================
 
 Due to some bugs, sometimes resources might not get cleaned up or the cluster is in an unexpected state.
 In this case, a hard reset can be performed by running:

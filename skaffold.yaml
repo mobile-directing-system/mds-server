@@ -20,6 +20,10 @@ profiles:
           context: ./
           docker:
             dockerfile: services/go/api-gateway-svc/Dockerfile
+        - image: mds-permission-svc
+          context: ./
+          docker:
+            dockerfile: services/go/permission-svc/Dockerfile
         - image: mds-user-svc
           context: ./
           docker:
@@ -32,6 +36,7 @@ profiles:
           - k8s/300_kafka.yaml
           - k8s/310_kafka-topics.yaml
           - k8s/500_mds-api-gateway-svc.yaml
+          - k8s/501_mds-permission-svc.yaml
           - k8s/510_mds-user-svc.yaml
           - k8s/811_public-ingress.yaml
           - k8s/821_internal-ingress.yaml

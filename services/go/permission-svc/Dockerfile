@@ -5,15 +5,15 @@ WORKDIR /go/src/github.com/mobile-directing-system/mds-server
 COPY /services/go/shared ./services/go/shared
 
 # Download dependencies.
-COPY /services/go/permissions-svc/go.mod ./services/go/permissions-svc/go.mod
-COPY /services/go/permissions-svc/go.sum ./services/go/permissions-svc/go.sum
+COPY /services/go/permission-svc/go.mod ./services/go/permission-svc/go.mod
+COPY /services/go/permission-svc/go.sum ./services/go/permission-svc/go.sum
 
-WORKDIR /go/src/github.com/mobile-directing-system/mds-server/services/go/permissions-svc
+WORKDIR /go/src/github.com/mobile-directing-system/mds-server/services/go/permission-svc
 RUN go mod download
 
 # Perform the actual build.
 
-COPY /services/go/permissions-svc ./
+COPY /services/go/permission-svc ./
 
 # `skaffold debug` sets SKAFFOLD_GO_GCFLAGS to disable compiler optimizations
 ARG SKAFFOLD_GO_GCFLAGS

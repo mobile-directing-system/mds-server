@@ -10,7 +10,7 @@ import (
 
 // NotifyUserCreated creates an event.TypeUserCreated event.
 func (port *Port) NotifyUserCreated(user store.UserWithPass) error {
-	err := kafkautil.WriteMessages(port.kafkaWriter, kafkautil.Message{
+	err := kafkautil.WriteMessages(port.writer, kafkautil.Message{
 		Topic:     event.UsersTopic,
 		Key:       user.ID.String(),
 		EventType: event.TypeUserCreated,
@@ -31,7 +31,7 @@ func (port *Port) NotifyUserCreated(user store.UserWithPass) error {
 
 // NotifyUserUpdated creates an event.TypeUserUpdated event.
 func (port *Port) NotifyUserUpdated(user store.User) error {
-	err := kafkautil.WriteMessages(port.kafkaWriter, kafkautil.Message{
+	err := kafkautil.WriteMessages(port.writer, kafkautil.Message{
 		Topic:     event.UsersTopic,
 		Key:       user.ID.String(),
 		EventType: event.TypeUserUpdated,
@@ -51,7 +51,7 @@ func (port *Port) NotifyUserUpdated(user store.User) error {
 
 // NotifyUserPassUpdated creates an event.TypeUserPassUpdated event.
 func (port *Port) NotifyUserPassUpdated(userID uuid.UUID, newPass []byte) error {
-	err := kafkautil.WriteMessages(port.kafkaWriter, kafkautil.Message{
+	err := kafkautil.WriteMessages(port.writer, kafkautil.Message{
 		Topic:     event.UsersTopic,
 		Key:       userID.String(),
 		EventType: event.TypeUserPassUpdated,
@@ -68,7 +68,7 @@ func (port *Port) NotifyUserPassUpdated(userID uuid.UUID, newPass []byte) error 
 
 // NotifyUserDeleted creates an event.TypeUserDeleted event.
 func (port *Port) NotifyUserDeleted(userID uuid.UUID) error {
-	err := kafkautil.WriteMessages(port.kafkaWriter, kafkautil.Message{
+	err := kafkautil.WriteMessages(port.writer, kafkautil.Message{
 		Topic:     event.UsersTopic,
 		Key:       userID.String(),
 		EventType: event.TypeUserDeleted,

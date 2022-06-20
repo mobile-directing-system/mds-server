@@ -10,11 +10,14 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/shared/permission"
 )
 
-// PermissionsByUserID retrieves a list of granted permission.Permission for the
-// user with the given id.
-func (m *Mall) PermissionsByUserID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) ([]permission.Permission, error) {
+// Permission to store and retrieve.
+type Permission permission.Permission
+
+// PermissionsByUser retrieves the Permission list for the user with the given
+// id.
+func (m *Mall) PermissionsByUser(ctx context.Context, tx pgx.Tx, userID uuid.UUID) ([]Permission, error) {
 	// Build query.
-	q, _, err := m.dialect.From(goqu.T("permissions")).
+	q, _, err := goqu.From(goqu.T("permissions")).
 		Select(goqu.C("name"),
 			goqu.C("options")).
 		Where(goqu.C("user").Eq(userID)).ToSQL()
@@ -28,9 +31,9 @@ func (m *Mall) PermissionsByUserID(ctx context.Context, tx pgx.Tx, userID uuid.U
 	}
 	defer rows.Close()
 	// Scan.
-	permissions := make([]permission.Permission, 0)
+	permissions := make([]Permission, 0)
 	for rows.Next() {
-		var perm permission.Permission
+		var perm Permission
 		err = rows.Scan(&perm.Name,
 			&perm.Options)
 		if err != nil {
@@ -43,7 +46,7 @@ func (m *Mall) PermissionsByUserID(ctx context.Context, tx pgx.Tx, userID uuid.U
 
 // UpdatePermissionsByUser updates the permissions for the user with the given
 // id.
-func (m *Mall) UpdatePermissionsByUser(ctx context.Context, tx pgx.Tx, userID uuid.UUID, permissions []permission.Permission) error {
+func (m *Mall) UpdatePermissionsByUser(ctx context.Context, tx pgx.Tx, userID uuid.UUID, permissions []Permission) error {
 	// Delete current permissions.
 	deleteQuery, _, err := goqu.Delete(goqu.T("permissions")).
 		Where(goqu.C("user").Eq(userID)).ToSQL()

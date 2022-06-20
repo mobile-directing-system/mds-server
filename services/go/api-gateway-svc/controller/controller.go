@@ -4,9 +4,9 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/mobile-directing-system/mds-server/services/go/api-gateway-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/permission"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/pgutil"
 	"go.uber.org/zap"
 )
 
@@ -16,7 +16,7 @@ type Controller struct {
 	PublicAuthTokenSecret string
 	AuthTokenSecret       string
 	Store                 Store
-	DB                    *pgxpool.Pool
+	DB                    pgutil.DBTxSupplier
 	Notifier              Notifier
 }
 
@@ -46,6 +46,9 @@ type Store interface {
 	UpdateUser(ctx context.Context, tx pgx.Tx, user store.User) error
 	// DeleteUserByID deletes the user with the given id.
 	DeleteUserByID(ctx context.Context, tx pgx.Tx, userID string) error
+	// UpdatePermissionsByUser updates the permissions for the user with the given
+	// id.
+	UpdatePermissionsByUser(ctx context.Context, tx pgx.Tx, userID uuid.UUID, permissions []permission.Permission) error
 }
 
 // Notifier for event notifications.

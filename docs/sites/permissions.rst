@@ -1,7 +1,84 @@
 Permissions
-===========
+###########
 
 Permissions always have a unique name like `user.create` and optional additional options.
+
+Setting permissions
+===================
+
+Setting permissions requires the :ref:`permission.permissions.update` permission and is accomplished by calling:
+
+`PUT /permissions/user/<user_id>`
+
+.. code-block:: json
+
+    [
+        {
+            "name": "<name_of_first_permission>",
+            "options": null
+        },
+        {
+            "name": "<name_of_second_permission>",
+            "options": {
+                "hello": "world"
+            }
+        }
+    ]
+
+The ``options``-field contains the options available for the certain permission.
+
+Retrieving permissions
+======================
+
+Retrieving permissions for users requires the :ref:`permission.permissions.view` permission, if not retrieving for the caller.
+Retrieval is done via:
+
+`GET /permissions/user/<user_id>`
+
+Response:
+
+.. code-block:: json
+
+    [
+        {
+            "name": "<name_of_first_permission>",
+            "options": null
+        },
+        {
+            "name": "<name_of_second_permission>",
+            "options": {
+                "hello": "world"
+            }
+        }
+    ]
+
+Permission list
+===============
+
+This is a list of all available permissions.
+
+Permissions
+-----------
+
+Permissions regarding permissions themselves like updating or retrieving.
+
+.. _permission.permissions.update:
+
+permissions.update
+^^^^^^^^^^^^^^^^^^
+
+Allows setting permissions for users.
+
+Options: `none`
+
+.. _permission.permissions.view:
+
+permissions.view
+^^^^^^^^^^^^^^^^^^
+
+Allows retrieving permissions of users.
+
+Options: `none`
 
 Users
 -----

@@ -12,7 +12,6 @@ require (
 	github.com/lefinal/meh v1.5.1
 	github.com/lefinal/nulls v1.2.3
 	github.com/mobile-directing-system/mds-server/services/go/shared v0.0.0-20220608131122-5219f744f834
-	github.com/segmentio/kafka-go v0.4.32
 	github.com/stretchr/testify v1.7.1
 	go.uber.org/zap v1.21.0
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
@@ -44,6 +43,7 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.14 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/segmentio/kafka-go v0.4.32 // indirect
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
