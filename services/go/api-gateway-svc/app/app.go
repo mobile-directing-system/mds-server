@@ -69,7 +69,7 @@ func Run(ctx context.Context) error {
 		})
 		// Check Kafka topics.
 		eg.Go(func() error {
-			err := kafkautil.AwaitTopics(egCtx, c.KafkaAddr, event.UsersTopic, event.AuthTopic)
+			err := kafkautil.AwaitTopics(egCtx, c.KafkaAddr, event.PermissionsTopic, event.UsersTopic, event.AuthTopic)
 			return meh.NilOrWrap(err, "await topics", meh.Details{"kafka_addr": c.KafkaAddr})
 		})
 		// Check Redis.
@@ -104,7 +104,7 @@ func Run(ctx context.Context) error {
 	eg.Go(func() error {
 		logger := logger.Named("kafka-reader")
 		kafkaReader := kafkautil.NewReader(logger, c.KafkaAddr, kafkaGroupID,
-			[]event.Topic{event.UsersTopic})
+			[]event.Topic{event.PermissionsTopic, event.UsersTopic})
 		err := kafkautil.Read(egCtx, logger, kafkaReader, eventPort.HandlerFn(ctrl))
 		if err != nil {
 			return meh.Wrap(err, "read kafka messages", nil)

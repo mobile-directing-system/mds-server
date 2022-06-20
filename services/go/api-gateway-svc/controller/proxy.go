@@ -42,7 +42,7 @@ func (c *Controller) gatherProxyToken(ctx context.Context, publicToken string) (
 		return authToken, nil
 	}
 	// Retrieve user details.
-	userID, err := c.Store.UserIDBySessionToken(ctx, publicToken)
+	userID, err := c.Store.UserIDBySessionToken(ctx, c.DB, publicToken)
 	if err != nil {
 		if meh.ErrorCode(err) != meh.ErrNotFound {
 			return auth.Token{}, meh.Wrap(err, "username by session token", meh.Details{"token": publicToken})

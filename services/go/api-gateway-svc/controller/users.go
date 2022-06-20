@@ -44,8 +44,13 @@ func (c *Controller) UpdateUser(ctx context.Context, user store.User) error {
 // the store and notifies via Notifier.NotifyUserPassUpdated.
 func (c *Controller) UpdateUserPassByUserID(ctx context.Context, userID uuid.UUID, newPass []byte) error {
 	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
+		// Invalidate sessions.
+		err := c.Store.DeleteSessionTokensByUser(ctx, tx, userID)
+		if err != nil {
+			return meh.Wrap(err, "delete session tokens for user in store", meh.Details{"user_id": userID})
+		}
 		// Update in store.
-		err := c.Store.UpdateUserPassByUserID(ctx, tx, userID, newPass)
+		err = c.Store.UpdateUserPassByUserID(ctx, tx, userID, newPass)
 		if err != nil {
 			return meh.Wrap(err, "update user pass by user id in store", meh.Details{"user_id": userID})
 		}
@@ -61,8 +66,13 @@ func (c *Controller) UpdateUserPassByUserID(ctx context.Context, userID uuid.UUI
 // via Notifier.NotifyUserDeleted.
 func (c *Controller) DeleteUserByID(ctx context.Context, userID uuid.UUID) error {
 	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
+		// Invalidate sessions.
+		err := c.Store.DeleteSessionTokensByUser(ctx, tx, userID)
+		if err != nil {
+			return meh.Wrap(err, "delete session tokens for user in store", meh.Details{"user_id": userID})
+		}
 		// Delete in store.
-		err := c.Store.DeleteUserByID(ctx, tx, userID)
+		err = c.Store.DeleteUserByID(ctx, tx, userID)
 		if err != nil {
 			return meh.Wrap(err, "delete user by id in store", meh.Details{"user_id": userID})
 		}
@@ -73,5 +83,3 @@ func (c *Controller) DeleteUserByID(ctx context.Context, userID uuid.UUID) error
 	}
 	return nil
 }
-
-// TODO: DELETE TOKENS FOR DELETED USESRS!!!!!!

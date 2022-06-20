@@ -10,6 +10,18 @@ create table users
 
 comment on column users.pass is 'The hashed password of the user.';
 
+-- Create tokens table.
+
+create table session_tokens
+(
+    "user"     uuid      not null
+        constraint session_tokens_users_id_fk
+            references users
+            on update cascade on delete restrict,
+    token      varchar   not null,
+    created_ts timestamp not null
+);
+
 -- Create permissions table.
 
 create table permissions

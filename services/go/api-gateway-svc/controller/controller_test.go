@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/mobile-directing-system/mds-server/services/go/api-gateway-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/permission"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/pgutil"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
 	"github.com/stretchr/testify/mock"
 	"go.uber.org/zap"
@@ -43,6 +44,19 @@ type StoreMock struct {
 	mock.Mock
 }
 
+func (m *StoreMock) StoreSessionTokenForUser(ctx context.Context, tx pgx.Tx, token string, userID uuid.UUID) error {
+	return m.Called(ctx, tx, token, userID).Error(0)
+}
+
+func (m *StoreMock) GetAndDeleteUserIDBySessionToken(ctx context.Context, tx pgx.Tx, token string) (uuid.UUID, error) {
+	args := m.Called(ctx, tx, token)
+	return args.Get(0).(uuid.UUID), args.Error(1)
+}
+
+func (m *StoreMock) DeleteSessionTokensByUser(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error {
+	return m.Called(ctx, tx, userID).Error(0)
+}
+
 func (m *StoreMock) UserWithPassByUsername(ctx context.Context, tx pgx.Tx, username string) (store.UserWithPass, error) {
 	args := m.Called(ctx, tx, username)
 	return args.Get(0).(store.UserWithPass), args.Error(1)
@@ -74,17 +88,8 @@ func (m *StoreMock) PermissionsByUserID(ctx context.Context, tx pgx.Tx, userID u
 	return p, args.Error(1)
 }
 
-func (m *StoreMock) UserIDBySessionToken(ctx context.Context, token string) (uuid.UUID, error) {
-	args := m.Called(ctx, token)
-	return args.Get(0).(uuid.UUID), args.Error(1)
-}
-
-func (m *StoreMock) StoreUserIDBySessionToken(ctx context.Context, token string, userID uuid.UUID) error {
-	return m.Called(ctx, token, userID).Error(0)
-}
-
-func (m *StoreMock) GetAndDeleteUserIDBySessionToken(ctx context.Context, token string) (uuid.UUID, error) {
-	args := m.Called(ctx, token)
+func (m *StoreMock) UserIDBySessionToken(ctx context.Context, txSupplier pgutil.DBTxSupplier, token string) (uuid.UUID, error) {
+	args := m.Called(ctx, txSupplier, token)
 	return args.Get(0).(uuid.UUID), args.Error(1)
 }
 

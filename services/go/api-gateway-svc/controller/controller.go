@@ -27,12 +27,16 @@ type Store interface {
 	PermissionsByUserID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) ([]permission.Permission, error)
 	// UserIDBySessionToken returns the user id for the given session token. If the
 	// token was not found, a meh.ErrNotFound will be returned.
-	UserIDBySessionToken(ctx context.Context, token string) (uuid.UUID, error)
-	// StoreUserIDBySessionToken stores the given user id for the session token.
-	StoreUserIDBySessionToken(ctx context.Context, token string, userID uuid.UUID) error
+	UserIDBySessionToken(ctx context.Context, txSupplier pgutil.DBTxSupplier, token string) (uuid.UUID, error)
+	// StoreSessionTokenForUser stores the given token for the user with the given
+	// id.
+	StoreSessionTokenForUser(ctx context.Context, tx pgx.Tx, token string, userID uuid.UUID) error
 	// GetAndDeleteUserIDBySessionToken gets and then deletes the mapping of the
 	// given session token to a user id.
-	GetAndDeleteUserIDBySessionToken(ctx context.Context, token string) (uuid.UUID, error)
+	GetAndDeleteUserIDBySessionToken(ctx context.Context, tx pgx.Tx, token string) (uuid.UUID, error)
+	// DeleteSessionTokensByUser deletes all session tokens for the given user from
+	// the database and from cache.
+	DeleteSessionTokensByUser(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error
 	// PassByUsername retrieves the hashed password for the user with the given
 	// username.
 	PassByUsername(ctx context.Context, tx pgx.Tx, username string) ([]byte, error)
