@@ -102,17 +102,17 @@ func ParseJWTTokenFromHeader(c *gin.Context, secret string) (Token, error) {
 	return token, nil
 }
 
-// HasPermission matches the given Token against the permission.Matcher.
+// HasPermission matches the given Token against the permission.matcher.
 // However, there are two special cases: If Token.IsAuthenticated is false, we
 // always return false. If Token.IsAdmin is true, we always return true.
-func HasPermission(token Token, permissionMatcher permission.Matcher) (bool, error) {
+func HasPermission(token Token, toHave ...permission.Matcher) (bool, error) {
 	if !token.IsAuthenticated {
 		return false, nil
 	}
 	if token.IsAdmin {
 		return true, nil
 	}
-	ok, err := permissionMatcher(token.Permissions)
+	ok, err := permission.Has(token.Permissions, toHave...)
 	if err != nil {
 		return false, meh.Wrap(err, "match permissions", meh.Details{"permissions": token.Permissions})
 	}

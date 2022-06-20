@@ -10,7 +10,7 @@ require (
 	github.com/jackc/pgconn v1.12.1
 	github.com/jackc/pgx/v4 v4.16.1
 	github.com/lefinal/meh v1.5.1
-	github.com/lefinal/nulls v1.2.0
+	github.com/lefinal/nulls v1.2.3
 	github.com/segmentio/kafka-go v0.4.31
 	github.com/stretchr/testify v1.7.1
 	go.uber.org/zap v1.21.0

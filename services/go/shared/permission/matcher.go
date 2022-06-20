@@ -3,44 +3,30 @@ package permission
 import "github.com/lefinal/meh"
 
 // Matcher for a Permission list that checks, whether permissions are granted.
-type Matcher func(grantedPermissions []Permission) (bool, error)
-
-// Has checks if the given Permission was wanted.
-func Has(permissionsToHave ...Permission) Matcher {
-	return func(grantedPermissions []Permission) (bool, error) {
-		if len(permissionsToHave) == 0 {
-			return true, nil
-		}
-		// If only one permission needed, we can simply search the list.
-		if len(permissionsToHave) == 1 {
-			permissionToHave := permissionsToHave[0]
-			for _, perm := range grantedPermissions {
-				if perm == permissionToHave {
-					return true, nil
-				}
-			}
-			return false, nil
-		}
-		// For multiple expected ones:
-		ok, err := hasAll(permissionsToHave)(grantedPermissions)
-		if err != nil {
-			return false, meh.Wrap(err, "has all", meh.Details{"permissions_to_have": permissionsToHave})
-		}
-		return ok, nil
-	}
+type Matcher struct {
+	// Name for better readability.
+	Name string
+	// MatchFn matches the given Permission list against criteria and returns
+	// whether a permission was given or not.
+	MatchFn func(granted map[Name]Permission) (bool, error)
 }
 
-// hasAll returns a Matcher, that assures all the given permissions to have been
-// granted.
-func hasAll(permissionsToHave []Permission) Matcher {
-	return func(permissions []Permission) (bool, error) {
-		remainingPermissionsToHave := make(map[Permission]struct{})
-		for _, permissionToHave := range permissionsToHave {
-			remainingPermissionsToHave[permissionToHave] = struct{}{}
-		}
-		for _, grantedPermission := range permissions {
-			delete(remainingPermissionsToHave, grantedPermission)
-		}
-		return len(remainingPermissionsToHave) == 0, nil
+// Has checks if the given Permission was wanted.
+func Has(granted []Permission, toHave ...Matcher) (bool, error) {
+	// Build map.
+	permissions := make(map[Name]Permission)
+	for _, permission := range granted {
+		permissions[permission.Name] = permission
 	}
+	// Match.
+	for _, matcher := range toHave {
+		ok, err := matcher.MatchFn(permissions)
+		if err != nil {
+			return false, meh.Wrap(err, "match permission", meh.Details{"matcher_name": matcher.Name})
+		}
+		if !ok {
+			return false, nil
+		}
+	}
+	return true, nil
 }

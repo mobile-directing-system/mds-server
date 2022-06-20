@@ -56,7 +56,7 @@ func handleCreateUser(s handleCreateUserStore) httpendpoints.HandlerFunc {
 			return meh.NewUnauthorizedErr("not authenticated", nil)
 		}
 		// First permission check for creating users.
-		ok, err := auth.HasPermission(token, permission.Has(permission.CreateUser))
+		ok, err := auth.HasPermission(token, permission.CreateUser())
 		if err != nil {
 			return meh.Wrap(err, "has create-user permission", nil)
 		}
@@ -71,7 +71,7 @@ func handleCreateUser(s handleCreateUserStore) httpendpoints.HandlerFunc {
 		}
 		// Creating an admin user requires extra permission.
 		if userToCreate.IsAdmin {
-			ok, err = auth.HasPermission(token, permission.Has(permission.SetAdminUser))
+			ok, err = auth.HasPermission(token, permission.SetAdminUser())
 			if err != nil {
 				return meh.Wrap(err, "has set-admin permission", nil)
 			}
@@ -154,7 +154,7 @@ func handleUpdateUserByID(s handleUpdateUserByIDStore) httpendpoints.HandlerFunc
 		}
 		// Permission check if not updating self.
 		if token.UserID != user.ID {
-			ok, err := auth.HasPermission(token, permission.Has(permission.UpdateUser))
+			ok, err := auth.HasPermission(token, permission.UpdateUser())
 			if err != nil {
 				return meh.Wrap(err, "check permission for updating user", nil)
 			}
@@ -163,7 +163,7 @@ func handleUpdateUserByID(s handleUpdateUserByIDStore) httpendpoints.HandlerFunc
 			}
 		}
 		// Check if allowed to change admin-state.
-		allowAdminChange, err := auth.HasPermission(token, permission.Has(permission.SetAdminUser))
+		allowAdminChange, err := auth.HasPermission(token, permission.SetAdminUser())
 		if err != nil {
 			return meh.Wrap(err, "check permission for allowing admin change", nil)
 		}
@@ -224,7 +224,7 @@ func handleUpdateUserPassByUserID(s handleUpdateUserPassByUserIDStore) httpendpo
 		}
 		// If foreign, check permission.
 		if reqBody.UserID != token.UserID {
-			ok, err := auth.HasPermission(token, permission.Has(permission.UpdateUserPass))
+			ok, err := auth.HasPermission(token, permission.UpdateUserPass())
 			if err != nil {
 				return meh.Wrap(err, "check permission for updating foreign user pass", nil)
 			}
@@ -268,7 +268,7 @@ func handleDeleteUserByID(s handleDeleteUserByIDStore) httpendpoints.HandlerFunc
 			return meh.NewBadInputErrFromErr(err, "parse user id", meh.Details{"was": userIDToDeleteStr})
 		}
 		// Check permission.
-		ok, err := auth.HasPermission(token, permission.Has(permission.DeleteUser))
+		ok, err := auth.HasPermission(token, permission.DeleteUser())
 		if err != nil {
 			return meh.Wrap(err, "check permission for deleting users", nil)
 		}
@@ -319,7 +319,7 @@ func handleGetUserByID(s handleGetUserByIDStore) httpendpoints.HandlerFunc {
 		}
 		// Check permission.
 		if token.UserID != userIDToView {
-			ok, err := auth.HasPermission(token, permission.Has(permission.ViewUser))
+			ok, err := auth.HasPermission(token, permission.ViewUser())
 			if err != nil {
 				return meh.Wrap(err, "check permission", nil)
 			}
@@ -371,7 +371,7 @@ func handleGetUsers(s handleGetUsersStore) httpendpoints.HandlerFunc {
 			return meh.NewUnauthorizedErr("not authenticated", nil)
 		}
 		// Check permission.
-		ok, err := auth.HasPermission(token, permission.Has(permission.ViewUser))
+		ok, err := auth.HasPermission(token, permission.ViewUser())
 		if err != nil {
 			return meh.Wrap(err, "check permission", nil)
 		}

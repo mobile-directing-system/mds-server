@@ -61,7 +61,7 @@ func (suite *handleCreateUserSuite) TestSecretMismatch() {
 		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.createUser)),
 		Token: auth.Token{
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{permission.CreateUser},
+			Permissions:     []permission.Permission{{Name: permission.CreateUserPermissionName}},
 		},
 		Secret: "woof",
 	})
@@ -104,7 +104,7 @@ func (suite *handleCreateUserSuite) TestInvalidBody() {
 		Token: auth.Token{
 			UserID:          uuid.New(),
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{permission.CreateUser},
+			Permissions:     []permission.Permission{{Name: permission.CreateUserPermissionName}},
 		},
 		Secret: "",
 	})
@@ -121,7 +121,7 @@ func (suite *handleCreateUserSuite) TestMissingSetAdminPermission() {
 		Token: auth.Token{
 			UserID:          uuid.New(),
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{permission.CreateUser},
+			Permissions:     []permission.Permission{{Name: permission.CreateUserPermissionName}},
 		},
 		Secret: "",
 	})
@@ -139,7 +139,7 @@ func (suite *handleCreateUserSuite) TestCreateUserFail() {
 		Token: auth.Token{
 			UserID:          uuid.New(),
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{permission.CreateUser},
+			Permissions:     []permission.Permission{{Name: permission.CreateUserPermissionName}},
 		},
 		Secret: "",
 	})
@@ -170,7 +170,7 @@ func (suite *handleCreateUserSuite) TestOKNoAdmin() {
 		Token: auth.Token{
 			UserID:          uuid.New(),
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{permission.CreateUser},
+			Permissions:     []permission.Permission{{Name: permission.CreateUserPermissionName}},
 		},
 		Secret: "",
 	})
@@ -200,7 +200,10 @@ func (suite *handleCreateUserSuite) TestOKAdmin() {
 		Token: auth.Token{
 			UserID:          uuid.New(),
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{permission.CreateUser, permission.SetAdminUser},
+			Permissions: []permission.Permission{
+				{Name: permission.CreateUserPermissionName},
+				{Name: permission.SetAdminUserPermissionName},
+			},
 		},
 		Secret: "",
 	})
@@ -251,7 +254,7 @@ func (suite *handleUpdateUserByIDSuite) TestSecretMismatch() {
 		Token: auth.Token{
 			UserID:          uuid.New(),
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{permission.UpdateUser},
+			Permissions:     []permission.Permission{{Name: permission.UpdateUserPermissionName}},
 		},
 		Secret: "woof",
 	})
@@ -383,7 +386,7 @@ func (suite *handleUpdateUserByIDSuite) TestOKWithSelfAdminChange() {
 		Token: auth.Token{
 			UserID:          suite.updateUser.ID,
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{permission.SetAdminUser},
+			Permissions:     []permission.Permission{{Name: permission.SetAdminUserPermissionName}},
 		},
 		Secret: "",
 	})
@@ -409,7 +412,7 @@ func (suite *handleUpdateUserByIDSuite) TestOKWithForeign() {
 		Token: auth.Token{
 			UserID:          uuid.New(),
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{permission.UpdateUser},
+			Permissions:     []permission.Permission{{Name: permission.UpdateUserPermissionName}},
 		},
 		Secret: "",
 	})
@@ -435,7 +438,10 @@ func (suite *handleUpdateUserByIDSuite) TestOKWithForeignAdminChange() {
 		Token: auth.Token{
 			UserID:          uuid.New(),
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{permission.UpdateUser, permission.SetAdminUser},
+			Permissions: []permission.Permission{
+				{Name: permission.UpdateUserPermissionName},
+				{Name: permission.SetAdminUserPermissionName},
+			},
 		},
 		Secret: "",
 	})
@@ -482,7 +488,7 @@ func (suite *handleUpdateUserPassByUserIDSuite) TestSecretMismatch() {
 		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.updatePass)),
 		Token: auth.Token{
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{permission.UpdateUser},
+			Permissions:     []permission.Permission{{Name: permission.UpdateUserPermissionName}},
 		},
 		Secret: "woof",
 	})
@@ -599,7 +605,7 @@ func (suite *handleUpdateUserPassByUserIDSuite) TestOKForeign() {
 		Token: auth.Token{
 			UserID:          uuid.New(),
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{permission.UpdateUserPass},
+			Permissions:     []permission.Permission{{Name: permission.UpdateUserPassPermissionName}},
 		},
 		Secret: "",
 	})
@@ -644,7 +650,7 @@ func (suite *handleDeleteUserByIDSuite) TestSecretMismatch() {
 		Token: auth.Token{
 			UserID:          suite.userID,
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{permission.DeleteUser},
+			Permissions:     []permission.Permission{{Name: permission.DeleteUserPermissionName}},
 		},
 		Secret: "woof",
 	})
@@ -674,7 +680,7 @@ func (suite *handleDeleteUserByIDSuite) TestInvalidID() {
 		Token: auth.Token{
 			UserID:          suite.userID,
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{permission.DeleteUser},
+			Permissions:     []permission.Permission{{Name: permission.DeleteUserPermissionName}},
 		},
 		Secret: "",
 	})
@@ -708,7 +714,7 @@ func (suite *handleDeleteUserByIDSuite) TestDeleteFail() {
 		Token: auth.Token{
 			UserID:          suite.userID,
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{permission.DeleteUser},
+			Permissions:     []permission.Permission{{Name: permission.DeleteUserPermissionName}},
 		},
 		Secret: "",
 	})
@@ -728,7 +734,7 @@ func (suite *handleDeleteUserByIDSuite) TestOK() {
 		Token: auth.Token{
 			UserID:          suite.userID,
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{permission.DeleteUser},
+			Permissions:     []permission.Permission{{Name: permission.DeleteUserPermissionName}},
 		},
 		Secret: "",
 	})
@@ -788,7 +794,7 @@ func (suite *handleGetUserByIDSuite) TestInvalidID() {
 		Token: auth.Token{
 			UserID:          suite.userID,
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{permission.ViewUser},
+			Permissions:     []permission.Permission{{Name: permission.ViewUserPermissionName}},
 		},
 		Secret: "",
 	})
@@ -822,7 +828,7 @@ func (suite *handleGetUserByIDSuite) TestRetrieveFromStoreFail() {
 		Token: auth.Token{
 			UserID:          suite.userID,
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{permission.ViewUser},
+			Permissions:     []permission.Permission{{Name: permission.ViewUserPermissionName}},
 		},
 		Secret: "",
 	})
@@ -884,7 +890,7 @@ func (suite *handleGetUserByIDSuite) TestOKForeign() {
 		Token: auth.Token{
 			UserID:          suite.userID,
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{permission.ViewUser},
+			Permissions:     []permission.Permission{{Name: permission.ViewUserPermissionName}},
 		},
 		Secret: "",
 	})
@@ -978,7 +984,7 @@ func (suite *handleGetUsersSuite) TestInvalidPagination() {
 		Body:   nil,
 		Token: auth.Token{
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{permission.ViewUser},
+			Permissions:     []permission.Permission{{Name: permission.ViewUserPermissionName}},
 		},
 		Secret: "",
 	})
@@ -997,7 +1003,7 @@ func (suite *handleGetUsersSuite) TestStoreRetrievalFail() {
 		Body:   nil,
 		Token: auth.Token{
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{permission.ViewUser},
+			Permissions:     []permission.Permission{{Name: permission.ViewUserPermissionName}},
 		},
 		Secret: "",
 	})
@@ -1035,7 +1041,7 @@ func (suite *handleGetUsersSuite) TestOK() {
 		Token: auth.Token{
 			UserID:          uuid.New(),
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{permission.ViewUser},
+			Permissions:     []permission.Permission{{Name: permission.ViewUserPermissionName}},
 		},
 		Secret: "",
 	})

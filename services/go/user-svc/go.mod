@@ -10,7 +10,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/jackc/pgx/v4 v4.16.1
 	github.com/lefinal/meh v1.5.1
-	github.com/lefinal/nulls v1.2.0
+	github.com/lefinal/nulls v1.2.3
 	github.com/mobile-directing-system/mds-server/services/go/shared v0.0.0-20220608131122-5219f744f834
 	github.com/segmentio/kafka-go v0.4.32
 	github.com/stretchr/testify v1.7.1
