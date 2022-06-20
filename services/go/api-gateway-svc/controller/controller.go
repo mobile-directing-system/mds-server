@@ -36,16 +36,19 @@ type Store interface {
 	// PassByUsername retrieves the hashed password for the user with the given
 	// username.
 	PassByUsername(ctx context.Context, tx pgx.Tx, username string) ([]byte, error)
-	// UserByUsername retrieves the store.User with the given username.
-	UserByUsername(ctx context.Context, tx pgx.Tx, username string) (store.User, error)
-	// UserByID retrieves the store.user with the given id.
-	UserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) (store.User, error)
-	// CreateUser creates the given store.User.
-	CreateUser(ctx context.Context, tx pgx.Tx, user store.User) error
+	// UserWithPassByUsername retrieves the store.UserWithPass with the given
+	// username.
+	UserWithPassByUsername(ctx context.Context, tx pgx.Tx, username string) (store.UserWithPass, error)
+	// UserWithPassByID retrieves the store.UserWithPass with the given id.
+	UserWithPassByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) (store.UserWithPass, error)
+	// CreateUser creates the given store.UserWithPass.
+	CreateUser(ctx context.Context, tx pgx.Tx, user store.UserWithPass) error
 	// UpdateUser updates the given User, identified by its id.
 	UpdateUser(ctx context.Context, tx pgx.Tx, user store.User) error
+	// UpdateUserPassByUserID updates the password for the user with the given id.
+	UpdateUserPassByUserID(ctx context.Context, tx pgx.Tx, userID uuid.UUID, newPass []byte) error
 	// DeleteUserByID deletes the user with the given id.
-	DeleteUserByID(ctx context.Context, tx pgx.Tx, userID string) error
+	DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error
 	// UpdatePermissionsByUser updates the permissions for the user with the given
 	// id.
 	UpdatePermissionsByUser(ctx context.Context, tx pgx.Tx, userID uuid.UUID, permissions []permission.Permission) error

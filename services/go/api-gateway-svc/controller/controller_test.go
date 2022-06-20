@@ -43,6 +43,28 @@ type StoreMock struct {
 	mock.Mock
 }
 
+func (m *StoreMock) UserWithPassByUsername(ctx context.Context, tx pgx.Tx, username string) (store.UserWithPass, error) {
+	args := m.Called(ctx, tx, username)
+	return args.Get(0).(store.UserWithPass), args.Error(1)
+}
+
+func (m *StoreMock) UserWithPassByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) (store.UserWithPass, error) {
+	args := m.Called(ctx, tx, userID)
+	return args.Get(0).(store.UserWithPass), args.Error(1)
+}
+
+func (m *StoreMock) CreateUser(ctx context.Context, tx pgx.Tx, user store.UserWithPass) error {
+	return m.Called(ctx, tx, user).Error(0)
+}
+
+func (m *StoreMock) UpdateUserPassByUserID(ctx context.Context, tx pgx.Tx, userID uuid.UUID, newPass []byte) error {
+	return m.Called(ctx, tx, userID, newPass).Error(0)
+}
+
+func (m *StoreMock) DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error {
+	return m.Called(ctx, tx, userID).Error(0)
+}
+
 func (m *StoreMock) PermissionsByUserID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) ([]permission.Permission, error) {
 	args := m.Called(ctx, tx, userID)
 	var p []permission.Permission
@@ -75,26 +97,8 @@ func (m *StoreMock) PassByUsername(ctx context.Context, tx pgx.Tx, username stri
 	return b, args.Error(1)
 }
 
-func (m *StoreMock) UserByUsername(ctx context.Context, tx pgx.Tx, username string) (store.User, error) {
-	args := m.Called(ctx, tx, username)
-	return args.Get(0).(store.User), args.Error(1)
-}
-
-func (m *StoreMock) UserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) (store.User, error) {
-	args := m.Called(ctx, tx, userID)
-	return args.Get(0).(store.User), args.Error(1)
-}
-
-func (m *StoreMock) CreateUser(ctx context.Context, tx pgx.Tx, user store.User) error {
-	return m.Called(ctx, tx, user).Error(0)
-}
-
 func (m *StoreMock) UpdateUser(ctx context.Context, tx pgx.Tx, user store.User) error {
 	return m.Called(ctx, tx, user).Error(0)
-}
-
-func (m *StoreMock) DeleteUserByID(ctx context.Context, tx pgx.Tx, userID string) error {
-	return m.Called(ctx, tx, userID).Error(0)
 }
 
 func (m *StoreMock) UpdatePermissionsByUser(ctx context.Context, tx pgx.Tx, userID uuid.UUID, permissions []permission.Permission) error {

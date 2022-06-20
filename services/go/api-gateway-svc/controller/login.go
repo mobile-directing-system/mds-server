@@ -23,11 +23,11 @@ type AuthRequestMetadata struct {
 // fails, false is returned as second value. Otherwise, the first return value
 // will be the assigned JWT-token.
 func (c *Controller) Login(ctx context.Context, username string, pass string, requestMetadata AuthRequestMetadata) (string, bool, error) {
-	var user store.User
+	var user store.UserWithPass
 	var err error
 	// Load actual password for username.
 	err = pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
-		user, err = c.Store.UserByUsername(ctx, tx, username)
+		user, err = c.Store.UserWithPassByUsername(ctx, tx, username)
 		if err != nil {
 			return meh.Wrap(err, "user by username", meh.Details{"username": username})
 		}
@@ -99,9 +99,9 @@ func (c *Controller) Logout(ctx context.Context, publicToken string, requestMeta
 		return meh.Wrap(err, "get and delete id by session token", meh.Details{"token": publicToken})
 	}
 	// Gather some data for more detailed logging.
-	var user store.User
+	var user store.UserWithPass
 	err = pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
-		user, err = c.Store.UserByID(ctx, tx, userID)
+		user, err = c.Store.UserWithPassByID(ctx, tx, userID)
 		if err != nil {
 			return meh.Wrap(err, "user by id", meh.Details{"user_id": userID})
 		}

@@ -54,7 +54,7 @@ func (c *Controller) gatherProxyToken(ctx context.Context, publicToken string) (
 	authToken.IsAuthenticated = true
 	err = pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
 		// Retrieve user details.
-		user, err := c.Store.UserByID(ctx, tx, userID)
+		user, err := c.Store.UserWithPassByID(ctx, tx, userID)
 		if err != nil {
 			return meh.Wrap(err, "user by id", meh.Details{"user_id": userID})
 		}
