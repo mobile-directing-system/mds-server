@@ -3,6 +3,14 @@ Users
 
 This section covers all user-related actions and API endpoints.
 
+When the system starts and no admin-user exists, an example admin user will be created.
+The default credentials are::
+
+    Username: admin
+    Password: admin
+
+**Change the password immediately after logging in for the first time!**
+
 Create user
 -----------
 
