@@ -65,3 +65,24 @@ func MarshalJSONMust(v interface{}) []byte {
 	}
 	return b
 }
+
+// RouteInfo contains less information than gin.RoutesInfo which allows testing
+// for route existence.
+type RouteInfo struct {
+	// Method is the HTTP method.
+	Method string
+	// Path the route applies to.
+	Path string
+}
+
+// RouteInfoFromGin converts gin.RouteInfo to a RouteInfo list.
+func RouteInfoFromGin(routesInfo gin.RoutesInfo) []RouteInfo {
+	out := make([]RouteInfo, 0, len(routesInfo))
+	for _, info := range routesInfo {
+		out = append(out, RouteInfo{
+			Method: info.Method,
+			Path:   info.Path,
+		})
+	}
+	return out
+}
