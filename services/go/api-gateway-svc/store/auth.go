@@ -91,27 +91,29 @@ func (m *Mall) StoreSessionTokenForUser(ctx context.Context, tx pgx.Tx, token st
 // given session token to a user id.
 func (m *Mall) GetAndDeleteUserIDBySessionToken(ctx context.Context, tx pgx.Tx, token string) (uuid.UUID, error) {
 	// Remove from cache.
-	userIDRaw, err := m.redis.GetDel(ctx, redisutil.BuildKey(redisSessionTokenPrefix, token)).Result()
+	_, err := m.redis.GetDel(ctx, redisutil.BuildKey(redisSessionTokenPrefix, token)).Result()
 	if err != nil && err != redis.Nil {
 		return uuid.Nil, meh.NewInternalErrFromErr(err, "get and delete user id by session token in redis", nil)
 	}
 	// Remove from database.
 	q, _, err := goqu.Delete(goqu.T("session_tokens")).
-		Where(goqu.C("token").Eq(token)).ToSQL()
+		Where(goqu.C("token").Eq(token)).
+		Returning(goqu.C("user")).ToSQL()
 	if err != nil {
 		return uuid.Nil, meh.NewInternalErrFromErr(err, "query to sql", nil)
 	}
-	result, err := tx.Exec(ctx, q)
+	rows, err := tx.Query(ctx, q)
 	if err != nil {
-		return uuid.Nil, mehpg.NewQueryDBErr(err, "exec query", q)
+		return uuid.Nil, mehpg.NewQueryDBErr(err, "query db", q)
 	}
-	if result.RowsAffected() == 0 {
-		return uuid.Nil, meh.NewInternalErr("token not found in database but in cache", nil)
+	defer rows.Close()
+	if !rows.Next() {
+		return uuid.Nil, meh.NewNotFoundErr("not found", nil)
 	}
-	// Parse.
-	userID, err := uuid.Parse(userIDRaw)
+	var userID uuid.UUID
+	err = rows.Scan(&userID)
 	if err != nil {
-		return uuid.Nil, meh.NewInternalErrFromErr(err, "parse raw user id", meh.Details{"raw": userIDRaw})
+		return uuid.Nil, mehpg.NewScanRowsErr(err, "scan row", q)
 	}
 	return userID, nil
 }
