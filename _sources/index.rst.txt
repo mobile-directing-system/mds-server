@@ -11,6 +11,7 @@ Welcome to MDS Server's documentation!
     sites/api-gateway
     sites/user-management
     sites/permissions
+    sites/operations
     sites/development
 
 

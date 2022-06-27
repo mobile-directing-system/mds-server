@@ -3,7 +3,7 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Development" href="development.html" /><link rel="prev" title="Users" href="user-management.html" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Operations" href="operations.html" /><link rel="prev" title="Users" href="user-management.html" />
 
     <meta name="generator" content="sphinx-4.5.0, furo 2022.06.21"/>
         <title>Permissions - MDS Server documentation</title>
@@ -160,6 +160,7 @@
 <li class="toctree-l1"><a class="reference internal" href="api-gateway.html">API Gateway</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user-management.html">Users</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Permissions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="operations.html">Operations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
 </ul>
 
@@ -288,6 +289,21 @@ Retrieval is done via:</p>
 <p>Options: <cite>none</cite></p>
 </section>
 </section>
+<section id="operations">
+<h3>Operations<a class="headerlink" href="#operations" title="Permalink to this headline">#</a></h3>
+<section id="operation-view-any">
+<span id="permission-operation-view-any"></span><h4>operation.view.any<a class="headerlink" href="#operation-view-any" title="Permalink to this headline">#</a></h4>
+<p>Allows listing and viewing all registered operations. In contrast to that, usually, only viewing operations via id is allowed.</p>
+</section>
+<section id="operation-create">
+<span id="permission-operation-create"></span><h4>operation.create<a class="headerlink" href="#operation-create" title="Permalink to this headline">#</a></h4>
+<p>Allows creating operations.</p>
+</section>
+<section id="operation-update">
+<span id="permission-operation-update"></span><h4>operation.update<a class="headerlink" href="#operation-update" title="Permalink to this headline">#</a></h4>
+<p>Allows updating of operations. This also includes marking them as finished or archived.</p>
+</section>
+</section>
 </section>
 </section>
 
@@ -296,12 +312,12 @@ Retrieval is done via:</p>
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="development.html">
+          <a class="next-page" href="operations.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Development</div>
+                <div class="title">Operations</div>
               </div>
               <svg><use href="#svg-arrow-right"></use></svg>
             </a>
@@ -364,6 +380,12 @@ Retrieval is done via:</p>
 <li><a class="reference internal" href="#user-update">user.update</a></li>
 <li><a class="reference internal" href="#user-update-pass">user.update-pass</a></li>
 <li><a class="reference internal" href="#user-view">user.view</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#operations">Operations</a><ul>
+<li><a class="reference internal" href="#operation-view-any">operation.view.any</a></li>
+<li><a class="reference internal" href="#operation-create">operation.create</a></li>
+<li><a class="reference internal" href="#operation-update">operation.update</a></li>
 </ul>
 </li>
 </ul>
