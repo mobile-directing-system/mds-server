@@ -5,6 +5,7 @@
 [![GitHub issues](https://img.shields.io/github/issues/mobile-directing-system/mds-server)](https://github.com/mobile-directing-system/mds-server/issues)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/mobile-directing-system/mds-server)
 ![Lines of Code](https://raw.githubusercontent.com/mobile-directing-system/mds-server/badges/badge-loc.svg)
+![Go unit tests](https://raw.githubusercontent.com/mobile-directing-system/mds-server/badges/badge-go-unit-test-count.svg)
 
 Backend for Mobile Directing System
 

@@ -1,0 +1,33 @@
+name: "K8s startup"
+
+on: [ push, pull_request ]
+
+jobs:
+  k8s_startup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Minikube
+        uses: hiberbee/github-action-minikube@1.5.0
+
+      - name: Install Skaffold
+        run: |
+          curl -Lo skaffold https://storage.googleapis.com/skaffold/releases/latest/skaffold-linux-amd64 && \
+          sudo install skaffold /usr/local/bin/
+          skaffold version
+
+      - name: Cache Skaffold image builds & config
+        uses: actions/cache@v2
+        with:
+          path: ~/.skaffold/
+          key: fixed-k8s_startup-skaffold-${{ github.sha }}
+
+      - name: Skaffold prepare
+        run: skaffold deploy --profile=prepare
+
+      - name: Skaffold deploy
+        run: skaffold run --profile=mds
+
+      - name: Verify the deployment
+        run: kubectl get pods

@@ -46,9 +46,9 @@ func ParamsFromRequest(c *gin.Context) (Params, error) {
 	if orderBy != "" {
 		params.OrderBy = nulls.NewString(orderBy)
 	}
-	orderDirection := c.Query(OrderDirQueryParam)
+	orderDirection := OrderDir(c.Query(OrderDirQueryParam))
 	if orderDirection != "" {
-		if orderDirection != "asc" && orderDirection != "desc" {
+		if orderDirection != OrderDirAsc && orderDirection != OrderDirDesc {
 			return Params{}, meh.NewBadInputErr("invalid order direction", meh.Details{"was": orderDirection})
 		}
 		params.OrderDirection = orderDirection

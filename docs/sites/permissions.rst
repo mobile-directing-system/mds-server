@@ -136,3 +136,27 @@ user.view
 Allows retrieving information of other users.
 
 Options: `none`
+
+Operations
+----------
+
+.. _permission.operation.view.any:
+
+operation.view.any
+^^^^^^^^^^^^^^^^^^
+
+Allows listing and viewing all registered operations. In contrast to that, usually, only viewing operations via id is allowed.
+
+.. _permission.operation.create:
+
+operation.create
+^^^^^^^^^^^^^^^^
+
+Allows creating operations.
+
+.. _permission.operation.update:
+
+operation.update
+^^^^^^^^^^^^^^^^
+
+Allows updating of operations. This also includes marking them as finished or archived.
