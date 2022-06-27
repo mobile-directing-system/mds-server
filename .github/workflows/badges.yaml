@@ -13,7 +13,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Make LoC Badge
+      - name: Make LoC badge
         uses: shadowmoose/GHA-LoC-Badge@1.0.0
         id: badge
         with:
@@ -23,10 +23,19 @@ jobs:
           badge_label: Lines of Code (Go)
           patterns: '**/*.go'
 
-      - name: Print the output
-        run: |
-          echo "Scanned: ${{ steps.badge.outputs.counted_files }}";
-          echo "Line Count: ${{ steps.badge.outputs.total_lines }}";
+      - name: Count Go unit tests
+        id: count_go_unit_tests
+        working-directory: ./tools
+        run: echo ::set-output name=count::$(count-go-unit-tests.sh)
+
+      - name: Go unit test count badge
+        uses: emibcn/badge-action@v1.2.1
+        with:
+          label: 'Go unit tests'
+          status: '≈${{ steps.count_go_unit_tests.outputs.count }}'
+          color: '#007837'
+          path: ./output/badge-go-unit-test-count.svg
+
       - name: Deploy to badges branch
         uses: peaceiris/actions-gh-pages@v3
         with:
