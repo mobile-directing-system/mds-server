@@ -89,7 +89,7 @@ func addOffsetToQuery(qb *goqu.SelectDataset, offset int) (*goqu.SelectDataset, 
 
 // addOrderingToQuery prepens the given goqu.SelectDataset with an
 // order-by-clause based on the given parameters.
-func addOrderingToQuery(qb *goqu.SelectDataset, orderBy string, orderDirection string, fieldMap FieldMap) (*goqu.SelectDataset, error) {
+func addOrderingToQuery(qb *goqu.SelectDataset, orderBy string, orderDirection OrderDir, fieldMap FieldMap) (*goqu.SelectDataset, error) {
 	// Retrieve selector from field map.
 	selector, ok := fieldMap[orderBy]
 	if !ok {
@@ -97,7 +97,7 @@ func addOrderingToQuery(qb *goqu.SelectDataset, orderBy string, orderDirection s
 	}
 	// Order direction.
 	var orderExp exp.OrderedExpression
-	if orderDirection == "desc" {
+	if orderDirection == OrderDirDesc {
 		orderExp = selector.Desc()
 	} else {
 		orderExp = selector.Asc()

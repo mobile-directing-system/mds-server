@@ -1,0 +1,130 @@
+# Database config.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mds-operation-svc-postgres-config
+  labels:
+    app: mds-operation-svc-postgres
+data:
+  POSTGRES_DB: mds-operation-svc
+  POSTGRES_USER: mds
+  POSTGRES_PASSWORD: mds
+---
+# Database pvc.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mds-operation-svc-postgres-pvc
+  labels:
+    app: mds-operation-svc-postgres
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+---
+# Database service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mds-operation-svc-postgres-service
+  labels:
+    app: mds-operation-svc-postgres-service
+spec:
+  ports:
+    - port: 5432
+  selector:
+    app: mds-operation-svc-postgres
+---
+# Database deployment.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mds-operation-svc-postgres-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mds-operation-svc-postgres
+  template:
+    metadata:
+      labels:
+        app: mds-operation-svc-postgres
+    spec:
+      containers:
+        - name: mds-operation-svc-postgres
+          image: postgres:14.2
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: mds-operation-svc-postgres-config
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgres-data
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: mds-operation-svc-postgres-pvc
+---
+# Operation svc config.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mds-operation-svc-config
+  labels:
+    app: mds-operation-svc
+data:
+  MDS_DB_CONN_STRING: postgresql://mds:mds@mds-operation-svc-postgres-service/mds-operation-svc
+  MDS_KAFKA_ADDR: kafka-cluster-kafka-bootstrap.kafka:9092
+  MDS_SERVE_ADDR: :8080
+  MDS_LOG_LEVEL: debug
+---
+# Operation svc service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mds-operation-svc-service
+spec:
+  selector:
+    app: mds-operation-svc
+  ports:
+    - port: 3000
+      targetPort: 8080
+---
+# Operation svc deployment.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mds-operation-svc-deployment
+  annotations:
+    reloader.stakater.com/auto: "true"
+spec:
+  selector:
+    matchLabels:
+      app: mds-operation-svc
+  template:
+    metadata:
+      labels:
+        app: mds-operation-svc
+    spec:
+      containers:
+        - name: mds-operation-svc
+          image: mds-operation-svc
+          envFrom:
+            - configMapRef:
+                name: mds-operation-svc-config
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              port: 31234
+              path: /livez
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              port: 31234
+              path: /readyz
+            timeoutSeconds: 5

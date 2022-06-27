@@ -118,3 +118,22 @@ func HasPermission(token Token, toHave ...permission.Matcher) (bool, error) {
 	}
 	return ok, nil
 }
+
+// AssurePermission acts similarly to HasPermission but the result is returned
+// as error. Regardless of the given list of permission.Matcher, if not
+// authenticated, an meh.ErrUnauthorized error is returned. If the token claims
+// to be admin, no error will be returned. Otherwise, the returned error is nil,
+// if all permissions are granted, and non-nil with error details if not.
+func AssurePermission(token Token, toHave ...permission.Matcher) error {
+	if !token.IsAuthenticated {
+		return meh.NewUnauthorizedErr("not authenticated", nil)
+	}
+	if token.IsAdmin {
+		return nil
+	}
+	err := permission.Assure(token.Permissions, toHave...)
+	if err != nil {
+		return meh.Wrap(err, "match permissions", meh.Details{"granted_permissions": token.Permissions})
+	}
+	return nil
+}

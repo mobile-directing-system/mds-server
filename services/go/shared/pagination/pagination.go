@@ -12,6 +12,15 @@ var DefaultLimit = 20
 // FieldMap is used for mapping fields to SQL selectors.
 type FieldMap map[string]exp.Orderable
 
+// OrderDir is the direction for ordering.
+type OrderDir string
+
+// Order directions.
+const (
+	OrderDirAsc  OrderDir = "asc"
+	OrderDirDesc OrderDir = "desc"
+)
+
 // Paginated is a container for a paginated result for retrieved Entries.
 type Paginated[T any] struct {
 	// Total is the total amount of available entries.
@@ -24,7 +33,7 @@ type Paginated[T any] struct {
 	OrderedBy nulls.String `json:"ordered_by"`
 	// OrderDirection is the direction, the fields are ordered by, if OrderedBy is
 	// set.
-	OrderDirection string `json:"order_direction"`
+	OrderDirection OrderDir `json:"order_direction"`
 	// Retrieves is the amount of entries in Entries.
 	Retrieved int `json:"retrieved"`
 	// Entries are the actually retrieved entries.
@@ -40,7 +49,7 @@ type Params struct {
 	// OrderBy is an optional field to order results by.
 	OrderBy nulls.String `json:"order_by"`
 	// OrderDirection is the optional direction to use for ordering with OrderBy.
-	OrderDirection string `json:"order_dir"`
+	OrderDirection OrderDir `json:"order_dir"`
 }
 
 // NewPaginated builds a Paginated from the given Params and entry

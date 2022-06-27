@@ -17,6 +17,13 @@ spec:
                 name: mds-user-svc-service
                 port:
                   number: 3000
+          - path: /operations/?(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: mds-operation-svc-service
+                port:
+                  number: 3000
           - path: /permissions/?(.*)
             pathType: Prefix
             backend:
