@@ -4,7 +4,6 @@ on: [ push, pull_request ]
 
 jobs:
   build:
-    if: ${{ '{{SERVICE}}' != 'shared' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -23,7 +22,6 @@ jobs:
         run: go build -i -v main.go
 
   docker_build:
-    if: ${{ '{{SERVICE}}' != 'shared' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
