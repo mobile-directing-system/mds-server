@@ -1,0 +1,20 @@
+<svg width="101.9" height="20" viewBox="0 0 1019 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Go unit tests: ≈">
+  <title>Go unit tests: ≈</title>
+  <linearGradient id="a" x2="0" y2="100%">
+    <stop offset="0" stop-opacity=".1" stop-color="#EEE"/>
+    <stop offset="1" stop-opacity=".1"/>
+  </linearGradient>
+  <mask id="m"><rect width="1019" height="200" rx="30" fill="#FFF"/></mask>
+  <g mask="url(#m)">
+    <rect width="809" height="200" fill="#555"/>
+    <rect width="210" height="200" fill="##007837" x="809"/>
+    <rect width="1019" height="200" fill="url(#a)"/>
+  </g>
+  <g aria-hidden="true" fill="#fff" text-anchor="start" font-family="Verdana,DejaVu Sans,sans-serif" font-size="110">
+    <text x="60" y="148" textLength="709" fill="#000" opacity="0.25">Go unit tests</text>
+    <text x="50" y="138" textLength="709">Go unit tests</text>
+    <text x="864" y="148" textLength="110" fill="#000" opacity="0.25">≈</text>
+    <text x="854" y="138" textLength="110">≈</text>
+  </g>
+  
+</svg>
