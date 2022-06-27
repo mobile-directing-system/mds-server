@@ -26,7 +26,7 @@ jobs:
       - name: Count Go unit tests
         id: count_go_unit_tests
         working-directory: ./tools
-        run: echo ::set-output name=count::$(count-go-unit-tests.sh)
+        run: echo ::set-output name=count::$(./count-go-unit-tests.sh)
 
       - name: Go unit test count badge
         uses: emibcn/badge-action@v1.2.1
