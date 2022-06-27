@@ -23,6 +23,8 @@ jobs:
 
   docker_build:
     runs-on: ubuntu-latest
+    needs:
+      - build
     steps:
       - uses: actions/checkout@v2
 
@@ -38,6 +40,8 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    needs:
+      - build
     steps:
       - uses: actions/checkout@v2
 
@@ -61,6 +65,8 @@ jobs:
 
   race_detection:
     runs-on: ubuntu-latest
+    needs:
+      - test
     steps:
       - uses: actions/checkout@v2
 
@@ -79,6 +85,8 @@ jobs:
 
   memory_sanitization:
     runs-on: ubuntu-latest
+    needs:
+      - test
     steps:
       - uses: actions/checkout@v2
 
@@ -102,6 +110,8 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
+    needs:
+      - build
     steps:
       - uses: actions/checkout@v2
 
@@ -123,6 +133,10 @@ jobs:
 
   code_coverage:
     runs-on: ubuntu-latest
+    needs:
+      - race_detection
+      - memory_sanitization
+      - lint
     steps:
       - uses: actions/checkout@v2
 
