@@ -134,6 +134,9 @@ func (m *Mall) CreateOperation(ctx context.Context, tx pgx.Tx, operation Operati
 	}
 	defer rows.Close()
 	if !rows.Next() {
+		if err = rows.Err(); err != nil {
+			return Operation{}, mehpg.NewQueryDBErr(err, "exec query", q)
+		}
 		return Operation{}, meh.NewInternalErr("no rows returned", meh.Details{"query": q})
 	}
 	err = rows.Scan(&operation.ID)

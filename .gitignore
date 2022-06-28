@@ -54,3 +54,5 @@ fabric.properties
 # Development.
 
 /dev/volumes
+
+.idea/httpRequests/
