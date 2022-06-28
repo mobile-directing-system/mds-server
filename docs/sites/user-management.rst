@@ -3,6 +3,9 @@ Users
 
 This section covers all user-related actions and API endpoints.
 
+A user consists of an unique id, a name, unique username and password for logging in, as well as an is-admin-state.
+The is-admin-state grants all permissions and normally should not be granted to regular users.
+
 When the system starts and no admin-user exists, an example admin user will be created.
 The default credentials are::
 
