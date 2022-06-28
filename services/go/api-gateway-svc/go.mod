@@ -11,7 +11,7 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.3.0
 	github.com/jackc/pgx/v4 v4.16.1
-	github.com/lefinal/meh v1.5.1
+	github.com/lefinal/meh v1.5.2
 	github.com/lefinal/nulls v1.2.3
 	github.com/mobile-directing-system/mds-server/services/go/shared v0.0.0-20220608131122-5219f744f834
 	github.com/segmentio/kafka-go v0.4.31

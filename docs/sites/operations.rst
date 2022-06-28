@@ -94,3 +94,11 @@ Entry payload:
         "end": "2006-01-02T15:04:05Z07:00",
         "is_archived": false
     }
+
+The following fields can be used for ordering:
+
+- ``title``
+- ``description``
+- ``start``
+- ``end``
+- ``is_archived``

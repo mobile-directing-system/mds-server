@@ -164,6 +164,9 @@ func (m *Mall) CreateUser(ctx context.Context, tx pgx.Tx, user UserWithPass) (Us
 	}
 	defer rows.Close()
 	if !rows.Next() {
+		if err = rows.Err(); err != nil {
+			return User{}, mehpg.NewQueryDBErr(err, "exec query", q)
+		}
 		return User{}, meh.NewInternalErr("no rows returned", meh.Details{"query": q})
 	}
 	err = rows.Scan(&user.ID)
@@ -173,7 +176,7 @@ func (m *Mall) CreateUser(ctx context.Context, tx pgx.Tx, user UserWithPass) (Us
 	return user.User, nil
 }
 
-// UpdateUser updates the given User, identifies by its User.ID. This will not
+// UpdateUser updates the given User, identified by its User.ID. This will not
 // change the password!
 func (m *Mall) UpdateUser(ctx context.Context, tx pgx.Tx, user User) error {
 	// Build query.
