@@ -198,6 +198,8 @@
           <section id="users">
 <h1>Users<a class="headerlink" href="#users" title="Permalink to this headline">#</a></h1>
 <p>This section covers all user-related actions and API endpoints.</p>
+<p>A user consists of an unique id, a name, unique username and password for logging in, as well as an is-admin-state.
+The is-admin-state grants all permissions and normally should not be granted to regular users.</p>
 <p>When the system starts and no admin-user exists, an example admin user will be created.
 The default credentials are:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Username</span><span class="p">:</span> <span class="n">admin</span>
@@ -290,6 +292,13 @@ A single user can be retrieved using:</p>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
+<p>The following fields can be used for ordering:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">username</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">first_name</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">last_name</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">is_admin</span></code></p></li>
+</ul>
 </section>
 </section>
 
