@@ -122,3 +122,10 @@ Entry payload:
         "last_name": "Mustermann",
         "is_admin": false
     }
+
+The following fields can be used for ordering:
+
+- ``username``
+- ``first_name``
+- ``last_name``
+- ``is_admin``
