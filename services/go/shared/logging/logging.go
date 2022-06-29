@@ -49,7 +49,7 @@ func SetDebugLogger(logger *zap.Logger) {
 // returned logged before exiting!
 func NewLogger(serviceName string, level zapcore.Level) (*zap.Logger, error) {
 	config := zap.NewProductionConfig()
-	config.Encoding = "console"
+	config.Encoding = "json"
 	config.EncoderConfig = zapcore.EncoderConfig{
 		TimeKey:        "ts",
 		LevelKey:       "level",
