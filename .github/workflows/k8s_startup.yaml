@@ -30,4 +30,4 @@ jobs:
         run: skaffold run --profile=mds
 
       - name: Verify the deployment
-        run: kubectl get pods
+        run: kubectl get all --all-namespaces
