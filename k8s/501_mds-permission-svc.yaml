@@ -9,6 +9,7 @@ data:
   POSTGRES_DB: mds-permission-svc
   POSTGRES_USER: mds
   POSTGRES_PASSWORD: mds
+  PGDATA: /var/lib/postgresql/data/pgdata
 ---
 # Database pvc.
 apiVersion: v1
@@ -62,7 +63,7 @@ spec:
             - configMapRef:
                 name: mds-permission-svc-postgres-config
           volumeMounts:
-            - mountPath: /var/lib/postgresql/data
+            - mountPath: /var/lib/postgresql/data/pgdata
               name: postgres-data
       volumes:
         - name: postgres-data

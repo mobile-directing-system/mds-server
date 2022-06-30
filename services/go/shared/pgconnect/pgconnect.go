@@ -24,7 +24,17 @@ const (
 // we wait for RetryTimeout and then try again. Connection errors will be logged
 // to the given zap.Logger.
 func Connect(ctx context.Context, logger *zap.Logger, connString string) (*pgxpool.Pool, error) {
-	conn, ok := tryConnect(ctx, logger, connString)
+	// Create config.
+	connConfig, err := pgxpool.ParseConfig(connString)
+	if err != nil {
+		return nil, meh.NewInternalErrFromErr(err, "parse connection string config", meh.Details{"conn_string": connString})
+	}
+	connConfig.MaxConns = 64
+	connConfig.MinConns = 0
+	connConfig.MaxConnIdleTime = 10 * time.Second
+	connConfig.HealthCheckPeriod = 5 * time.Second
+	// Connect.
+	conn, ok := tryConnect(ctx, logger, connConfig)
 	if ok {
 		return conn, nil
 	}
@@ -33,7 +43,7 @@ func Connect(ctx context.Context, logger *zap.Logger, connString string) (*pgxpo
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-time.After(RetryTimeout):
-			conn, ok = tryConnect(ctx, logger, connString)
+			conn, ok = tryConnect(ctx, logger, connConfig)
 			if ok {
 				return conn, nil
 			}
@@ -44,8 +54,8 @@ func Connect(ctx context.Context, logger *zap.Logger, connString string) (*pgxpo
 // tryConnect tries to connect to the given postgres database. If connection
 // fails, the error will be logged to the given zap.Logger and false returned as
 // second return value.
-func tryConnect(ctx context.Context, logger *zap.Logger, connString string) (*pgxpool.Pool, bool) {
-	conn, err := pgxpool.Connect(ctx, connString)
+func tryConnect(ctx context.Context, logger *zap.Logger, config *pgxpool.Config) (*pgxpool.Pool, bool) {
+	conn, err := pgxpool.ConnectConfig(ctx, config)
 	if err != nil {
 		mehlog.Log(logger, meh.NewInternalErrFromErr(err, "connect to database", nil))
 		return nil, false

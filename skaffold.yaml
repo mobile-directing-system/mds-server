@@ -11,6 +11,8 @@ profiles:
           - k8s/prepare/010_prepare-strimzi.yaml
           - k8s/prepare/020_public-ingress-nginx.yaml
           - k8s/prepare/021_internal-ingress-nginx.yaml
+          - k8s/prepare/030_reloader.yaml
+          - k8s/prepare/040_eck-crds.yaml
   - name: mds
     build:
       local:
@@ -36,6 +38,9 @@ profiles:
       kubectl:
         manifests:
           - k8s/100_namespaces.yaml
+          - k8s/110_logging-eck.yaml
+          - k8s/115_fluent-bit.yaml
+          - k8s/116_fluent-bit-config.yaml
           - k8s/210_strimzi.yaml
           - k8s/300_kafka.yaml
           - k8s/310_kafka-topics.yaml
