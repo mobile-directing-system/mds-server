@@ -301,6 +301,22 @@ In this case, a hard reset can be performed by running:</p>
 </div>
 <p>Keep in mind, that in order to deploy again, you need to deploy the <cite>prepare</cite>-profile again as well as described in this chapter.</p>
 </section>
+<section id="viewing-logs">
+<h2>Viewing logs<a class="headerlink" href="#viewing-logs" title="Permalink to this headline">#</a></h2>
+<p>Logs can be either viewed through the Kubernetes dashboard by navigating to the desired pod and it’s logs or through Kibana.
+Part of the deployment is <a class="reference external" href="https://fluentbit.io/">Fluent Bit</a>, which allows centralized logging.
+It forwards processed log entries to Elasticsearch.
+Results can be viewed in Kibana, accessible via <cite>http://minikube:30090</cite>.
+Upon first start do the following:</p>
+<ul class="simple">
+<li><p>Open the sidebar to the left.</p></li>
+<li><p>Under <cite>Analytics</cite>, click <cite>Discover</cite>.</p></li>
+<li><p>Click <cite>Create data view</cite>.</p></li>
+<li><p>Click <cite>Create data view</cite>.</p></li>
+</ul>
+<p>You can now view logs using the <cite>Discover</cite>-button on the left toolbar (the compass-icon).
+If you only want to see logs from MDS pods, type <code class="docutils literal notranslate"><span class="pre">kubernetes.pod_name</span> <span class="pre">:</span> <span class="pre">mds*</span></code> in the search bar.</p>
+</section>
 </section>
 
         </article>
@@ -359,6 +375,7 @@ In this case, a hard reset can be performed by running:</p>
 <li><a class="reference internal" href="#prepare-deployment">Prepare deployment</a></li>
 <li><a class="reference internal" href="#deploy-for-development-using-skaffold">Deploy for development using Skaffold</a></li>
 <li><a class="reference internal" href="#if-something-goes-wrong">If something goes wrong</a></li>
+<li><a class="reference internal" href="#viewing-logs">Viewing logs</a></li>
 </ul>
 </li>
 </ul>

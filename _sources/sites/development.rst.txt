@@ -133,3 +133,20 @@ In this case, a hard reset can be performed by running:
     minikube delete
 
 Keep in mind, that in order to deploy again, you need to deploy the `prepare`-profile again as well as described in this chapter.
+
+Viewing logs
+============
+
+Logs can be either viewed through the Kubernetes dashboard by navigating to the desired pod and it's logs or through Kibana.
+Part of the deployment is :fluent-bit-homepage:`Fluent Bit<>`, which allows centralized logging.
+It forwards processed log entries to Elasticsearch.
+Results can be viewed in Kibana, accessible via `http://minikube:30090`.
+Upon first start do the following:
+
+- Open the sidebar to the left.
+- Under `Analytics`, click `Discover`.
+- Click `Create data view`.
+- Click `Create data view`.
+
+You can now view logs using the `Discover`-button on the left toolbar (the compass-icon).
+If you only want to see logs from MDS pods, type ``kubernetes.pod_name : mds*`` in the search bar.
