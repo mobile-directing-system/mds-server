@@ -3,8 +3,8 @@ package auth
 import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"github.com/gofrs/uuid"
 	"github.com/golang-jwt/jwt"
-	"github.com/google/uuid"
 	"github.com/lefinal/meh"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/permission"
 	"reflect"

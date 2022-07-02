@@ -1,7 +1,7 @@
 package event
 
 import (
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/lefinal/nulls"
 	"time"
 )

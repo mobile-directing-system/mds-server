@@ -1,6 +1,6 @@
 package event
 
-import "github.com/google/uuid"
+import "github.com/gofrs/uuid"
 
 // TypeUserCreated is used when a user was created.
 const TypeUserCreated Type = "user-created"

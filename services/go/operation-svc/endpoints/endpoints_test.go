@@ -2,7 +2,7 @@ package endpoints
 
 import (
 	"context"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/mobile-directing-system/mds-server/services/go/operation-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"github.com/stretchr/testify/mock"

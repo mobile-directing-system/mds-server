@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/auth"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/httpendpoints"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
@@ -87,7 +87,7 @@ func (suite *handleCreateUserSuite) TestMissingCreateUserPermission() {
 		URL:    "/",
 		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.createUser)),
 		Token: auth.Token{
-			UserID:          uuid.New(),
+			UserID:          testutil.NewUUIDV4(),
 			IsAuthenticated: true,
 		},
 		Secret: "",
@@ -102,7 +102,7 @@ func (suite *handleCreateUserSuite) TestInvalidBody() {
 		URL:    "/",
 		Body:   strings.NewReader("{invalid"),
 		Token: auth.Token{
-			UserID:          uuid.New(),
+			UserID:          testutil.NewUUIDV4(),
 			IsAuthenticated: true,
 			Permissions:     []permission.Permission{{Name: permission.CreateUserPermissionName}},
 		},
@@ -119,7 +119,7 @@ func (suite *handleCreateUserSuite) TestMissingSetAdminPermission() {
 		URL:    "/",
 		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.createUser)),
 		Token: auth.Token{
-			UserID:          uuid.New(),
+			UserID:          testutil.NewUUIDV4(),
 			IsAuthenticated: true,
 			Permissions:     []permission.Permission{{Name: permission.CreateUserPermissionName}},
 		},
@@ -137,7 +137,7 @@ func (suite *handleCreateUserSuite) TestCreateUserFail() {
 		URL:    "/",
 		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.createUser)),
 		Token: auth.Token{
-			UserID:          uuid.New(),
+			UserID:          testutil.NewUUIDV4(),
 			IsAuthenticated: true,
 			Permissions:     []permission.Permission{{Name: permission.CreateUserPermissionName}},
 		},
@@ -158,7 +158,7 @@ func (suite *handleCreateUserSuite) TestOKNoAdmin() {
 		Pass: hashedPass,
 	}
 
-	created.ID, _ = uuid.NewUUID()
+	created.ID = testutil.NewUUIDV4()
 	suite.s.On("CreateUser", mock.Anything, mock.Anything).Return(created, nil)
 	defer suite.s.AssertExpectations(suite.T())
 
@@ -168,7 +168,7 @@ func (suite *handleCreateUserSuite) TestOKNoAdmin() {
 		URL:    "/",
 		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.createUser)),
 		Token: auth.Token{
-			UserID:          uuid.New(),
+			UserID:          testutil.NewUUIDV4(),
 			IsAuthenticated: true,
 			Permissions:     []permission.Permission{{Name: permission.CreateUserPermissionName}},
 		},
@@ -198,7 +198,7 @@ func (suite *handleCreateUserSuite) TestOKAdmin() {
 		URL:    "/",
 		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.createUser)),
 		Token: auth.Token{
-			UserID:          uuid.New(),
+			UserID:          testutil.NewUUIDV4(),
 			IsAuthenticated: true,
 			Permissions: []permission.Permission{
 				{Name: permission.CreateUserPermissionName},
@@ -237,7 +237,7 @@ func (suite *handleUpdateUserByIDSuite) SetupTest() {
 	suite.r = testutil.NewGinEngine()
 	suite.r.PUT("/:userID", httpendpoints.GinHandlerFunc(zap.NewNop(), "", handleUpdateUserByID(suite.s)))
 	suite.updateUser = updateUserRequest{
-		ID:        uuid.New(),
+		ID:        testutil.NewUUIDV4(),
 		Username:  "anyone",
 		FirstName: "stay",
 		LastName:  "smile",
@@ -252,7 +252,7 @@ func (suite *handleUpdateUserByIDSuite) TestSecretMismatch() {
 		URL:    fmt.Sprintf("/%s", suite.updateUser.ID.String()),
 		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.updateUser)),
 		Token: auth.Token{
-			UserID:          uuid.New(),
+			UserID:          testutil.NewUUIDV4(),
 			IsAuthenticated: true,
 			Permissions:     []permission.Permission{{Name: permission.UpdateUserPermissionName}},
 		},
@@ -310,7 +310,7 @@ func (suite *handleUpdateUserByIDSuite) TestMissingPermissionForForeignUser() {
 		URL:    fmt.Sprintf("/%s", suite.updateUser.ID.String()),
 		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.updateUser)),
 		Token: auth.Token{
-			UserID:          uuid.New(),
+			UserID:          testutil.NewUUIDV4(),
 			IsAuthenticated: true,
 		},
 		Secret: "",
@@ -410,7 +410,7 @@ func (suite *handleUpdateUserByIDSuite) TestOKWithForeign() {
 		URL:    fmt.Sprintf("/%s", suite.updateUser.ID.String()),
 		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.updateUser)),
 		Token: auth.Token{
-			UserID:          uuid.New(),
+			UserID:          testutil.NewUUIDV4(),
 			IsAuthenticated: true,
 			Permissions:     []permission.Permission{{Name: permission.UpdateUserPermissionName}},
 		},
@@ -436,7 +436,7 @@ func (suite *handleUpdateUserByIDSuite) TestOKWithForeignAdminChange() {
 		URL:    fmt.Sprintf("/%s", suite.updateUser.ID.String()),
 		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.updateUser)),
 		Token: auth.Token{
-			UserID:          uuid.New(),
+			UserID:          testutil.NewUUIDV4(),
 			IsAuthenticated: true,
 			Permissions: []permission.Permission{
 				{Name: permission.UpdateUserPermissionName},
@@ -475,7 +475,7 @@ func (suite *handleUpdateUserPassByUserIDSuite) SetupTest() {
 	suite.r = testutil.NewGinEngine()
 	suite.r.PUT("/:userID/pass", httpendpoints.GinHandlerFunc(zap.NewNop(), "", handleUpdateUserPassByUserID(suite.s)))
 	suite.updatePass = updateUserPassByUserIDRequest{
-		UserID:  uuid.New(),
+		UserID:  testutil.NewUUIDV4(),
 		NewPass: "industry",
 	}
 }
@@ -546,7 +546,7 @@ func (suite *handleUpdateUserPassByUserIDSuite) TestMissingPermissionForForeignU
 		URL:    fmt.Sprintf("/%s/pass", suite.updatePass.UserID.String()),
 		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.updatePass)),
 		Token: auth.Token{
-			UserID:          uuid.New(),
+			UserID:          testutil.NewUUIDV4(),
 			IsAuthenticated: true,
 		},
 		Secret: "",
@@ -603,7 +603,7 @@ func (suite *handleUpdateUserPassByUserIDSuite) TestOKForeign() {
 		URL:    fmt.Sprintf("/%s/pass", suite.updatePass.UserID.String()),
 		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.updatePass)),
 		Token: auth.Token{
-			UserID:          uuid.New(),
+			UserID:          testutil.NewUUIDV4(),
 			IsAuthenticated: true,
 			Permissions:     []permission.Permission{{Name: permission.UpdateUserPassPermissionName}},
 		},
@@ -638,7 +638,7 @@ func (suite *handleDeleteUserByIDSuite) SetupTest() {
 	suite.s = &handleDeleteUserByIDStoreMock{}
 	suite.r = testutil.NewGinEngine()
 	suite.r.DELETE("/:userID", httpendpoints.GinHandlerFunc(zap.NewNop(), "", handleDeleteUserByID(suite.s)))
-	suite.userID = uuid.New()
+	suite.userID = testutil.NewUUIDV4()
 }
 
 func (suite *handleDeleteUserByIDSuite) TestSecretMismatch() {
@@ -768,7 +768,7 @@ func (suite *handleGetUserByIDSuite) SetupTest() {
 	suite.s = &handleGetUserByIDStoreMock{}
 	suite.r = testutil.NewGinEngine()
 	suite.r.GET("/:userID", httpendpoints.GinHandlerFunc(zap.NewNop(), "", handleGetUserByID(suite.s)))
-	suite.userID = uuid.New()
+	suite.userID = testutil.NewUUIDV4()
 }
 
 func (suite *handleGetUserByIDSuite) TestNotAuthenticated() {
@@ -805,7 +805,7 @@ func (suite *handleGetUserByIDSuite) TestMissingPermission() {
 	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
 		Server: suite.r,
 		Method: http.MethodGet,
-		URL:    fmt.Sprintf("/%v", uuid.New()),
+		URL:    fmt.Sprintf("/%v", testutil.NewUUIDV4()),
 		Body:   nil,
 		Token: auth.Token{
 			UserID:          suite.userID,
@@ -873,7 +873,7 @@ func (suite *handleGetUserByIDSuite) TestOKSelf() {
 
 func (suite *handleGetUserByIDSuite) TestOKForeign() {
 	user := store.User{
-		ID:        uuid.New(),
+		ID:        testutil.NewUUIDV4(),
 		Username:  "white",
 		FirstName: "ring",
 		LastName:  "weave",
@@ -1015,14 +1015,14 @@ func (suite *handleGetUsersSuite) TestOK() {
 	params := pagination.Params{Limit: 7}
 	paginated := pagination.NewPaginated(params, []store.User{
 		{
-			ID:        uuid.New(),
+			ID:        testutil.NewUUIDV4(),
 			Username:  "rabbit",
 			FirstName: "scarce",
 			LastName:  "sudden",
 			IsAdmin:   false,
 		},
 		{
-			ID:        uuid.New(),
+			ID:        testutil.NewUUIDV4(),
 			Username:  "content",
 			FirstName: "parcel",
 			LastName:  "discover",
@@ -1039,7 +1039,7 @@ func (suite *handleGetUsersSuite) TestOK() {
 		URL:    fmt.Sprintf("/?%s=7", pagination.LimitQueryParam),
 		Body:   nil,
 		Token: auth.Token{
-			UserID:          uuid.New(),
+			UserID:          testutil.NewUUIDV4(),
 			IsAuthenticated: true,
 			Permissions:     []permission.Permission{{Name: permission.ViewUserPermissionName}},
 		},

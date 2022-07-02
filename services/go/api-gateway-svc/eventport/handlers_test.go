@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/api-gateway-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
@@ -53,7 +53,7 @@ type portHandlePermissionsUpdatedSuite struct {
 func (suite *portHandlePermissionsUpdatedSuite) SetupTest() {
 	suite.handler = &HandlerMock{}
 	suite.port = newMockPort()
-	suite.sampleUserID = uuid.New()
+	suite.sampleUserID = testutil.NewUUIDV4()
 	suite.sampleUpdatedPermissions = []permission.Permission{
 		{
 			Name: "Hello",
@@ -142,7 +142,7 @@ func (suite *portHandleUserCreatedSuite) SetupTest() {
 	suite.handler = &HandlerMock{}
 	suite.port = newMockPort()
 	suite.sampleEvent = event.UserCreated{
-		ID:        uuid.New(),
+		ID:        testutil.NewUUIDV4(),
 		Username:  "scent",
 		FirstName: "motor",
 		LastName:  "english",
@@ -228,7 +228,7 @@ func (suite *portHandleUserUpdatedSuite) SetupTest() {
 	suite.handler = &HandlerMock{}
 	suite.port = newMockPort()
 	suite.sampleEvent = event.UserUpdated{
-		ID:        uuid.New(),
+		ID:        testutil.NewUUIDV4(),
 		Username:  "scent",
 		FirstName: "motor",
 		LastName:  "english",
@@ -310,7 +310,7 @@ func (suite *portHandleUserPassUpdatedSuite) SetupTest() {
 	suite.handler = &HandlerMock{}
 	suite.port = newMockPort()
 	suite.sampleEvent = event.UserPassUpdated{
-		User:    uuid.New(),
+		User:    testutil.NewUUIDV4(),
 		NewPass: []byte("woof"),
 	}
 }
@@ -386,7 +386,7 @@ func (suite *portHandleUserDeletedSuite) SetupTest() {
 	suite.handler = &HandlerMock{}
 	suite.port = newMockPort()
 	suite.sampleEvent = event.UserDeleted{
-		ID: uuid.New(),
+		ID: testutil.NewUUIDV4(),
 	}
 }
 

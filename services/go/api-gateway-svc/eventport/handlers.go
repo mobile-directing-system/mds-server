@@ -3,7 +3,7 @@ package eventport
 import (
 	"context"
 	"encoding/json"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/lefinal/meh"
 	"github.com/mobile-directing-system/mds-server/services/go/api-gateway-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"

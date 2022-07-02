@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/go-redis/redis/v8"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v4"
 	"github.com/lefinal/meh"
 	"github.com/lefinal/meh/mehpg"
@@ -23,7 +23,7 @@ func (m *Mall) UserIDBySessionToken(ctx context.Context, txSupplier pgutil.DBTxS
 		}
 	} else {
 		// Parse.
-		userID, err := uuid.Parse(userIDRaw)
+		userID, err := uuid.FromString(userIDRaw)
 		if err != nil {
 			return uuid.Nil, meh.NewInternalErrFromErr(err, "parse raw user id", meh.Details{"raw": userIDRaw})
 		}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/lefinal/meh"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/auth"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/httpendpoints"
@@ -263,7 +263,7 @@ func handleDeleteUserByID(s handleDeleteUserByIDStore) httpendpoints.HandlerFunc
 		}
 		// Extract id.
 		userIDToDeleteStr := c.Param("userID")
-		userIDToDelete, err := uuid.Parse(userIDToDeleteStr)
+		userIDToDelete, err := uuid.FromString(userIDToDeleteStr)
 		if err != nil {
 			return meh.NewBadInputErrFromErr(err, "parse user id", meh.Details{"was": userIDToDeleteStr})
 		}
@@ -313,7 +313,7 @@ func handleGetUserByID(s handleGetUserByIDStore) httpendpoints.HandlerFunc {
 		}
 		// Extract user id to view.
 		userIDToViewStr := c.Param("userID")
-		userIDToView, err := uuid.Parse(userIDToViewStr)
+		userIDToView, err := uuid.FromString(userIDToViewStr)
 		if err != nil {
 			return meh.NewBadInputErrFromErr(err, "parse user id", meh.Details{"was": userIDToViewStr})
 		}

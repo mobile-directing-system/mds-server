@@ -1,6 +1,6 @@
 package event
 
-import "github.com/google/uuid"
+import "github.com/gofrs/uuid"
 
 // TypeUserLoggedIn is used when a user logged in.
 const TypeUserLoggedIn Type = "user-logged-in"

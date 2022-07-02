@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/mobile-directing-system/mds-server/services/go/permission-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/kafkautil"
@@ -42,7 +42,7 @@ type PortHandleUserDeletedSuite struct {
 func (suite *PortHandleUserDeletedSuite) SetupTest() {
 	suite.handler = &HandlerMock{}
 	suite.port = newMockPort()
-	suite.sampleUserID = uuid.New()
+	suite.sampleUserID = testutil.NewUUIDV4()
 }
 
 func (suite *PortHandleUserDeletedSuite) handle(ctx context.Context, rawValue json.RawMessage) error {
@@ -119,7 +119,7 @@ type PortHandleUserCreatedSuite struct {
 func (suite *PortHandleUserCreatedSuite) SetupTest() {
 	suite.handler = &HandlerMock{}
 	suite.port = newMockPort()
-	suite.sampleUserID = uuid.New()
+	suite.sampleUserID = testutil.NewUUIDV4()
 }
 
 func (suite *PortHandleUserCreatedSuite) handle(ctx context.Context, rawValue json.RawMessage) error {

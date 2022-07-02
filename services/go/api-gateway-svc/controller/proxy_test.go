@@ -2,7 +2,7 @@ package controller
 
 import (
 	"errors"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/lefinal/meh"
 	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/api-gateway-svc/store"
@@ -27,7 +27,7 @@ func (suite *ControllerProxySuite) SetupTest() {
 	suite.sampleToken = "birth"
 	suite.sampleUser = store.UserWithPass{
 		User: store.User{
-			ID:       uuid.New(),
+			ID:       testutil.NewUUIDV4(),
 			Username: "avoid",
 			IsAdmin:  true,
 		},

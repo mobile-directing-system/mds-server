@@ -2,7 +2,7 @@ package controller
 
 import (
 	"context"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v4"
 	"github.com/mobile-directing-system/mds-server/services/go/operation-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"

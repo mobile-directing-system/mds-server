@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/lefinal/meh"
 	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/permission-svc/store"
@@ -51,7 +51,7 @@ func handleGetPermissionsByUser(s handleGetPermissionsByUserStore) httpendpoints
 		}
 		// Extract user id.
 		userIDToViewStr := c.Param("userID")
-		userIDToView, err := uuid.Parse(userIDToViewStr)
+		userIDToView, err := uuid.FromString(userIDToViewStr)
 		if err != nil {
 			return meh.NewBadInputErrFromErr(err, "parse user id", meh.Details{"was": userIDToViewStr})
 		}
@@ -94,7 +94,7 @@ func handleUpdatePermissionsByUser(s handleUpdatePermissionsByUserStore) httpend
 		}
 		// Extract user id.
 		userIDToUpdateStr := c.Param("userID")
-		userIDToUpdate, err := uuid.Parse(userIDToUpdateStr)
+		userIDToUpdate, err := uuid.FromString(userIDToUpdateStr)
 		if err != nil {
 			return meh.NewBadInputErrFromErr(err, "parse user id", meh.Details{"was": userIDToUpdateStr})
 		}
