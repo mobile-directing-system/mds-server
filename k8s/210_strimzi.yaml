@@ -78,7 +78,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.namespace
             - name: STRIMZI_FULL_RECONCILIATION_INTERVAL_MS
-              value: "120000"
+              value: "30000"
             - name: STRIMZI_OPERATION_TIMEOUT_MS
               value: "300000"
             - name: STRIMZI_DEFAULT_TLS_SIDECAR_ENTITY_OPERATOR_IMAGE
