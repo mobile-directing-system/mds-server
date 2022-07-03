@@ -161,6 +161,7 @@
 <li class="toctree-l1"><a class="reference internal" href="user-management.html">Users</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Permissions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="operations.html">Operations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="groups.html">Groups</a></li>
 <li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
 </ul>
 
@@ -256,6 +257,44 @@ Retrieval is done via:</p>
 <p>Options: <cite>none</cite></p>
 </section>
 </section>
+<section id="groups">
+<h3>Groups<a class="headerlink" href="#groups" title="Permalink to this headline">#</a></h3>
+<section id="group-create">
+<span id="permission-group-create"></span><h4>group.create<a class="headerlink" href="#group-create" title="Permalink to this headline">#</a></h4>
+<p>Allows creating groups.</p>
+<p>Options: <cite>none</cite></p>
+</section>
+<section id="group-update">
+<span id="permission-group-update"></span><h4>group.update<a class="headerlink" href="#group-update" title="Permalink to this headline">#</a></h4>
+<p>Allows updating groups.</p>
+<p>Options: <cite>none</cite></p>
+</section>
+<section id="group-delete">
+<span id="permission-group-delete"></span><h4>group.delete<a class="headerlink" href="#group-delete" title="Permalink to this headline">#</a></h4>
+<p>Allows deleting groups.</p>
+<p>Options: <cite>none</cite></p>
+</section>
+<section id="group-view">
+<span id="permission-group-view"></span><h4>group.view<a class="headerlink" href="#group-view" title="Permalink to this headline">#</a></h4>
+<p>Allows retrieving of groups with details.</p>
+<p>Options: <cite>none</cite></p>
+</section>
+</section>
+<section id="operations">
+<h3>Operations<a class="headerlink" href="#operations" title="Permalink to this headline">#</a></h3>
+<section id="operation-view-any">
+<span id="permission-operation-view-any"></span><h4>operation.view.any<a class="headerlink" href="#operation-view-any" title="Permalink to this headline">#</a></h4>
+<p>Allows listing and viewing all registered operations. In contrast to that, usually, only viewing operations via id is allowed.</p>
+</section>
+<section id="operation-create">
+<span id="permission-operation-create"></span><h4>operation.create<a class="headerlink" href="#operation-create" title="Permalink to this headline">#</a></h4>
+<p>Allows creating operations.</p>
+</section>
+<section id="operation-update">
+<span id="permission-operation-update"></span><h4>operation.update<a class="headerlink" href="#operation-update" title="Permalink to this headline">#</a></h4>
+<p>Allows updating of operations. This also includes marking them as finished or archived.</p>
+</section>
+</section>
 <section id="users">
 <h3>Users<a class="headerlink" href="#users" title="Permalink to this headline">#</a></h3>
 <section id="user-create">
@@ -287,21 +326,6 @@ Retrieval is done via:</p>
 <span id="permission-user-view"></span><h4>user.view<a class="headerlink" href="#user-view" title="Permalink to this headline">#</a></h4>
 <p>Allows retrieving information of other users.</p>
 <p>Options: <cite>none</cite></p>
-</section>
-</section>
-<section id="operations">
-<h3>Operations<a class="headerlink" href="#operations" title="Permalink to this headline">#</a></h3>
-<section id="operation-view-any">
-<span id="permission-operation-view-any"></span><h4>operation.view.any<a class="headerlink" href="#operation-view-any" title="Permalink to this headline">#</a></h4>
-<p>Allows listing and viewing all registered operations. In contrast to that, usually, only viewing operations via id is allowed.</p>
-</section>
-<section id="operation-create">
-<span id="permission-operation-create"></span><h4>operation.create<a class="headerlink" href="#operation-create" title="Permalink to this headline">#</a></h4>
-<p>Allows creating operations.</p>
-</section>
-<section id="operation-update">
-<span id="permission-operation-update"></span><h4>operation.update<a class="headerlink" href="#operation-update" title="Permalink to this headline">#</a></h4>
-<p>Allows updating of operations. This also includes marking them as finished or archived.</p>
 </section>
 </section>
 </section>
@@ -373,6 +397,19 @@ Retrieval is done via:</p>
 <li><a class="reference internal" href="#permissions-view">permissions.view</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#groups">Groups</a><ul>
+<li><a class="reference internal" href="#group-create">group.create</a></li>
+<li><a class="reference internal" href="#group-update">group.update</a></li>
+<li><a class="reference internal" href="#group-delete">group.delete</a></li>
+<li><a class="reference internal" href="#group-view">group.view</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#operations">Operations</a><ul>
+<li><a class="reference internal" href="#operation-view-any">operation.view.any</a></li>
+<li><a class="reference internal" href="#operation-create">operation.create</a></li>
+<li><a class="reference internal" href="#operation-update">operation.update</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#users">Users</a><ul>
 <li><a class="reference internal" href="#user-create">user.create</a></li>
 <li><a class="reference internal" href="#user-delete">user.delete</a></li>
@@ -380,12 +417,6 @@ Retrieval is done via:</p>
 <li><a class="reference internal" href="#user-update">user.update</a></li>
 <li><a class="reference internal" href="#user-update-pass">user.update-pass</a></li>
 <li><a class="reference internal" href="#user-view">user.view</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#operations">Operations</a><ul>
-<li><a class="reference internal" href="#operation-view-any">operation.view.any</a></li>
-<li><a class="reference internal" href="#operation-create">operation.create</a></li>
-<li><a class="reference internal" href="#operation-update">operation.update</a></li>
 </ul>
 </li>
 </ul>

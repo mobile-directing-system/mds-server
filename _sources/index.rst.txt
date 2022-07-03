@@ -12,6 +12,7 @@ Welcome to MDS Server's documentation!
     sites/user-management
     sites/permissions
     sites/operations
+    sites/groups
     sites/development
 
 

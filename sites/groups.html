@@ -3,10 +3,10 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Permissions" href="permissions.html" /><link rel="prev" title="API Gateway" href="api-gateway.html" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Development" href="development.html" /><link rel="prev" title="Operations" href="operations.html" />
 
     <meta name="generator" content="sphinx-4.5.0, furo 2022.06.21"/>
-        <title>Users - MDS Server documentation</title>
+        <title>Groups - MDS Server documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=40978830699223671f4072448e654b5958f38b89" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
@@ -158,10 +158,10 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="general-http-api.html">General HTTP API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api-gateway.html">API Gateway</a></li>
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user-management.html">Users</a></li>
 <li class="toctree-l1"><a class="reference internal" href="permissions.html">Permissions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="operations.html">Operations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="groups.html">Groups</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Groups</a></li>
 <li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
 </ul>
 
@@ -196,109 +196,111 @@
           </label>
         </div>
         <article role="main">
-          <section id="users">
-<h1>Users<a class="headerlink" href="#users" title="Permalink to this headline">#</a></h1>
-<p>This section covers all user-related actions and API endpoints.</p>
-<p>A user consists of an unique id, a name, unique username and password for logging in, as well as an is-admin-state.
-The is-admin-state grants all permissions and normally should not be granted to regular users.</p>
-<p>When the system starts and no admin-user exists, an example admin user will be created.
-The default credentials are:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Username</span><span class="p">:</span> <span class="n">admin</span>
-<span class="n">Password</span><span class="p">:</span> <span class="n">admin</span>
-</pre></div>
-</div>
-<p><strong>Change the password immediately after logging in for the first time!</strong></p>
-<section id="create-user">
-<h2>Create user<a class="headerlink" href="#create-user" title="Permalink to this headline">#</a></h2>
-<p>In order to create a user, the <a class="reference internal" href="permissions.html#permission-user-create"><span class="std std-ref">user.create</span></a> permission is needed.
-Creating a user is done by calling:</p>
-<p><cite>POST /users</cite></p>
+          <section id="groups">
+<h1>Groups<a class="headerlink" href="#groups" title="Permalink to this headline">#</a></h1>
+<p>Groups are used for grouping users globally but also for operations.
+These groups can be used in the adress book.</p>
+<section id="create-group">
+<h2>Create group<a class="headerlink" href="#create-group" title="Permalink to this headline">#</a></h2>
+<p>In order to create a group, the <a class="reference internal" href="permissions.html#permission-group-create"><span class="std std-ref">group.create</span></a> permission is needed.
+Creating a group is done by calling:</p>
+<p><cite>POST /groups</cite></p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;username_for_logging_in&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;first_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Max&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mustermann&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;is_admin&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;pass&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;password_in_plaintext&gt;&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_title&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_description&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;optional_operation_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;members&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
+<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_1&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_2&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_n&gt;&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="p">]</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
 <p>Response:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assigned_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;username&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;first_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Max&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mustermann&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;is_admin&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_title&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_description&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;optional_operation_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;members&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
+<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_1&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_2&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_n&gt;&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="p">]</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-<p>Keep in mind, that for creating a user with <code class="docutils literal notranslate"><span class="pre">is_admin</span></code> set to <code class="docutils literal notranslate"><span class="pre">true</span></code>, the <a class="reference internal" href="permissions.html#permission-user-set-admin"><span class="std std-ref">user.set-admin</span></a> permission is needed as well.</p>
 </section>
-<section id="update-user">
-<h2>Update user<a class="headerlink" href="#update-user" title="Permalink to this headline">#</a></h2>
-<p>Updating a user requires the <a class="reference internal" href="permissions.html#permission-user-update"><span class="std std-ref">user.update</span></a> permission.
+<section id="update-group">
+<h2>Update group<a class="headerlink" href="#update-group" title="Permalink to this headline">#</a></h2>
+<p>Updating a group requires the <a class="reference internal" href="permissions.html#permission-group-update"><span class="std std-ref">group.update</span></a> permission.
 If provided, updating is done via:</p>
-<p><cite>PUT /users/&lt;user_id&gt;</cite></p>
+<p><cite>PUT /groups/&lt;group_id&gt;</cite></p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="nt">&quot;&lt;user_id&gt;&quot;</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;username_for_logging_in&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;first_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Max&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mustermann&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;is_admin&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
-</pre></div>
-</div>
-<p>As with creating a user, changing the <code class="docutils literal notranslate"><span class="pre">is_admin</span></code>-field requires the <a class="reference internal" href="permissions.html#permission-user-set-admin"><span class="std std-ref">user.set-admin</span></a> permission, too.</p>
-</section>
-<section id="update-user-password">
-<h2>Update user password<a class="headerlink" href="#update-user-password" title="Permalink to this headline">#</a></h2>
-<p>Updating a user’s password, not being the caller, requires the <a class="reference internal" href="permissions.html#permission-user-update-pass"><span class="std std-ref">user.update-pass</span></a> permission and is done via:</p>
-<p><cite>PUT /users/&lt;user_id/pass</cite></p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;user_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;user_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;new_pass&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;new_password_in_plaintext&gt;&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_title&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_description&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;optional_operation_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;members&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
+<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_1&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_2&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_n&gt;&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="p">]</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
 </section>
-<section id="delete-user">
-<h2>Delete user<a class="headerlink" href="#delete-user" title="Permalink to this headline">#</a></h2>
-<p>Deleting a user requires the <a class="reference internal" href="permissions.html#permission-user-delete"><span class="std std-ref">user.delete</span></a> permission and is done via:</p>
-<p><cite>DELETE /users/&lt;user_id&gt;</cite></p>
+<section id="delete-group">
+<h2>Delete group<a class="headerlink" href="#delete-group" title="Permalink to this headline">#</a></h2>
+<p>Deleting a group requires the <a class="reference internal" href="permissions.html#permission-group-delete"><span class="std std-ref">group.delete</span></a> permission and is done via:</p>
+<p><cite>DELETE /groups/&lt;group_id&gt;</cite></p>
 </section>
-<section id="retrieve-users">
-<h2>Retrieve users<a class="headerlink" href="#retrieve-users" title="Permalink to this headline">#</a></h2>
-<p>Retrieving users, not being the caller, requires the <a class="reference internal" href="permissions.html#permission-user-view"><span class="std std-ref">user.view</span></a> permission.
-A single user can be retrieved using:</p>
-<p><cite>GET /users/&lt;user_id&gt;</cite></p>
+<section id="retrieve-groups">
+<h2>Retrieve groups<a class="headerlink" href="#retrieve-groups" title="Permalink to this headline">#</a></h2>
+<p>Retrieving groups requires the <a class="reference internal" href="permissions.html#permission-group-view"><span class="std std-ref">group.view</span></a> permission.
+A single group can be retrieved using:</p>
+<p><cite>GET /groups/&lt;group_id&gt;</cite></p>
 <p>Response:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assigned_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;username&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;first_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Max&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mustermann&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;is_admin&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_title&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_description&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;optional_operation_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;members&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
+<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_1&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_2&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_n&gt;&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="p">]</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-<p><a class="reference internal" href="general-http-api.html#http-api-pagination"><span class="std std-ref">Paginated</span></a> user lists can be retrieved via:</p>
-<p><cite>GET /users</cite></p>
+<p><a class="reference internal" href="general-http-api.html#http-api-pagination"><span class="std std-ref">Paginated</span></a> group lists can be retrieved via:</p>
+<p><cite>GET /groups</cite></p>
 <p>Entry payload:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assigned_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;username&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;first_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Max&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mustermann&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;is_admin&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_title&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_description&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;optional_operation_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;members&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
+<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_1&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_2&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_n&gt;&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="p">]</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
 <p>The following fields can be used for ordering:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">username</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">first_name</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">last_name</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">is_admin</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">title</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">description</span></code></p></li>
+</ul>
+<p>Additionally, query parameters can be applied in order to filter groups:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">by_user=&lt;user_id&gt;</span></code>: Only include groups, that the user with the given id is member of.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">for_operation=&lt;operation_id&gt;</span></code>: Only include groups for the operation with the given id or ones, that do not have an operation assigned (global groups).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">exclude_global=true</span></code>: Exclude groups with have no operation assigned.</p></li>
 </ul>
 </section>
 </section>
@@ -308,23 +310,23 @@ A single user can be retrieved using:</p>
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="permissions.html">
+          <a class="next-page" href="development.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Permissions</div>
+                <div class="title">Development</div>
               </div>
               <svg><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="api-gateway.html">
+          <a class="prev-page" href="operations.html">
               <svg><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">API Gateway</div>
+                <div class="title">Operations</div>
                 
               </div>
             </a>
@@ -360,12 +362,11 @@ A single user can be retrieved using:</p>
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Users</a><ul>
-<li><a class="reference internal" href="#create-user">Create user</a></li>
-<li><a class="reference internal" href="#update-user">Update user</a></li>
-<li><a class="reference internal" href="#update-user-password">Update user password</a></li>
-<li><a class="reference internal" href="#delete-user">Delete user</a></li>
-<li><a class="reference internal" href="#retrieve-users">Retrieve users</a></li>
+<li><a class="reference internal" href="#">Groups</a><ul>
+<li><a class="reference internal" href="#create-group">Create group</a></li>
+<li><a class="reference internal" href="#update-group">Update group</a></li>
+<li><a class="reference internal" href="#delete-group">Delete group</a></li>
+<li><a class="reference internal" href="#retrieve-groups">Retrieve groups</a></li>
 </ul>
 </li>
 </ul>
