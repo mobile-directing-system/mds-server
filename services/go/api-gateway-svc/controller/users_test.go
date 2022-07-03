@@ -3,7 +3,7 @@ package controller
 import (
 	"context"
 	"errors"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/mobile-directing-system/mds-server/services/go/api-gateway-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
 	"github.com/stretchr/testify/suite"
@@ -21,7 +21,7 @@ func (suite *ControllerCreateUserSuite) SetupTest() {
 	suite.ctrl = NewMockController()
 	suite.createUser = store.UserWithPass{
 		User: store.User{
-			ID:       uuid.New(),
+			ID:       testutil.NewUUIDV4(),
 			Username: "duty",
 			IsAdmin:  true,
 		},
@@ -67,7 +67,7 @@ func (suite *ControllerCreateUserSuite) TestOK() {
 	defer cancel()
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
 	created := suite.createUser
-	created.ID = uuid.New()
+	created.ID = testutil.NewUUIDV4()
 	suite.ctrl.Store.On("CreateUser", timeout, suite.ctrl.DB.Tx[0], suite.createUser).Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
@@ -95,7 +95,7 @@ type ControllerUpdateUserSuite struct {
 func (suite *ControllerUpdateUserSuite) SetupTest() {
 	suite.ctrl = NewMockController()
 	suite.updateUser = store.User{
-		ID:       uuid.New(),
+		ID:       testutil.NewUUIDV4(),
 		Username: "cook",
 		IsAdmin:  false,
 	}
@@ -171,7 +171,7 @@ type ControllerUpdateUserPassByUserIDSuite struct {
 
 func (suite *ControllerUpdateUserPassByUserIDSuite) SetupTest() {
 	suite.ctrl = NewMockController()
-	suite.userID = uuid.New()
+	suite.userID = testutil.NewUUIDV4()
 	suite.newPass = []byte("meow")
 }
 
@@ -261,7 +261,7 @@ type ControllerDeleteUserByIDSuite struct {
 
 func (suite *ControllerDeleteUserByIDSuite) SetupTest() {
 	suite.ctrl = NewMockController()
-	suite.userID = uuid.New()
+	suite.userID = testutil.NewUUIDV4()
 }
 
 func (suite *ControllerDeleteUserByIDSuite) TestTxFail() {

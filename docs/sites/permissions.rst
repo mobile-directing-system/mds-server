@@ -80,6 +80,69 @@ Allows retrieving permissions of users.
 
 Options: `none`
 
+Groups
+------
+
+.. _permission.group.create:
+
+group.create
+^^^^^^^^^^^^
+
+Allows creating groups.
+
+Options: `none`
+
+.. _permission.group.update:
+
+group.update
+^^^^^^^^^^^^
+
+Allows updating groups.
+
+Options: `none`
+
+.. _permission.group.delete:
+
+group.delete
+^^^^^^^^^^^^
+
+Allows deleting groups.
+
+Options: `none`
+
+.. _permission.group.view:
+
+group.view
+^^^^^^^^^^
+
+Allows retrieving of groups with details.
+
+Options: `none`
+
+Operations
+----------
+
+.. _permission.operation.view.any:
+
+operation.view.any
+^^^^^^^^^^^^^^^^^^
+
+Allows listing and viewing all registered operations. In contrast to that, usually, only viewing operations via id is allowed.
+
+.. _permission.operation.create:
+
+operation.create
+^^^^^^^^^^^^^^^^
+
+Allows creating operations.
+
+.. _permission.operation.update:
+
+operation.update
+^^^^^^^^^^^^^^^^
+
+Allows updating of operations. This also includes marking them as finished or archived.
+
 Users
 -----
 
@@ -136,27 +199,3 @@ user.view
 Allows retrieving information of other users.
 
 Options: `none`
-
-Operations
-----------
-
-.. _permission.operation.view.any:
-
-operation.view.any
-^^^^^^^^^^^^^^^^^^
-
-Allows listing and viewing all registered operations. In contrast to that, usually, only viewing operations via id is allowed.
-
-.. _permission.operation.create:
-
-operation.create
-^^^^^^^^^^^^^^^^
-
-Allows creating operations.
-
-.. _permission.operation.update:
-
-operation.update
-^^^^^^^^^^^^^^^^
-
-Allows updating of operations. This also includes marking them as finished or archived.

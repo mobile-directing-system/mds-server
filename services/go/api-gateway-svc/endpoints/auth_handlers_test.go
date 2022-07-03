@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/mobile-directing-system/mds-server/services/go/api-gateway-svc/controller"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/auth"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
@@ -151,7 +150,7 @@ func (suite *handleLogoutSuite) SetupTest() {
 	suite.r = testutil.NewGinEngine()
 	suite.r.POST("/logout", handleLogout(zap.NewNop(), suite.s))
 	suite.sampleToken = auth.Token{
-		UserID: uuid.New(),
+		UserID: testutil.NewUUIDV4(),
 	}
 	var err error
 	suite.sampleTokenStr, err = auth.GenJWTToken(suite.sampleToken, "")

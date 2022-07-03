@@ -141,9 +141,10 @@ func WriteMessages(w Writer, messages ...Message) error {
 // NewWriter creates a new kafka.Writer with logging middleware.
 func NewWriter(logger *zap.Logger, addr string) Writer {
 	return &kafka.Writer{
-		Addr:        kafka.TCP(addr),
-		ErrorLogger: kafkaErrorLogger(logger),
-		MaxAttempts: 16,
+		Addr:         kafka.TCP(addr),
+		ErrorLogger:  kafkaErrorLogger(logger),
+		MaxAttempts:  16,
+		BatchTimeout: 50 * time.Millisecond,
 	}
 }
 
@@ -163,7 +164,7 @@ func NewReader(logger *zap.Logger, addr string, groupID string, groupTopics []ev
 		Brokers:       []string{addr},
 		GroupTopics:   groupTopicsStr,
 		GroupID:       groupID,
-		RetentionTime: time.Hour * 3600,
+		RetentionTime: -1 * time.Millisecond,
 		ErrorLogger:   kafkaErrorLogger(logger),
 		MaxAttempts:   16,
 	})

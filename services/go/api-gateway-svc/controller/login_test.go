@@ -2,7 +2,7 @@ package controller
 
 import (
 	"errors"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/mobile-directing-system/mds-server/services/go/api-gateway-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/auth"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
@@ -51,7 +51,7 @@ func (suite *ControllerLoginSuite) SetupTest() {
 	suite.ctrl = NewMockController()
 	suite.sampleUser = store.UserWithPass{
 		User: store.User{
-			ID:       uuid.New(),
+			ID:       testutil.NewUUIDV4(),
 			Username: suite.sampleUsername,
 			IsAdmin:  false,
 		},
@@ -208,7 +208,7 @@ func (suite *ControllerLogoutSuite) SetupTest() {
 	}
 	suite.sampleUser = store.UserWithPass{
 		User: store.User{
-			ID:       uuid.New(),
+			ID:       testutil.NewUUIDV4(),
 			Username: "caution",
 			IsAdmin:  true,
 		},

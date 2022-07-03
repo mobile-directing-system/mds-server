@@ -31,8 +31,6 @@ func init() {
 	}
 }
 
-const kafkaGroupID = "mds-operation-svc"
-
 // Run the application.
 func Run(ctx context.Context) error {
 	c, err := parseConfigFromEnv()

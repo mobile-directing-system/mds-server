@@ -3,7 +3,7 @@ package controller
 import (
 	"context"
 	"errors"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/mobile-directing-system/mds-server/services/go/permission-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
 	"github.com/stretchr/testify/suite"
@@ -19,7 +19,7 @@ type ControllerCreateUserSuite struct {
 
 func (suite *ControllerCreateUserSuite) SetupTest() {
 	suite.ctrl = NewMockController()
-	suite.sampleUserID = uuid.New()
+	suite.sampleUserID = testutil.NewUUIDV4()
 }
 
 func (suite *ControllerCreateUserSuite) TestTxFail() {
@@ -87,7 +87,7 @@ type ControllerDeleteUserByIDSuite struct {
 
 func (suite *ControllerDeleteUserByIDSuite) SetupTest() {
 	suite.ctrl = NewMockController()
-	suite.sampleUserID = uuid.New()
+	suite.sampleUserID = testutil.NewUUIDV4()
 }
 
 func (suite *ControllerDeleteUserByIDSuite) TestTxFail() {

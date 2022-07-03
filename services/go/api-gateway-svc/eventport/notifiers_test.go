@@ -1,10 +1,11 @@
 package eventport
 
 import (
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/mobile-directing-system/mds-server/services/go/api-gateway-svc/controller"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/kafkautil"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -22,7 +23,7 @@ type PortNotifyUserLoggedInSuite struct {
 
 func (suite *PortNotifyUserLoggedInSuite) SetupTest() {
 	suite.port = newMockPort()
-	suite.sampleUserID = uuid.New()
+	suite.sampleUserID = testutil.NewUUIDV4()
 	suite.sampleUsername = "grow"
 	suite.sampleRequestMetadata = controller.AuthRequestMetadata{
 		Host:       "wheel",
@@ -75,7 +76,7 @@ type PortNotifyUserLoggedOutSuite struct {
 
 func (suite *PortNotifyUserLoggedOutSuite) SetupTest() {
 	suite.port = newMockPort()
-	suite.sampleUserID = uuid.New()
+	suite.sampleUserID = testutil.NewUUIDV4()
 	suite.sampleUsername = "kick"
 	suite.sampleRequestMetadata = controller.AuthRequestMetadata{
 		Host:       "pause",

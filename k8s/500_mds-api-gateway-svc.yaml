@@ -40,14 +40,15 @@ spec:
 ---
 # Database deployment.
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: mds-api-gateway-svc-postgres-deployment
 spec:
-  replicas: 1
+  serviceName: mds-api-gateway-svc-postgres-service
   selector:
     matchLabels:
       app: mds-api-gateway-svc-postgres
+  replicas: 1
   template:
     metadata:
       labels:

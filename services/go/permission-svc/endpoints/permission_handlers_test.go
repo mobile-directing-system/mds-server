@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/permission-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/auth"
@@ -116,7 +116,7 @@ func (suite *handleGetPermissionsByUserSuite) TestMissingPermission() {
 	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
 		Server: suite.r,
 		Method: http.MethodGet,
-		URL:    fmt.Sprintf("/user/%s", uuid.New().String()),
+		URL:    fmt.Sprintf("/user/%s", testutil.NewUUIDV4().String()),
 		Body:   nil,
 		Token:  token,
 	})
@@ -203,7 +203,7 @@ func (suite *handleUpdatePermissionsByUserSuite) SetupTest() {
 	for _, p := range suite.sampleUpdatedPermissions {
 		suite.sampleUpdatedPublicPermissions = append(suite.sampleUpdatedPublicPermissions, publicPermissionFromPermission(p))
 	}
-	suite.sampleUserID = uuid.New()
+	suite.sampleUserID = testutil.NewUUIDV4()
 	suite.tokenOK = auth.Token{
 		UserID:          suite.sampleUserID,
 		IsAuthenticated: true,
@@ -251,7 +251,7 @@ func (suite *handleUpdatePermissionsByUserSuite) TestMissingPermission() {
 	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
 		Server: suite.r,
 		Method: http.MethodPut,
-		URL:    fmt.Sprintf("/user/%s", uuid.New().String()),
+		URL:    fmt.Sprintf("/user/%s", testutil.NewUUIDV4().String()),
 		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.sampleUpdatedPublicPermissions)),
 		Token:  token,
 	})

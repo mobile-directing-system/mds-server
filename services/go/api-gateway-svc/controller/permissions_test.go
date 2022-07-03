@@ -3,7 +3,7 @@ package controller
 import (
 	"context"
 	"errors"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/permission"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
 	"github.com/stretchr/testify/suite"
@@ -21,7 +21,7 @@ type ControllerUpdatePermissionsByUserSuite struct {
 
 func (suite *ControllerUpdatePermissionsByUserSuite) SetupTest() {
 	suite.ctrl = NewMockController()
-	suite.sampleUserID = uuid.New()
+	suite.sampleUserID = testutil.NewUUIDV4()
 	suite.sampleUpdatedPermissions = []permission.Permission{
 		{Name: "meow"},
 		{Name: "woof"},

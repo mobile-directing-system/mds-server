@@ -3,7 +3,7 @@ package controller
 import (
 	"context"
 	"errors"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
@@ -23,7 +23,7 @@ func (suite *ControllerCreateUserSuite) SetupTest() {
 	suite.ctrl = NewMockController()
 	suite.createUser = store.UserWithPass{
 		User: store.User{
-			ID:        uuid.New(),
+			ID:        testutil.NewUUIDV4(),
 			Username:  "duty",
 			FirstName: "song",
 			LastName:  "twist",
@@ -71,7 +71,7 @@ func (suite *ControllerCreateUserSuite) TestNotifyFail() {
 	defer cancel()
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
 	created := suite.createUser
-	created.ID = uuid.New()
+	created.ID = testutil.NewUUIDV4()
 	suite.ctrl.Store.On("CreateUser", timeout, suite.ctrl.DB.Tx[0], suite.createUser).Return(created.User, nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 	suite.ctrl.Notifier.On("NotifyUserCreated", created).Return(errors.New("sad life"))
@@ -93,7 +93,7 @@ func (suite *ControllerCreateUserSuite) TestOK() {
 	defer cancel()
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
 	created := suite.createUser
-	created.ID = uuid.New()
+	created.ID = testutil.NewUUIDV4()
 	suite.ctrl.Store.On("CreateUser", timeout, suite.ctrl.DB.Tx[0], suite.createUser).Return(created.User, nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 	suite.ctrl.Notifier.On("NotifyUserCreated", created).Return(nil)
@@ -124,7 +124,7 @@ type ControllerUpdateUserSuite struct {
 func (suite *ControllerUpdateUserSuite) SetupTest() {
 	suite.ctrl = NewMockController()
 	suite.updateUser = store.User{
-		ID:        uuid.New(),
+		ID:        testutil.NewUUIDV4(),
 		Username:  "cook",
 		FirstName: "high",
 		LastName:  "preserve",
@@ -401,7 +401,7 @@ type ControllerUpdateUserPassByUserIDSuite struct {
 
 func (suite *ControllerUpdateUserPassByUserIDSuite) SetupTest() {
 	suite.ctrl = NewMockController()
-	suite.userID = uuid.New()
+	suite.userID = testutil.NewUUIDV4()
 	suite.newPass = []byte("meow")
 }
 
@@ -492,7 +492,7 @@ type ControllerDeleteUserByIDSuite struct {
 
 func (suite *ControllerDeleteUserByIDSuite) SetupTest() {
 	suite.ctrl = NewMockController()
-	suite.userID = uuid.New()
+	suite.userID = testutil.NewUUIDV4()
 }
 
 func (suite *ControllerDeleteUserByIDSuite) TestTxFail() {
@@ -630,7 +630,7 @@ type ControllerUserByIDSuite struct {
 func (suite *ControllerUserByIDSuite) SetupTest() {
 	suite.ctrl = NewMockController()
 	suite.user = store.User{
-		ID:        uuid.New(),
+		ID:        testutil.NewUUIDV4(),
 		Username:  "fond",
 		FirstName: "shop",
 		LastName:  "defend",
@@ -745,14 +745,14 @@ func (suite *ControllerUsersSuite) TestStoreRetrievalFail() {
 func (suite *ControllerUsersSuite) TestOK() {
 	paginated := pagination.NewPaginated(suite.params, []store.User{
 		{
-			ID:        uuid.New(),
+			ID:        testutil.NewUUIDV4(),
 			Username:  "society",
 			FirstName: "belief",
 			LastName:  "wall",
 			IsAdmin:   false,
 		},
 		{
-			ID:        uuid.New(),
+			ID:        testutil.NewUUIDV4(),
 			Username:  "basket",
 			FirstName: "letter",
 			LastName:  "flag",

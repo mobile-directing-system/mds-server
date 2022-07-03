@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/operation-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/auth"
@@ -38,7 +38,7 @@ func (suite *handleGetOperationsSuite) SetupTest() {
 	suite.r = testutil.NewGinEngine()
 	populateRoutes(suite.r, zap.NewNop(), "", suite.s)
 	suite.tokenOK = auth.Token{
-		UserID:          uuid.New(),
+		UserID:          testutil.NewUUIDV4(),
 		Username:        "stop",
 		IsAuthenticated: true,
 		IsAdmin:         false,
@@ -52,7 +52,7 @@ func (suite *handleGetOperationsSuite) SetupTest() {
 	}
 	suite.sampleOperations = pagination.NewPaginated(suite.sampleParams, []store.Operation{
 		{
-			ID:          uuid.New(),
+			ID:          testutil.NewUUIDV4(),
 			Title:       "roast",
 			Description: "ashamed",
 			Start:       time.Date(2022, 3, 4, 12, 0, 0, 0, time.UTC),
@@ -60,7 +60,7 @@ func (suite *handleGetOperationsSuite) SetupTest() {
 			IsArchived:  true,
 		},
 		{
-			ID:          uuid.New(),
+			ID:          testutil.NewUUIDV4(),
 			Title:       "west",
 			Description: "",
 			Start:       time.Date(2020, 1, 2, 4, 0, 12, 0, time.UTC),
@@ -164,12 +164,12 @@ func (suite *handleGetOperationByIDSuite) SetupTest() {
 	suite.r = testutil.NewGinEngine()
 	populateRoutes(suite.r, zap.NewNop(), "", suite.s)
 	suite.tokenOK = auth.Token{
-		UserID:          uuid.New(),
+		UserID:          testutil.NewUUIDV4(),
 		Username:        "civilize",
 		IsAuthenticated: true,
 		IsAdmin:         false,
 	}
-	suite.sampleOperationID = uuid.New()
+	suite.sampleOperationID = testutil.NewUUIDV4()
 	suite.sampleOperation = store.Operation{
 		ID:          suite.sampleOperationID,
 		Title:       "steer",
@@ -344,7 +344,7 @@ func (suite *handleCreateOperationSuite) TestCreateFail() {
 
 func (suite *handleCreateOperationSuite) TestOK() {
 	created := suite.sampleCreate
-	created.ID = uuid.New()
+	created.ID = testutil.NewUUIDV4()
 	suite.s.On("CreateOperation", mock.Anything, suite.sampleCreate).
 		Return(created, nil)
 	defer suite.s.AssertExpectations(suite.T())
@@ -383,7 +383,7 @@ func (suite *handleUpdateOperationSuite) SetupTest() {
 	suite.s = &StoreMock{}
 	suite.r = testutil.NewGinEngine()
 	populateRoutes(suite.r, zap.NewNop(), "", suite.s)
-	suite.sampleUpdateID = uuid.New()
+	suite.sampleUpdateID = testutil.NewUUIDV4()
 	suite.sampleUpdate = store.Operation{
 		ID:          suite.sampleUpdateID,
 		Title:       "step",
@@ -453,7 +453,7 @@ func (suite *handleUpdateOperationSuite) TestIDMismatch() {
 	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
 		Server: suite.r,
 		Method: http.MethodPut,
-		URL:    fmt.Sprintf("/%s", uuid.New()),
+		URL:    fmt.Sprintf("/%s", testutil.NewUUIDV4()),
 		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.samplePublicUpdate)),
 		Token:  suite.tokenOK,
 		Secret: "",
@@ -477,7 +477,7 @@ func (suite *handleUpdateOperationSuite) TestUpdateFail() {
 
 func (suite *handleUpdateOperationSuite) TestOK() {
 	updated := suite.sampleUpdate
-	updated.ID = uuid.New()
+	updated.ID = testutil.NewUUIDV4()
 	suite.s.On("UpdateOperation", mock.Anything, suite.sampleUpdate).Return(nil)
 	defer suite.s.AssertExpectations(suite.T())
 	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{

@@ -3,7 +3,7 @@ package controller
 import (
 	"context"
 	"errors"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/mobile-directing-system/mds-server/services/go/permission-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
 	"github.com/stretchr/testify/suite"
@@ -20,7 +20,7 @@ type ControllerPermissionsByUserSuite struct {
 
 func (suite *ControllerPermissionsByUserSuite) SetupTest() {
 	suite.ctrl = NewMockController()
-	suite.sampleUserID = uuid.New()
+	suite.sampleUserID = testutil.NewUUIDV4()
 	suite.samplePermissions = []store.Permission{
 		{Name: "meow"},
 		{Name: "woof"},
@@ -34,7 +34,7 @@ func (suite *ControllerPermissionsByUserSuite) TestTxFail() {
 
 	go func() {
 		defer cancel()
-		_, err := suite.ctrl.Ctrl.PermissionsByUser(timeout, uuid.New())
+		_, err := suite.ctrl.Ctrl.PermissionsByUser(timeout, testutil.NewUUIDV4())
 		suite.Error(err, "should fail")
 	}()
 
@@ -114,7 +114,7 @@ type ControllerUpdatePermissionsByUserSuite struct {
 
 func (suite *ControllerUpdatePermissionsByUserSuite) SetupTest() {
 	suite.ctrl = NewMockController()
-	suite.sampleUserID = uuid.New()
+	suite.sampleUserID = testutil.NewUUIDV4()
 	suite.sampleUpdatedPermissions = []store.Permission{
 		{Name: "meow"},
 		{Name: "woof"},

@@ -1,7 +1,7 @@
 package eventport
 
 import (
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/lefinal/meh"
 	"github.com/mobile-directing-system/mds-server/services/go/permission-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"

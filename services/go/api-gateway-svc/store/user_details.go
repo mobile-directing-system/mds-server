@@ -3,7 +3,7 @@ package store
 import (
 	"context"
 	"github.com/doug-martin/goqu/v9"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v4"
 	"github.com/lefinal/meh"
 	"github.com/lefinal/meh/mehpg"

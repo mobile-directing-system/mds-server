@@ -12,6 +12,22 @@ metadata:
 spec:
   partitions: 1
   replicas: 1
+  config:
+    retention.ms: -1
+---
+# Groups topic (key: group id).
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: orga.groups.0
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: kafka-cluster
+spec:
+  partitions: 1
+  replicas: 1
+  config:
+    retention.ms: -1
 ---
 # Operations topic (key: operation id).
 apiVersion: kafka.strimzi.io/v1beta2
@@ -24,6 +40,8 @@ metadata:
 spec:
   partitions: 1
   replicas: 1
+  config:
+    retention.ms: -1
 ---
 # Permissions topic (key: user id).
 apiVersion: kafka.strimzi.io/v1beta2
@@ -36,6 +54,8 @@ metadata:
 spec:
   partitions: 1
   replicas: 1
+  config:
+    retention.ms: -1
 ---
 # Users topic (key: username).
 apiVersion: kafka.strimzi.io/v1beta2
@@ -48,3 +68,5 @@ metadata:
 spec:
   partitions: 1
   replicas: 1
+  config:
+    retention.ms: -1

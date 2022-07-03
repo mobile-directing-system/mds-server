@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/lefinal/meh"
 	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/operation-svc/store"
@@ -106,7 +106,7 @@ func handleGetOperationByID(s handleGetOperationByIDStore) httpendpoints.Handler
 		}
 		// Extract operation id.
 		operationIDStr := c.Param("operationID")
-		operationID, err := uuid.Parse(operationIDStr)
+		operationID, err := uuid.FromString(operationIDStr)
 		if err != nil {
 			return meh.NewBadInputErrFromErr(err, "parse operation id", meh.Details{"str": operationIDStr})
 		}
@@ -167,7 +167,7 @@ func handleUpdateOperation(s handleUpdateOperationStore) httpendpoints.HandlerFu
 		}
 		// Extract id from params.
 		idFromQueryStr := c.Param("operationID")
-		idFromQuery, err := uuid.Parse(idFromQueryStr)
+		idFromQuery, err := uuid.FromString(idFromQueryStr)
 		if err != nil {
 			return meh.NewBadInputErrFromErr(err, "parse operation id from query", meh.Details{"str": idFromQueryStr})
 		}

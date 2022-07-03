@@ -2,12 +2,13 @@ package eventport
 
 import (
 	"encoding/json"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/permission-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/kafkautil"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/permission"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -24,7 +25,7 @@ type PortNotifyPermissionsUpdatedSuite struct {
 
 func (suite *PortNotifyPermissionsUpdatedSuite) SetupTest() {
 	suite.port = newMockPort()
-	suite.sampleUserID = uuid.New()
+	suite.sampleUserID = testutil.NewUUIDV4()
 	suite.samplePermissions = []store.Permission{
 		{
 			Name: "Hello",

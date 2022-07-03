@@ -2,7 +2,6 @@ package controller
 
 import (
 	"errors"
-	"github.com/google/uuid"
 	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/operation-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
@@ -22,7 +21,7 @@ type ControllerOperationByIDSuite struct {
 func (suite *ControllerOperationByIDSuite) SetupTest() {
 	suite.ctrl = NewMockController()
 	suite.sampleOperation = store.Operation{
-		ID:          uuid.New(),
+		ID:          testutil.NewUUIDV4(),
 		Title:       "marry",
 		Description: "stand",
 		Start:       time.UnixMilli(716),
@@ -99,7 +98,7 @@ func (suite *ControllerOperationsSuite) SetupTest() {
 	}
 	suite.sampleOperations = pagination.NewPaginated(suite.sampleParams, []store.Operation{
 		{
-			ID:          uuid.New(),
+			ID:          testutil.NewUUIDV4(),
 			Title:       "sympathy",
 			Description: "civilize",
 			Start:       time.UnixMilli(535),
@@ -107,7 +106,7 @@ func (suite *ControllerOperationsSuite) SetupTest() {
 			IsArchived:  true,
 		},
 		{
-			ID:          uuid.New(),
+			ID:          testutil.NewUUIDV4(),
 			Title:       "regard",
 			Description: "throw",
 			Start:       time.UnixMilli(123),
@@ -177,7 +176,7 @@ type ControllerCreateOperationSuite struct {
 func (suite *ControllerCreateOperationSuite) SetupTest() {
 	suite.ctrl = NewMockController()
 	suite.create = store.Operation{
-		ID:          uuid.New(),
+		ID:          testutil.NewUUIDV4(),
 		Title:       "moderate",
 		Description: "intend",
 		Start:       time.UnixMilli(824),
@@ -271,7 +270,7 @@ type ControllerUpdateOperationSuite struct {
 func (suite *ControllerUpdateOperationSuite) SetupTest() {
 	suite.ctrl = NewMockController()
 	suite.update = store.Operation{
-		ID:          uuid.New(),
+		ID:          testutil.NewUUIDV4(),
 		Title:       "moderate",
 		Description: "intend",
 		Start:       time.UnixMilli(824),

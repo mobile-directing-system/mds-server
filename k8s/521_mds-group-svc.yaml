@@ -1,0 +1,132 @@
+# Database config.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mds-group-svc-postgres-config
+  labels:
+    app: mds-group-svc-postgres
+data:
+  POSTGRES_DB: mds-group-svc
+  POSTGRES_USER: mds
+  POSTGRES_PASSWORD: mds
+  PGDATA: /var/lib/postgresql/data/pgdata
+---
+# Database pvc.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mds-group-svc-postgres-pvc
+  labels:
+    app: mds-group-svc-postgres
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+---
+# Database service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mds-group-svc-postgres-service
+  labels:
+    app: mds-group-svc-postgres-service
+spec:
+  ports:
+    - port: 5432
+  selector:
+    app: mds-group-svc-postgres
+---
+# Database deployment.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mds-group-svc-postgres-deployment
+spec:
+  serviceName: mds-group-svc-postgres-service
+  selector:
+    matchLabels:
+      app: mds-group-svc-postgres
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mds-group-svc-postgres
+    spec:
+      containers:
+        - name: mds-group-svc-postgres
+          image: postgres:14.2
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: mds-group-svc-postgres-config
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data/pgdata
+              name: postgres-data
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: mds-group-svc-postgres-pvc
+---
+# Group svc config.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mds-group-svc-config
+  labels:
+    app: mds-group-svc
+data:
+  MDS_DB_CONN_STRING: postgresql://mds:mds@mds-group-svc-postgres-service/mds-group-svc
+  MDS_KAFKA_ADDR: kafka-cluster-kafka-bootstrap.kafka:9092
+  MDS_SERVE_ADDR: :8080
+  MDS_LOG_LEVEL: debug
+---
+# Group svc service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mds-group-svc-service
+spec:
+  selector:
+    app: mds-group-svc
+  ports:
+    - port: 3000
+      targetPort: 8080
+---
+# Group svc deployment.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mds-group-svc-deployment
+  annotations:
+    reloader.stakater.com/auto: "true"
+spec:
+  selector:
+    matchLabels:
+      app: mds-group-svc
+  template:
+    metadata:
+      labels:
+        app: mds-group-svc
+    spec:
+      containers:
+        - name: mds-group-svc
+          image: mds-group-svc
+          envFrom:
+            - configMapRef:
+                name: mds-group-svc-config
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              port: 31234
+              path: /livez
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              port: 31234
+              path: /readyz
+            timeoutSeconds: 5

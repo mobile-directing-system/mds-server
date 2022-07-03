@@ -1,11 +1,11 @@
 package eventport
 
 import (
-	"github.com/google/uuid"
 	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/operation-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/kafkautil"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -23,7 +23,7 @@ type PortNotifyOperationCreatedSuite struct {
 func (suite *PortNotifyOperationCreatedSuite) SetupTest() {
 	suite.port = newMockPort()
 	suite.sampleOperation = store.Operation{
-		ID:          uuid.New(),
+		ID:          testutil.NewUUIDV4(),
 		Title:       "win",
 		Description: "compose",
 		Start:       time.UnixMilli(5),
@@ -76,7 +76,7 @@ type PortNotifyOperationUpdatedSuite struct {
 func (suite *PortNotifyOperationUpdatedSuite) SetupTest() {
 	suite.port = newMockPort()
 	suite.sampleOperation = store.Operation{
-		ID:          uuid.New(),
+		ID:          testutil.NewUUIDV4(),
 		Title:       "win",
 		Description: "compose",
 		Start:       time.UnixMilli(5),
