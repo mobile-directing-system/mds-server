@@ -8,6 +8,7 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/group-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pgutil"
+	"golang.org/x/sync/errgroup"
 )
 
 // CreateUser creates the user with the given id.
@@ -68,11 +69,21 @@ func (c *Controller) DeleteUserByID(ctx context.Context, userID uuid.UUID) error
 			return meh.Wrap(err, "delete user in store", meh.Details{"user_id": userID})
 		}
 		// Notify of updated groups.
+		var eg errgroup.Group
 		for _, group := range updated {
-			err = c.Notifier.NotifyGroupUpdated(group)
-			if err != nil {
-				return meh.Wrap(err, "notify group updated", meh.Details{"group": group})
-			}
+			// Copy for concurrency.
+			g := group
+			eg.Go(func() error {
+				err := c.Notifier.NotifyGroupUpdated(g)
+				if err != nil {
+					return meh.Wrap(err, "notify group updated", meh.Details{"group": group})
+				}
+				return nil
+			})
+		}
+		err = eg.Wait()
+		if err != nil {
+			return meh.Wrap(err, "notify of updated groups", nil)
 		}
 		return nil
 	})

@@ -233,9 +233,6 @@ func (suite *ControllerDeleteUserByIDSuite) TestNotifyUpdatedGroupsFail() {
 		}
 		suite.ctrl.Notifier.On("NotifyGroupUpdated", suite.groupWithoutMember(group, suite.sampleUser)).
 			Return(err).Once()
-		if i == fail {
-			break
-		}
 	}
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
