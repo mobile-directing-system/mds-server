@@ -327,6 +327,19 @@ func (suite *handleCreateOperationSuite) TestInvalidBody() {
 	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
 }
 
+func (suite *handleCreateOperationSuite) TestInvalidOperation() {
+	suite.samplePublicCreate.Title = ""
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    "/",
+		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.samplePublicCreate)),
+		Token:  suite.tokenOK,
+		Secret: "",
+	})
+	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
+}
+
 func (suite *handleCreateOperationSuite) TestCreateFail() {
 	suite.s.On("CreateOperation", mock.Anything, suite.sampleCreate).
 		Return(store.Operation{}, errors.New("sad life"))
@@ -454,6 +467,19 @@ func (suite *handleUpdateOperationSuite) TestIDMismatch() {
 		Server: suite.r,
 		Method: http.MethodPut,
 		URL:    fmt.Sprintf("/%s", testutil.NewUUIDV4()),
+		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.samplePublicUpdate)),
+		Token:  suite.tokenOK,
+		Secret: "",
+	})
+	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
+}
+
+func (suite *handleUpdateOperationSuite) TestInvalidOperation() {
+	suite.samplePublicUpdate.Title = ""
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPut,
+		URL:    fmt.Sprintf("/%s", suite.sampleUpdateID.String()),
 		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.samplePublicUpdate)),
 		Token:  suite.tokenOK,
 		Secret: "",

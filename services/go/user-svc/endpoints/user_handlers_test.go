@@ -128,6 +128,23 @@ func (suite *handleCreateUserSuite) TestMissingSetAdminPermission() {
 	suite.Equal(http.StatusForbidden, rr.Code, "should return correct code")
 }
 
+func (suite *handleCreateUserSuite) TestInvalidUser() {
+	suite.createUser.Username = ""
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    "/",
+		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.createUser)),
+		Token: auth.Token{
+			UserID:          testutil.NewUUIDV4(),
+			IsAuthenticated: true,
+			Permissions:     []permission.Permission{{Name: permission.CreateUserPermissionName}},
+		},
+		Secret: "",
+	})
+	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
+}
+
 func (suite *handleCreateUserSuite) TestCreateUserFail() {
 	suite.s.On("CreateUser", mock.Anything, mock.Anything).Return(store.UserWithPass{}, errors.New("meh"))
 	defer suite.s.AssertExpectations(suite.T())
@@ -316,6 +333,22 @@ func (suite *handleUpdateUserByIDSuite) TestMissingPermissionForForeignUser() {
 		Secret: "",
 	})
 	suite.Equal(http.StatusForbidden, rr.Code, "should return correct code")
+}
+
+func (suite *handleUpdateUserByIDSuite) TestInvalidUser() {
+	suite.updateUser.Username = ""
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPut,
+		URL:    fmt.Sprintf("/%s", suite.updateUser.ID.String()),
+		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.updateUser)),
+		Token: auth.Token{
+			UserID:          suite.updateUser.ID,
+			IsAuthenticated: true,
+		},
+		Secret: "",
+	})
+	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
 }
 
 func (suite *handleUpdateUserByIDSuite) TestUpdateUserFail() {

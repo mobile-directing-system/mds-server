@@ -8,6 +8,7 @@ import (
 	"github.com/lefinal/meh"
 	"github.com/lefinal/meh/mehpg"
 	"github.com/lefinal/nulls"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/entityvalidation"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"time"
 )
@@ -28,6 +29,18 @@ type Operation struct {
 	// IsArchived describes whether the operation was archived. This is used instead
 	// of deleting the operation in order to avoid unintended data loss.
 	IsArchived bool
+}
+
+// Validate assures that the title is set and End is not before Start.
+func (o Operation) Validate() (entityvalidation.Report, error) {
+	report := entityvalidation.NewReport()
+	if o.Title == "" {
+		report.AddError("title must not be empty")
+	}
+	if o.End.Valid && o.End.Time.UTC().Before(o.Start.UTC()) {
+		report.AddError("end-time must not be before start-time")
+	}
+	return report, nil
 }
 
 // OperationByID retrieves an Operation by its id.

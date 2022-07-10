@@ -9,6 +9,7 @@ import (
 	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/operation-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/auth"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/entityvalidation"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/httpendpoints"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/permission"
@@ -140,8 +141,15 @@ func handleCreateOperation(s handleCreateOperationStore) httpendpoints.HandlerFu
 		if err != nil {
 			return meh.NewBadInputErrFromErr(err, "decode body", nil)
 		}
-		// Create.
 		storeCreate := storeOperationFromPublic(create)
+		// Validate.
+		if ok, err := entityvalidation.ValidateInRequest(c, storeCreate); err != nil {
+			return meh.Wrap(err, "validate", meh.Details{"operation": storeCreate})
+		} else if !ok {
+			// Handled.
+			return nil
+		}
+		// Create.
 		created, err := s.CreateOperation(c.Request.Context(), storeCreate)
 		if err != nil {
 			return meh.Wrap(err, "create operation", meh.Details{"create": storeCreate})
@@ -183,8 +191,15 @@ func handleUpdateOperation(s handleUpdateOperationStore) httpendpoints.HandlerFu
 				"id_from_body":         update.ID,
 			})
 		}
-		// Update.
 		storeUpdate := storeOperationFromPublic(update)
+		// Validate.
+		if ok, err := entityvalidation.ValidateInRequest(c, storeUpdate); err != nil {
+			return meh.Wrap(err, "validate", meh.Details{"group": storeUpdate})
+		} else if !ok {
+			// Handled.
+			return nil
+		}
+		// Update.
 		err = s.UpdateOperation(c.Request.Context(), storeUpdate)
 		if err != nil {
 			return meh.Wrap(err, "update operation", meh.Details{"update": storeUpdate})

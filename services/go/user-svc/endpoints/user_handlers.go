@@ -7,6 +7,7 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/lefinal/meh"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/auth"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/entityvalidation"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/httpendpoints"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/permission"
@@ -84,7 +85,6 @@ func handleCreateUser(s handleCreateUserStore) httpendpoints.HandlerFunc {
 		if err != nil {
 			return meh.Wrap(err, "hash pass", nil)
 		}
-		// Create.
 		storeUserToCreate := store.UserWithPass{
 			User: store.User{
 				Username:  userToCreate.Username,
@@ -94,6 +94,14 @@ func handleCreateUser(s handleCreateUserStore) httpendpoints.HandlerFunc {
 			},
 			Pass: hashedPass,
 		}
+		// Validate.
+		if ok, err := entityvalidation.ValidateInRequest(c, storeUserToCreate); err != nil {
+			return meh.Wrap(err, "validate", meh.Details{"user": storeUserToCreate})
+		} else if !ok {
+			// Handled.
+			return nil
+		}
+		// Create.
 		createdUser, err := s.CreateUser(c.Request.Context(), storeUserToCreate)
 		if err != nil {
 			return meh.Wrap(err, "create user", meh.Details{"user_to_create": storeUserToCreate.User})
@@ -167,7 +175,6 @@ func handleUpdateUserByID(s handleUpdateUserByIDStore) httpendpoints.HandlerFunc
 		if err != nil {
 			return meh.Wrap(err, "check permission for allowing admin change", nil)
 		}
-		// Update.
 		updatedUser := store.User{
 			ID:        user.ID,
 			Username:  user.Username,
@@ -175,6 +182,14 @@ func handleUpdateUserByID(s handleUpdateUserByIDStore) httpendpoints.HandlerFunc
 			LastName:  user.LastName,
 			IsAdmin:   user.IsAdmin,
 		}
+		// Validate.
+		if ok, err := entityvalidation.ValidateInRequest(c, updatedUser); err != nil {
+			return meh.Wrap(err, "validate", meh.Details{"user": updatedUser})
+		} else if !ok {
+			// Handled.
+			return nil
+		}
+		// Update.
 		err = s.UpdateUser(c.Request.Context(), updatedUser, allowAdminChange)
 		if err != nil {
 			return meh.Wrap(err, "update user", meh.Details{
