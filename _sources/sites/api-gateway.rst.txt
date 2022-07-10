@@ -32,6 +32,7 @@ Response `200`:
 .. code-block:: json
 
     {
+        "user_id": "<the_user_id>",
         "access_token": "<the-access-token>",
         "token_type": "Bearer"
     }
