@@ -14,6 +14,8 @@ The default credentials are::
 
 **Change the password immediately after logging in for the first time!**
 
+A valid user must have non-empty username, first name and last name.
+
 Create user
 ===========
 

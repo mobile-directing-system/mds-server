@@ -201,6 +201,8 @@
 <p>This section cover creating, retrieving and updating operations via API endpoints.</p>
 <p>Deleting operations is not allowed.
 They can only be marked as archived.</p>
+<p>Each operation must have an non-empty title.
+The end-timestamp must not be before the start-timestamp.</p>
 <section id="create-operation">
 <h2>Create operation<a class="headerlink" href="#create-operation" title="Permalink to this headline">#</a></h2>
 <p>In order to create an operation, the <a class="reference internal" href="permissions.html#permission-operation-create"><span class="std std-ref">operation.create</span></a> permission is needed.
