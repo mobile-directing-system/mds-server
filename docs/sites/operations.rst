@@ -6,6 +6,9 @@ This section cover creating, retrieving and updating operations via API endpoint
 Deleting operations is not allowed.
 They can only be marked as archived.
 
+Each operation must have an non-empty title.
+The end-timestamp must not be before the start-timestamp.
+
 Create operation
 ================
 

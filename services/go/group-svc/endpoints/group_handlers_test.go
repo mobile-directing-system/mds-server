@@ -468,6 +468,19 @@ func (suite *handleCreateGroupSuite) TestInvalidBody() {
 	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
 }
 
+func (suite *handleCreateGroupSuite) TestInvalidGroup() {
+	suite.samplePublicCreate.Title = ""
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    "/",
+		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.samplePublicCreate)),
+		Token:  suite.tokenOK,
+		Secret: "",
+	})
+	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
+}
+
 func (suite *handleCreateGroupSuite) TestCreateFail() {
 	suite.s.On("CreateGroup", mock.Anything, suite.sampleCreate).
 		Return(store.Group{}, errors.New("sad life"))
@@ -598,6 +611,19 @@ func (suite *handleUpdateGroupSuite) TestIDMismatch() {
 		Server: suite.r,
 		Method: http.MethodPut,
 		URL:    fmt.Sprintf("/%s", testutil.NewUUIDV4()),
+		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.samplePublicUpdate)),
+		Token:  suite.tokenOK,
+		Secret: "",
+	})
+	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
+}
+
+func (suite *handleUpdateGroupSuite) TestInvalidGroup() {
+	suite.samplePublicUpdate.Title = ""
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPut,
+		URL:    fmt.Sprintf("/%s", suite.sampleUpdateID.String()),
 		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.samplePublicUpdate)),
 		Token:  suite.tokenOK,
 		Secret: "",

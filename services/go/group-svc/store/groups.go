@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/lefinal/meh"
 	"github.com/lefinal/meh/mehpg"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/entityvalidation"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"time"
 )
@@ -24,6 +25,15 @@ type Group struct {
 	Operation uuid.NullUUID
 	// Members of the group represented by user ids.
 	Members []uuid.UUID
+}
+
+// Validate that the group title is set.
+func (g Group) Validate() (entityvalidation.Report, error) {
+	report := entityvalidation.NewReport()
+	if g.Title == "" {
+		report.AddError("title must not be empty")
+	}
+	return report, nil
 }
 
 // CreateGroup creates the given group and returns the one with assigned id.

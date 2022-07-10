@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/lefinal/meh"
 	"github.com/lefinal/meh/mehpg"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/entityvalidation"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 )
 
@@ -24,11 +25,40 @@ type User struct {
 	IsAdmin bool
 }
 
+// Validate assures that Username, FirstName and LastName are not empty.
+func (u User) Validate() (entityvalidation.Report, error) {
+	report := entityvalidation.NewReport()
+	if u.Username == "" {
+		report.AddError("username must not be empty")
+	}
+	if u.FirstName == "" {
+		report.AddError("first name must not be empty")
+	}
+	if u.LastName == "" {
+		report.AddError("last name must not be empty")
+	}
+	return report, nil
+}
+
 // UserWithPass is a User with a Pass field.
 type UserWithPass struct {
 	User
 	// Pass is the hashed password for the user.
 	Pass []byte
+}
+
+// Validate the User and assure the Pass not being empty.
+func (u UserWithPass) Validate() (entityvalidation.Report, error) {
+	report := entityvalidation.NewReport()
+	if string(u.Pass) == "" {
+		report.AddError("password must not be empty")
+	}
+	subReport, err := u.User.Validate()
+	if err != nil {
+		return entityvalidation.Report{}, meh.Wrap(err, "validate user", meh.Details{"user": u.User})
+	}
+	report.Include(subReport)
+	return report, nil
 }
 
 // UserByID retrieves a User by its User.ID.

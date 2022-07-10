@@ -9,6 +9,7 @@ import (
 	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/group-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/auth"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/entityvalidation"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/httpendpoints"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/permission"
@@ -173,8 +174,16 @@ func handleCreateGroup(s handleCreateGroupStore) httpendpoints.HandlerFunc {
 		if err != nil {
 			return meh.NewBadInputErrFromErr(err, "parse body", nil)
 		}
-		// Create.
+		// Validate.
 		toCreate := storeGroupFromPublic(toCreatePublic)
+		// Validate.
+		if ok, err := entityvalidation.ValidateInRequest(c, toCreate); err != nil {
+			return meh.Wrap(err, "validate in request", meh.Details{"group": toCreate})
+		} else if !ok {
+			// Handled.
+			return nil
+		}
+		// Create.
 		created, err := s.CreateGroup(c.Request.Context(), toCreate)
 		if err != nil {
 			return meh.Wrap(err, "create group", meh.Details{"create": toCreate})
@@ -215,8 +224,15 @@ func handleUpdateGroup(s handleUpdateGroupStore) httpendpoints.HandlerFunc {
 				"id_from_body":   toUpdatePublic.ID,
 			})
 		}
-		// Update.
 		toUpdate := storeGroupFromPublic(toUpdatePublic)
+		// Validate.
+		if ok, err := entityvalidation.ValidateInRequest(c, toUpdate); err != nil {
+			return meh.Wrap(err, "validate in request", meh.Details{"group": toUpdate})
+		} else if !ok {
+			// Handled.
+			return nil
+		}
+		// Update.
 		err = s.UpdateGroup(c.Request.Context(), toUpdate)
 		if err != nil {
 			return meh.Wrap(err, "update group", meh.Details{"update": toUpdate})
