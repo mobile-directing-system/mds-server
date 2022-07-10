@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"crypto/rand"
+	"github.com/gofrs/uuid"
 	"github.com/golang-jwt/jwt"
 	"github.com/jackc/pgx/v4"
 	"github.com/lefinal/meh"
@@ -20,9 +21,10 @@ type AuthRequestMetadata struct {
 
 // Login tries to log in the user with the given username and password. If login
 // fails, false is returned as second value. Otherwise, the first return value
-// will be the assigned JWT-token.
-func (c *Controller) Login(ctx context.Context, username string, pass string, requestMetadata AuthRequestMetadata) (string, bool, error) {
+// will be the user id and the second one the assigned JWT-token.
+func (c *Controller) Login(ctx context.Context, username string, pass string, requestMetadata AuthRequestMetadata) (uuid.UUID, string, bool, error) {
 	var ok bool
+	var userID uuid.UUID
 	var token string
 	var err error
 	// Load actual password for username.
@@ -31,6 +33,7 @@ func (c *Controller) Login(ctx context.Context, username string, pass string, re
 		if err != nil {
 			return meh.Wrap(err, "user by username", meh.Details{"username": username})
 		}
+		userID = user.ID
 		// Check password.
 		passOK, err := auth.PasswordOK(user.Pass, pass)
 		if err != nil {
@@ -67,9 +70,9 @@ func (c *Controller) Login(ctx context.Context, username string, pass string, re
 		return nil
 	})
 	if err != nil {
-		return "", false, meh.Wrap(err, "run in tx", nil)
+		return uuid.Nil, "", false, meh.Wrap(err, "run in tx", nil)
 	}
-	return token, ok, nil
+	return userID, token, ok, nil
 }
 
 // generatePublicSessionToken generates and signs the JWT token, that will be

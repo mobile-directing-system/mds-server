@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/gofrs/uuid"
 	"github.com/mobile-directing-system/mds-server/services/go/api-gateway-svc/controller"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/auth"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
@@ -24,9 +25,9 @@ type handleLoginStoreMock struct {
 }
 
 func (m *handleLoginStoreMock) Login(ctx context.Context, username string, pass string,
-	requestMetadata controller.AuthRequestMetadata) (string, bool, error) {
+	requestMetadata controller.AuthRequestMetadata) (uuid.UUID, string, bool, error) {
 	args := m.Called(ctx, username, pass, requestMetadata)
-	return args.String(0), args.Bool(1), args.Error(2)
+	return args.Get(0).(uuid.UUID), args.String(1), args.Bool(2), args.Error(3)
 }
 
 // handleLoginSuite tests handleLogin.
@@ -59,7 +60,7 @@ func (suite *handleLoginSuite) TestInvalidBody() {
 
 func (suite *handleLoginSuite) TestLoginFail() {
 	suite.s.On("Login", mock.Anything, suite.sampleRequest.Username, suite.sampleRequest.Pass, mock.Anything).
-		Return("", false, errors.New("sad life"))
+		Return(uuid.Nil, "", false, errors.New("sad life"))
 	defer suite.s.AssertExpectations(suite.T())
 	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
 		Server: suite.r,
@@ -72,7 +73,7 @@ func (suite *handleLoginSuite) TestLoginFail() {
 
 func (suite *handleLoginSuite) TestBadLogin() {
 	suite.s.On("Login", mock.Anything, suite.sampleRequest.Username, suite.sampleRequest.Pass, mock.Anything).
-		Return("", false, nil)
+		Return(uuid.Nil, "", false, nil)
 	defer suite.s.AssertExpectations(suite.T())
 	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
 		Server: suite.r,
@@ -84,9 +85,10 @@ func (suite *handleLoginSuite) TestBadLogin() {
 }
 
 func (suite *handleLoginSuite) TestOK() {
+	userID := testutil.NewUUIDV4()
 	token := "feed"
 	suite.s.On("Login", mock.Anything, suite.sampleRequest.Username, suite.sampleRequest.Pass, mock.Anything).
-		Return(token, true, nil)
+		Return(userID, token, true, nil)
 	defer suite.s.AssertExpectations(suite.T())
 	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
 		Server: suite.r,
@@ -98,6 +100,7 @@ func (suite *handleLoginSuite) TestOK() {
 	var got loginResponse
 	suite.Require().NoError(json.NewDecoder(rr.Body).Decode(&got), "should return valid response")
 	suite.Equal(loginResponse{
+		UserID:      userID,
 		AccessToken: token,
 		TokenType:   "Bearer",
 	}, got, "should return correct response")

@@ -65,7 +65,7 @@ func (suite *ControllerLoginSuite) TestTxFail() {
 
 	go func() {
 		defer cancel()
-		_, _, err := suite.ctrl.Ctrl.Login(timeout, suite.sampleUsername, suite.sampleUserPass, suite.sampleRequestMetadata)
+		_, _, _, err := suite.ctrl.Ctrl.Login(timeout, suite.sampleUsername, suite.sampleUserPass, suite.sampleRequestMetadata)
 		suite.Error(err, "should fail")
 	}()
 
@@ -81,7 +81,7 @@ func (suite *ControllerLoginSuite) TestRetrieveUserFromStoreFail() {
 
 	go func() {
 		defer cancel()
-		_, _, err := suite.ctrl.Ctrl.Login(timeout, suite.sampleUsername, suite.sampleUserPass, suite.sampleRequestMetadata)
+		_, _, _, err := suite.ctrl.Ctrl.Login(timeout, suite.sampleUsername, suite.sampleUserPass, suite.sampleRequestMetadata)
 		suite.Error(err, "should fail")
 	}()
 
@@ -99,7 +99,7 @@ func (suite *ControllerLoginSuite) TestPasswordCheckFail() {
 
 	go func() {
 		defer cancel()
-		_, _, err := suite.ctrl.Ctrl.Login(timeout, suite.sampleUsername, "nonono", suite.sampleRequestMetadata)
+		_, _, _, err := suite.ctrl.Ctrl.Login(timeout, suite.sampleUsername, "nonono", suite.sampleRequestMetadata)
 		suite.Error(err, "should fail")
 	}()
 
@@ -115,7 +115,7 @@ func (suite *ControllerLoginSuite) TestPasswordMismatch() {
 
 	go func() {
 		defer cancel()
-		_, ok, err := suite.ctrl.Ctrl.Login(timeout, suite.sampleUsername, "nonono", suite.sampleRequestMetadata)
+		_, _, ok, err := suite.ctrl.Ctrl.Login(timeout, suite.sampleUsername, "nonono", suite.sampleRequestMetadata)
 		suite.Require().NoError(err, "should not fail")
 		suite.False(ok, "should not return ok")
 	}()
@@ -134,7 +134,7 @@ func (suite *ControllerLoginSuite) TestStoreSessionTokenFail() {
 
 	go func() {
 		defer cancel()
-		_, _, err := suite.ctrl.Ctrl.Login(timeout, suite.sampleUsername, suite.sampleUserPass, suite.sampleRequestMetadata)
+		_, _, _, err := suite.ctrl.Ctrl.Login(timeout, suite.sampleUsername, suite.sampleUserPass, suite.sampleRequestMetadata)
 		suite.Error(err, "should fail")
 	}()
 
@@ -155,7 +155,7 @@ func (suite *ControllerLoginSuite) TestNotifyFail() {
 
 	go func() {
 		defer cancel()
-		_, _, err := suite.ctrl.Ctrl.Login(timeout, suite.sampleUsername, suite.sampleUserPass, suite.sampleRequestMetadata)
+		_, _, _, err := suite.ctrl.Ctrl.Login(timeout, suite.sampleUsername, suite.sampleUserPass, suite.sampleRequestMetadata)
 		suite.Error(err, "should fail")
 	}()
 
@@ -176,9 +176,10 @@ func (suite *ControllerLoginSuite) TestOK() {
 
 	go func() {
 		defer cancel()
-		token, ok, err := suite.ctrl.Ctrl.Login(timeout, suite.sampleUsername, suite.sampleUserPass, suite.sampleRequestMetadata)
+		userID, token, ok, err := suite.ctrl.Ctrl.Login(timeout, suite.sampleUsername, suite.sampleUserPass, suite.sampleRequestMetadata)
 		suite.Require().NoError(err, "should not fail")
 		suite.True(ok, "should return ok")
+		suite.Equal(suite.sampleUser.ID, userID, "should return correct user id")
 		suite.NotEmpty(token, "should return token")
 	}()
 
