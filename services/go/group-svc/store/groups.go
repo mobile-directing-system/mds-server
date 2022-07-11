@@ -241,7 +241,6 @@ func (m *Mall) Groups(ctx context.Context, tx pgx.Tx, filters GroupFilters, para
 			goqu.I("groups.description"),
 			goqu.I("groups.operation"))
 	groupDetailsFiltersRootAnd := make([]goqu.Expression, 0)
-	groupDetailsFiltersOr := make([]goqu.Expression, 0)
 	if filters.ByUser.Valid {
 		err := m.AssureUserExists(ctx, tx, filters.ByUser.UUID)
 		if err != nil {
@@ -251,13 +250,12 @@ func (m *Mall) Groups(ctx context.Context, tx pgx.Tx, filters GroupFilters, para
 		groupDetailsFiltersRootAnd = append(groupDetailsFiltersRootAnd, goqu.I("members.user").Eq(filters.ByUser.UUID))
 	}
 	if filters.ForOperation.Valid {
-		groupDetailsFiltersOr = append(groupDetailsFiltersOr, goqu.I("groups.operation").Eq(filters.ForOperation))
+		groupDetailsFiltersRootAnd = append(groupDetailsFiltersRootAnd, goqu.Or(
+			goqu.I("groups.operation").Eq(filters.ForOperation),
+			goqu.I("groups.operation").IsNull()))
 	}
-	if !filters.ExcludeGlobal {
-		groupDetailsFiltersOr = append(groupDetailsFiltersOr, goqu.I("groups.operation").IsNull())
-	}
-	if len(groupDetailsFiltersOr) > 0 {
-		groupDetailsFiltersRootAnd = append(groupDetailsFiltersRootAnd, goqu.Or(groupDetailsFiltersOr...))
+	if filters.ExcludeGlobal {
+		groupDetailsFiltersRootAnd = append(groupDetailsFiltersRootAnd, goqu.I("groups.operation").IsNotNull())
 	}
 	if len(groupDetailsFiltersRootAnd) > 0 {
 		groupDetailsQB = groupDetailsQB.Where(goqu.And(groupDetailsFiltersRootAnd...))
