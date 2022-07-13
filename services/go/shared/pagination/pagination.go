@@ -42,7 +42,8 @@ type Paginated[T any] struct {
 
 // Params is a container for common ways of retrieving paginated results.
 type Params struct {
-	// Limit for the amount of retrieved results.
+	// Limit for the amount of retrieved results. A limit of 0 means that no limit
+	// is applied.
 	Limit int `json:"limit"`
 	// Offset is the offset for retrieving results with the set Limit.
 	Offset int `json:"offset"`
