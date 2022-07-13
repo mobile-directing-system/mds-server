@@ -143,6 +143,20 @@ operation.update
 
 Allows updating of operations. This also includes marking them as finished or archived.
 
+.. _permission.operation.members.view:
+
+operation.members.view
+^^^^^^^^^^^^^^^^^^^^^^
+
+Allows retrieving members for operations.
+
+.. _permission.operation.members.update:
+
+operation.members.update
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Allows (un)assigning members to operations.
+
 Users
 -----
 

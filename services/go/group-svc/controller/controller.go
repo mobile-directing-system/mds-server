@@ -39,6 +39,12 @@ type Store interface {
 	AssureUserExists(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error
 	// DeleteGroupByID deletes the group with the given id.
 	DeleteGroupByID(ctx context.Context, tx pgx.Tx, groupID uuid.UUID) error
+	// OperationMembersByOperation retrieves all users that are member of the
+	// operation with the given id.
+	OperationMembersByOperation(ctx context.Context, tx pgx.Tx, operationID uuid.UUID) ([]uuid.UUID, error)
+	// UpdateOperationMembersByOperation updates the member list for the operation
+	// with the given id.
+	UpdateOperationMembersByOperation(ctx context.Context, tx pgx.Tx, operationID uuid.UUID, newMembers []uuid.UUID) error
 }
 
 // Notifier sends event messages.

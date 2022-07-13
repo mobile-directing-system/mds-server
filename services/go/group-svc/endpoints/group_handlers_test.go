@@ -594,6 +594,18 @@ func (suite *handleUpdateGroupSuite) TestMissingPermission() {
 	suite.Equal(http.StatusForbidden, rr.Code, "should return correct code")
 }
 
+func (suite *handleUpdateGroupSuite) TestInvalidID() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPut,
+		URL:    "/abc",
+		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.samplePublicUpdate)),
+		Token:  suite.tokenOK,
+		Secret: "",
+	})
+	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
+}
+
 func (suite *handleUpdateGroupSuite) TestInvalidBody() {
 	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
 		Server: suite.r,
@@ -721,6 +733,18 @@ func (suite *handleDeleteGroupByIDSuite) TestMissingPermission() {
 		Secret: "",
 	})
 	suite.Equal(http.StatusForbidden, rr.Code, "should return correct code")
+}
+
+func (suite *handleDeleteGroupByIDSuite) TestInvalidID() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodDelete,
+		URL:    "/abc",
+		Body:   nil,
+		Token:  suite.tokenOK,
+		Secret: "",
+	})
+	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
 }
 
 func (suite *handleDeleteGroupByIDSuite) TestDeleteFail() {

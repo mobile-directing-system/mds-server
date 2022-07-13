@@ -18,6 +18,9 @@ type Handler interface {
 	// DeleteUserByID deletes the user with the given id and notfies of updated
 	// groups.
 	DeleteUserByID(ctx context.Context, userID uuid.UUID) error
+	// UpdateOperationMembersByOperation updates the members for the operation with
+	// the given id.
+	UpdateOperationMembersByOperation(ctx context.Context, operationID uuid.UUID, newMembers []uuid.UUID) error
 }
 
 // HandlerFn for handling messages.
@@ -38,6 +41,8 @@ func (p *Port) handleOperationsTopic(ctx context.Context, handler Handler, messa
 	switch message.EventType {
 	case event.TypeOperationCreated:
 		return meh.NilOrWrap(p.handleOperationCreated(ctx, handler, message), "handle operation created", nil)
+	case event.TypeOperationMembersUpdated:
+		return meh.NilOrWrap(p.handleOperationMembersUpdated(ctx, handler, message), "handle operation members updated", nil)
 	}
 	return nil
 }
@@ -52,6 +57,24 @@ func (p *Port) handleOperationCreated(ctx context.Context, handler Handler, mess
 	err = handler.CreateOperation(ctx, operationCreatedEvent.ID)
 	if err != nil {
 		return meh.Wrap(err, "create operation", meh.Details{"operation_id": operationCreatedEvent.ID})
+	}
+	return nil
+}
+
+// handleOperationMembersUpdated handles an event.TypeOperationMembersUpdated
+// event.
+func (p *Port) handleOperationMembersUpdated(ctx context.Context, handler Handler, message kafkautil.Message) error {
+	var operationMembersUpdatedEvent event.OperationMembersUpdated
+	err := json.Unmarshal(message.RawValue, &operationMembersUpdatedEvent)
+	if err != nil {
+		return meh.NewInternalErrFromErr(err, "unmarshal event", meh.Details{"raw": string(message.RawValue)})
+	}
+	err = handler.UpdateOperationMembersByOperation(ctx, operationMembersUpdatedEvent.Operation, operationMembersUpdatedEvent.Members)
+	if err != nil {
+		return meh.Wrap(err, "update operation members", meh.Details{
+			"operation_id": operationMembersUpdatedEvent.Operation,
+			"new_members":  operationMembersUpdatedEvent.Members,
+		})
 	}
 	return nil
 }

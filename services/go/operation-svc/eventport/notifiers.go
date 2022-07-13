@@ -1,6 +1,7 @@
 package eventport
 
 import (
+	"github.com/gofrs/uuid"
 	"github.com/lefinal/meh"
 	"github.com/mobile-directing-system/mds-server/services/go/operation-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
@@ -41,6 +42,23 @@ func (p *Port) NotifyOperationUpdated(operation store.Operation) error {
 			Start:       operation.Start,
 			End:         operation.End,
 			IsArchived:  operation.IsArchived,
+		},
+	})
+	if err != nil {
+		return meh.Wrap(err, "write kafka messages", nil)
+	}
+	return nil
+}
+
+// NotifyOperationMembersUpdated emits an event.TypeOperationMembersUpdated.
+func (p *Port) NotifyOperationMembersUpdated(operationID uuid.UUID, members []uuid.UUID) error {
+	err := kafkautil.WriteMessages(p.writer, kafkautil.Message{
+		Topic:     event.OperationsTopic,
+		Key:       operationID.String(),
+		EventType: event.TypeOperationMembersUpdated,
+		Value: event.OperationMembersUpdated{
+			Operation: operationID,
+			Members:   members,
 		},
 	})
 	if err != nil {

@@ -69,7 +69,8 @@ func (m *StoreMock) GroupByID(ctx context.Context, tx pgx.Tx, groupID uuid.UUID)
 	return args.Get(0).(store.Group), args.Error(1)
 }
 
-func (m *StoreMock) Groups(ctx context.Context, tx pgx.Tx, filters store.GroupFilters, params pagination.Params) (pagination.Paginated[store.Group], error) {
+func (m *StoreMock) Groups(ctx context.Context, tx pgx.Tx, filters store.GroupFilters,
+	params pagination.Params) (pagination.Paginated[store.Group], error) {
 	args := m.Called(ctx, tx, filters, params)
 	return args.Get(0).(pagination.Paginated[store.Group]), args.Error(1)
 }
@@ -80,6 +81,17 @@ func (m *StoreMock) AssureUserExists(ctx context.Context, tx pgx.Tx, userID uuid
 
 func (m *StoreMock) DeleteGroupByID(ctx context.Context, tx pgx.Tx, groupID uuid.UUID) error {
 	return m.Called(ctx, tx, groupID).Error(0)
+}
+
+func (m *StoreMock) OperationMembersByOperation(ctx context.Context, tx pgx.Tx, operationID uuid.UUID) ([]uuid.UUID, error) {
+	args := m.Called(ctx, tx, operationID)
+	var members []uuid.UUID
+	members, _ = args.Get(0).([]uuid.UUID)
+	return members, args.Error(1)
+}
+
+func (m *StoreMock) UpdateOperationMembersByOperation(ctx context.Context, tx pgx.Tx, operationID uuid.UUID, newMembers []uuid.UUID) error {
+	return m.Called(ctx, tx, operationID, newMembers).Error(0)
 }
 
 // NotifierMock mocks Notifier.

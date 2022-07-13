@@ -32,6 +32,10 @@ func (m *HandlerMock) DeleteUserByID(ctx context.Context, userID uuid.UUID) erro
 	return m.Called(ctx, userID).Error(0)
 }
 
+func (m *HandlerMock) UpdateOperationMembersByOperation(ctx context.Context, operationID uuid.UUID, newMembers []uuid.UUID) error {
+	return m.Called(ctx, operationID, newMembers).Error(0)
+}
+
 // portHandleOperationCreatedSuite tests Port.handleOperationCreated.
 type portHandleOperationCreatedSuite struct {
 	suite.Suite
@@ -107,6 +111,83 @@ func (suite *portHandleOperationCreatedSuite) TestOK() {
 
 func TestPort_handleOperationCreatedSuite(t *testing.T) {
 	suite.Run(t, new(portHandleOperationCreatedSuite))
+}
+
+// portHandleOperationMembersUpdatedSuite tests Port.handleOperationMembersUpdated.
+type portHandleOperationMembersUpdatedSuite struct {
+	suite.Suite
+	handler     *HandlerMock
+	port        *PortMock
+	sampleEvent event.OperationMembersUpdated
+}
+
+func (suite *portHandleOperationMembersUpdatedSuite) SetupTest() {
+	suite.handler = &HandlerMock{}
+	suite.port = newMockPort()
+	suite.sampleEvent = event.OperationMembersUpdated{
+		Operation: testutil.NewUUIDV4(),
+		Members:   make([]uuid.UUID, 16),
+	}
+	for i := range suite.sampleEvent.Members {
+		suite.sampleEvent.Members[i] = testutil.NewUUIDV4()
+	}
+}
+
+func (suite *portHandleOperationMembersUpdatedSuite) handle(ctx context.Context, rawValue json.RawMessage) error {
+	return suite.port.Port.HandlerFn(suite.handler)(ctx, kafkautil.Message{
+		Topic:     event.OperationsTopic,
+		EventType: event.TypeOperationMembersUpdated,
+		RawValue:  rawValue,
+	})
+}
+
+func (suite *portHandleOperationMembersUpdatedSuite) TestBadEventValue() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	defer cancel()
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, json.RawMessage(`{invalid`))
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *portHandleOperationMembersUpdatedSuite) TestUpdateFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	defer cancel()
+	suite.handler.On("UpdateOperationMembersByOperation", timeout, suite.sampleEvent.Operation, suite.sampleEvent.Members).
+		Return(errors.New("sad life"))
+	defer suite.handler.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, testutil.MarshalJSONMust(suite.sampleEvent))
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *portHandleOperationMembersUpdatedSuite) TestOK() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	defer cancel()
+	suite.handler.On("UpdateOperationMembersByOperation", timeout, suite.sampleEvent.Operation, suite.sampleEvent.Members).
+		Return(nil)
+	defer suite.handler.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, testutil.MarshalJSONMust(suite.sampleEvent))
+		suite.NoError(err, "should not fail")
+	}()
+
+	wait()
+}
+
+func TestPort_handleOperationMembersUpdatedSuite(t *testing.T) {
+	suite.Run(t, new(portHandleOperationMembersUpdatedSuite))
 }
 
 // portHandleUserCreatedSuite tests Port.handleUserCreated.

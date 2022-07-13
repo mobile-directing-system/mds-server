@@ -1,6 +1,16 @@
 -- Activate UUID support.
 create extension if not exists "uuid-ossp";
 
+-- Create users table.
+
+create table users
+(
+    id         uuid primary key not null,
+    username   varchar          not null,
+    first_name varchar          not null,
+    last_name  varchar          not null
+);
+
 -- Create operations table.
 
 create table operations
@@ -12,3 +22,14 @@ create table operations
     end_ts      timestamp,
     is_archived bool             not null
 );
+
+create table operation_members
+(
+    operation uuid not null references operations (id)
+        on delete restrict on update restrict,
+    "user"    uuid not null references users (id)
+        on delete restrict on update restrict
+);
+
+create index idx_operation_members_operation
+    on operation_members (operation);

@@ -49,3 +49,33 @@ func TestUpdateOperation(t *testing.T) {
 		},
 	})
 }
+
+func TestViewOperationMembers(t *testing.T) {
+	suite.Run(t, &NameMatcherSuite{
+		MatcherName: "view-operation-members",
+		Matcher:     ViewOperationMembers(),
+		Granted:     ViewOperationMembersPermissionName,
+		Others: []Name{
+			UpdateGroupPermissionName,
+			CreateOperationPermissionName,
+			ViewAnyOperationPermissionName,
+			CreateUserPermissionName,
+			ViewUserPermissionName,
+		},
+	})
+}
+
+func TestUpdateOperationMembers(t *testing.T) {
+	suite.Run(t, &NameMatcherSuite{
+		MatcherName: "update-operation-members",
+		Matcher:     UpdateOperationMembers(),
+		Granted:     UpdateOperationMembersPermissionName,
+		Others: []Name{
+			UpdateGroupPermissionName,
+			CreateOperationPermissionName,
+			ViewAnyOperationPermissionName,
+			CreateUserPermissionName,
+			ViewUserPermissionName,
+		},
+	})
+}

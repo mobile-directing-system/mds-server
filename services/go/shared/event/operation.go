@@ -47,3 +47,15 @@ type OperationUpdated struct {
 	// of deleting the operation in order to avoid unintended data loss.
 	IsArchived bool `json:"is_archived"`
 }
+
+// TypeOperationMembersUpdated is used when the member list for an operation was
+// updated.
+const TypeOperationMembersUpdated Type = "operation-members-updated"
+
+// OperationMembersUpdated is the value for TypeOperationMembersUpdated.
+type OperationMembersUpdated struct {
+	// Operation is id of the operation, which's members have been updated.
+	Operation uuid.UUID `json:"operation"`
+	// Members is the list of ids of users, that are member of the operation.
+	Members []uuid.UUID `json:"members"`
+}

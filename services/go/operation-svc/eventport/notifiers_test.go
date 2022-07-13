@@ -1,6 +1,7 @@
 package eventport
 
 import (
+	"github.com/gofrs/uuid"
 	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/operation-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
@@ -116,4 +117,52 @@ func (suite *PortNotifyOperationUpdatedSuite) TestOK() {
 
 func TestPort_NotifyOperationUpdated(t *testing.T) {
 	suite.Run(t, new(PortNotifyOperationUpdatedSuite))
+}
+
+// PortNotifyOperationMembersUpdatedSuite tests
+// Port.NotifyOperationMembersUpdated.
+type PortNotifyOperationMembersUpdatedSuite struct {
+	suite.Suite
+	port              *PortMock
+	sampleOperationID uuid.UUID
+	sampleMembers     []uuid.UUID
+	expectedMessage   kafka.Message
+}
+
+func (suite *PortNotifyOperationMembersUpdatedSuite) SetupTest() {
+	suite.port = newMockPort()
+	suite.sampleOperationID = testutil.NewUUIDV4()
+	suite.sampleMembers = make([]uuid.UUID, 16)
+	for i := range suite.sampleMembers {
+		suite.sampleMembers[i] = testutil.NewUUIDV4()
+	}
+	var err error
+	suite.expectedMessage, err = kafkautil.KafkaMessageFromMessage(kafkautil.Message{
+		Topic:     event.OperationsTopic,
+		Key:       suite.sampleOperationID.String(),
+		EventType: event.TypeOperationMembersUpdated,
+		Value: event.OperationMembersUpdated{
+			Operation: suite.sampleOperationID,
+			Members:   suite.sampleMembers,
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (suite *PortNotifyOperationMembersUpdatedSuite) TestWriteFail() {
+	suite.port.recorder.WriteFail = true
+	err := suite.port.Port.NotifyOperationMembersUpdated(suite.sampleOperationID, suite.sampleMembers)
+	suite.Error(err, "should fail")
+}
+
+func (suite *PortNotifyOperationMembersUpdatedSuite) TestOK() {
+	err := suite.port.Port.NotifyOperationMembersUpdated(suite.sampleOperationID, suite.sampleMembers)
+	suite.Require().NoError(err, "should not fail")
+	suite.Equal([]kafka.Message{suite.expectedMessage}, suite.port.recorder.Recorded, "should write correct message")
+}
+
+func TestPort_NotifyOperationMembersUpdated(t *testing.T) {
+	suite.Run(t, new(PortNotifyOperationMembersUpdatedSuite))
 }

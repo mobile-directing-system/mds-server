@@ -5,6 +5,7 @@ Groups are used for grouping users globally but also for operations.
 These groups can be used in the adress book.
 
 A valid group must have an non-empty title.
+If a group is assigned to an operation, all group members must also be member of the operation.
 
 Create group
 ============
