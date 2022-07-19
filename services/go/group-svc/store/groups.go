@@ -236,7 +236,7 @@ func (m *Mall) Groups(ctx context.Context, tx pgx.Tx, filters GroupFilters, para
 	// Retrieve group details.
 	groupDetailsQB := goqu.From(goqu.C("groups")).
 		LeftJoin(goqu.T("members"), goqu.On(goqu.I("members.group").Eq(goqu.I("groups.id")))).
-		Select(goqu.I("groups.id"),
+		Select(goqu.DISTINCT(goqu.I("groups.id")),
 			goqu.I("groups.title"),
 			goqu.I("groups.description"),
 			goqu.I("groups.operation"))
