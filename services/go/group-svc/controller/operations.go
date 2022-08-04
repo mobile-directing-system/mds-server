@@ -99,10 +99,10 @@ func (c *Controller) UpdateOperationMembersByOperation(ctx context.Context, oper
 			return nil
 		}
 		var eg errgroup.Group
-		for i := range updatedGroups {
-			group := updatedGroups[i]
+		for _, updatedGroup := range updatedGroups {
+			group := updatedGroup
 			eg.Go(func() error {
-				err = c.Notifier.NotifyGroupUpdated(group)
+				err := c.Notifier.NotifyGroupUpdated(group)
 				if err != nil {
 					return meh.Wrap(err, "notify group updated", meh.Details{"group": group})
 				}
