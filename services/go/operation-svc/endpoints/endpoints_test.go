@@ -31,3 +31,13 @@ func (m *StoreMock) CreateOperation(ctx context.Context, operation store.Operati
 func (m *StoreMock) UpdateOperation(ctx context.Context, operation store.Operation) error {
 	return m.Called(ctx, operation).Error(0)
 }
+
+func (m *StoreMock) OperationMembersByOperation(ctx context.Context, operationID uuid.UUID,
+	paginationParams pagination.Params) (pagination.Paginated[store.User], error) {
+	args := m.Called(ctx, operationID, paginationParams)
+	return args.Get(0).(pagination.Paginated[store.User]), args.Error(1)
+}
+
+func (m *StoreMock) UpdateOperationMembersByOperation(ctx context.Context, operationID uuid.UUID, members []uuid.UUID) error {
+	return m.Called(ctx, operationID, members).Error(0)
+}

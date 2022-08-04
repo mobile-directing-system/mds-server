@@ -10,6 +10,9 @@ const AuthTopic Topic = "core.auth.0"
 // GroupsTopic is the Kafka topic for groups.
 const GroupsTopic Topic = "orga.groups.0"
 
+// AddressBookTopic is the Kafka topic for the address book.
+const AddressBookTopic Topic = "logistics.address-book.0"
+
 // OperationsTopic is the Kafka topic for all events related to operation
 // management.
 const OperationsTopic Topic = "operations.operations.0"

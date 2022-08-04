@@ -29,6 +29,22 @@ type Store interface {
 	CreateOperation(ctx context.Context, tx pgx.Tx, operation store.Operation) (store.Operation, error)
 	// UpdateOperation updates the given store.Operation, identified by its id.
 	UpdateOperation(ctx context.Context, tx pgx.Tx, operation store.Operation) error
+	// CreateUser adds the given store.User to the store.
+	CreateUser(ctx context.Context, tx pgx.Tx, create store.User) error
+	// UpdateUser updates the given store.User, identified by its id.
+	UpdateUser(ctx context.Context, tx pgx.Tx, update store.User) error
+	// DeleteUserByID deletes the user with the given id.
+	DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error
+	// UpdateOperationMembersByOperation updates the members for the operation with
+	// the given id.
+	UpdateOperationMembersByOperation(ctx context.Context, tx pgx.Tx, operationID uuid.UUID, members []uuid.UUID) error
+	// OperationMembersByOperation retrieves a paginated store.User list for the
+	// operation with the given id.
+	OperationMembersByOperation(ctx context.Context, tx pgx.Tx, operationID uuid.UUID,
+		params pagination.Params) (pagination.Paginated[store.User], error)
+	// OperationsByMember retrieves an Operation list for the member with the given
+	// id.
+	OperationsByMember(ctx context.Context, tx pgx.Tx, userID uuid.UUID) ([]store.Operation, error)
 }
 
 // Notifier sends event messages.
@@ -37,4 +53,6 @@ type Notifier interface {
 	NotifyOperationCreated(operation store.Operation) error
 	// NotifyOperationUpdated emits an event.TypeOperationUpdated event.
 	NotifyOperationUpdated(operation store.Operation) error
+	// NotifyOperationMembersUpdated emits an event.TypeOperationMembersUpdated.
+	NotifyOperationMembersUpdated(operationID uuid.UUID, members []uuid.UUID) error
 }

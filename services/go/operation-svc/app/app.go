@@ -31,6 +31,10 @@ func init() {
 	}
 }
 
+var listenTopics = []event.Topic{event.OperationsTopic, event.UsersTopic}
+
+const kafkaGroupID = "mds-operation-svc"
+
 // Run the application.
 func Run(ctx context.Context) error {
 	c, err := parseConfigFromEnv()
@@ -64,7 +68,7 @@ func Run(ctx context.Context) error {
 		})
 		// Check Kafka topics.
 		eg.Go(func() error {
-			err := kafkautil.AwaitTopics(egCtx, c.KafkaAddr, event.OperationsTopic)
+			err := kafkautil.AwaitTopics(egCtx, c.KafkaAddr, listenTopics...)
 			return meh.NilOrWrap(err, "await topics", meh.Details{"kafka_addr": c.KafkaAddr})
 		})
 		// Check database.
@@ -90,6 +94,16 @@ func Run(ctx context.Context) error {
 	eg.Go(func() error {
 		err := endpoints.Serve(egCtx, logger.Named("endpoints"), c.ServeAddr, c.AuthTokenSecret, ctrl)
 		return meh.NilOrWrap(err, "serve endpoints", meh.Details{"serve_addr": c.ServeAddr})
+	})
+	// Listen for events.
+	eg.Go(func() error {
+		logger := logger.Named("kafka-reader")
+		kafkaReader := kafkautil.NewReader(logger, c.KafkaAddr, kafkaGroupID, listenTopics)
+		err := kafkautil.Read(egCtx, logger, kafkaReader, eventPort.HandlerFn(ctrl))
+		if err != nil {
+			return meh.Wrap(err, "read kafka messages", nil)
+		}
+		return nil
 	})
 	startUpCompleted(readyCheck)
 	return eg.Wait()

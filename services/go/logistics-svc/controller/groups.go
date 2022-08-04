@@ -1,0 +1,88 @@
+package controller
+
+import (
+	"context"
+	"github.com/gofrs/uuid"
+	"github.com/jackc/pgx/v4"
+	"github.com/lefinal/meh"
+	"github.com/mobile-directing-system/mds-server/services/go/logistics-svc/store"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/pgutil"
+	"golang.org/x/sync/errgroup"
+)
+
+// CreateGroup creates the given store.Group.
+func (c *Controller) CreateGroup(ctx context.Context, create store.Group) error {
+	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
+		err := c.Store.CreateGroup(ctx, tx, create)
+		if err != nil {
+			return meh.Wrap(err, "create group in store", meh.Details{"create": create})
+		}
+		return nil
+	})
+	if err != nil {
+		return meh.Wrap(err, "run in tx", nil)
+	}
+	return nil
+}
+
+// UpdateGroup updates the given store.Group, identified by its id.
+func (c *Controller) UpdateGroup(ctx context.Context, update store.Group) error {
+	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
+		err := c.Store.UpdateGroup(ctx, tx, update)
+		if err != nil {
+			return meh.Wrap(err, "update group in store", meh.Details{"update": update})
+		}
+		return nil
+	})
+	if err != nil {
+		return meh.Wrap(err, "run in tx", nil)
+	}
+	return nil
+}
+
+// DeleteGroupByID deletes the group with the given id.
+func (c *Controller) DeleteGroupByID(ctx context.Context, groupID uuid.UUID) error {
+	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
+		// Delete any channels, forwarding to this group.
+		affectedEntries, err := c.Store.DeleteForwardToGroupChannelsByGroup(ctx, tx, groupID)
+		if err != nil {
+			return meh.Wrap(err, "delete forward-to-group-channels by group", meh.Details{"group_id": groupID})
+		}
+		// Delete group itself.
+		err = c.Store.DeleteGroupByID(ctx, tx, groupID)
+		if err != nil {
+			return meh.Wrap(err, "delete group in store", meh.Details{"group_id": groupID})
+		}
+		// Retrieve updated channels.
+		channelsByEntry := make(map[uuid.UUID][]store.Channel)
+		for _, affectedEntryID := range affectedEntries {
+			channels, err := c.Store.ChannelsByAddressBookEntry(ctx, tx, affectedEntryID)
+			if err != nil {
+				return meh.Wrap(err, "channels by address book entry from store",
+					meh.Details{"entry_id": affectedEntryID})
+			}
+			channelsByEntry[affectedEntryID] = channels
+		}
+		// Notify about updated channels.
+		var eg errgroup.Group
+		for entryID, channels := range channelsByEntry {
+			eID := entryID
+			chs := channels
+			eg.Go(func() error {
+				err := c.Notifier.NotifyAddressBookEntryChannelsUpdated(eID, chs)
+				if err != nil {
+					return meh.Wrap(err, "notify channels updated", meh.Details{
+						"entry_id": eID,
+						"channels": chs,
+					})
+				}
+				return nil
+			})
+		}
+		return eg.Wait()
+	})
+	if err != nil {
+		return meh.Wrap(err, "run in tx", nil)
+	}
+	return nil
+}

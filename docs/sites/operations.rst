@@ -105,3 +105,42 @@ The following fields can be used for ordering:
 - ``start``
 - ``end``
 - ``is_archived``
+
+Update operation members
+========================
+
+Updating operation members requires the :ref:`permission.operation.members.update` permission:
+
+`PUT /operations/<operation_id>/members`
+
+.. code-block:: json
+
+    [
+        "<user_id_1>",
+        "<user_id_2>",
+        "<user_id_n>"
+    ]
+
+Retrieve operation members
+==========================
+
+Retrieving a :ref:`paginated <http-api.pagination>` member list requires the :ref:`permission.operation.members.view` permission and is done via:
+
+`GET /operations/<operation_id>/members`
+
+Entry payload:
+
+.. code-block:: json
+
+    {
+        "id": "<user_id>",
+        "username": "<username>",
+        "first_name": "<first_name>",
+        "last_name": "<last_name>"
+    }
+
+The following fields can be used for ordering:
+
+- ``username``
+- ``first_name``
+- ``last_name``

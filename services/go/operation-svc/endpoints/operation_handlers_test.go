@@ -520,3 +520,244 @@ func (suite *handleUpdateOperationSuite) TestOK() {
 func Test_handleUpdateOperation(t *testing.T) {
 	suite.Run(t, new(handleUpdateOperationSuite))
 }
+
+// handleGetOperationMembersByOperationSuite tests
+// handleGetOperationMembersByOperation.
+type handleGetOperationMembersByOperationSuite struct {
+	suite.Suite
+	s                      *StoreMock
+	r                      *gin.Engine
+	tokenOK                auth.Token
+	sampleOperationID      uuid.UUID
+	samplePaginationParams pagination.Params
+	sampleMembers          pagination.Paginated[store.User]
+	samplePublicMembers    pagination.Paginated[publicUser]
+}
+
+func (suite *handleGetOperationMembersByOperationSuite) SetupTest() {
+	suite.s = &StoreMock{}
+	suite.r = testutil.NewGinEngine()
+	populateRoutes(suite.r, zap.NewNop(), "", suite.s)
+	suite.tokenOK = auth.Token{
+		UserID:          testutil.NewUUIDV4(),
+		Username:        "bound",
+		IsAuthenticated: true,
+		IsAdmin:         false,
+		Permissions:     []permission.Permission{{Name: permission.ViewOperationMembersPermissionName}},
+	}
+	suite.samplePaginationParams = pagination.Params{
+		Limit:          2,
+		Offset:         3,
+		OrderBy:        nulls.NewString("meow"),
+		OrderDirection: pagination.OrderDirDesc,
+	}
+	suite.sampleMembers = pagination.NewPaginated(suite.samplePaginationParams, []store.User{
+		{
+			ID:        testutil.NewUUIDV4(),
+			Username:  "spring",
+			FirstName: "cautious",
+			LastName:  "hit",
+		},
+		{
+			ID:        testutil.NewUUIDV4(),
+			Username:  "piece",
+			FirstName: "since",
+			LastName:  "stand",
+		},
+	}, 13)
+	suite.samplePublicMembers = pagination.MapPaginated(suite.sampleMembers, publicUserFromStore)
+}
+
+func (suite *handleGetOperationMembersByOperationSuite) TestSecretMismatch() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL: fmt.Sprintf("/%s/members?%s", suite.sampleOperationID.String(),
+			pagination.ParamsToQueryString(suite.samplePaginationParams)),
+		Token:  suite.tokenOK,
+		Secret: "meow",
+	})
+	suite.Equal(http.StatusInternalServerError, rr.Code, "should return correct code")
+}
+
+func (suite *handleGetOperationMembersByOperationSuite) TestNotAuthenticated() {
+	suite.tokenOK.IsAuthenticated = false
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL: fmt.Sprintf("/%s/members?%s", suite.sampleOperationID.String(),
+			pagination.ParamsToQueryString(suite.samplePaginationParams)),
+		Token: suite.tokenOK,
+	})
+	suite.Equal(http.StatusUnauthorized, rr.Code, "should return correct code")
+}
+
+func (suite *handleGetOperationMembersByOperationSuite) TestMissingPermission() {
+	suite.tokenOK.Permissions = []permission.Permission{}
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL: fmt.Sprintf("/%s/members?%s", suite.sampleOperationID.String(),
+			pagination.ParamsToQueryString(suite.samplePaginationParams)),
+		Token: suite.tokenOK,
+	})
+	suite.Equal(http.StatusForbidden, rr.Code, "should return correct code")
+}
+
+func (suite *handleGetOperationMembersByOperationSuite) TestInvalidPaginationParams() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    fmt.Sprintf("/%s/members?%s=abc", suite.sampleOperationID.String(), pagination.LimitQueryParam),
+		Token:  suite.tokenOK,
+	})
+	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
+}
+
+func (suite *handleGetOperationMembersByOperationSuite) TestStoreRetrievalFail() {
+	suite.s.On("OperationMembersByOperation", mock.Anything, suite.sampleOperationID, suite.samplePaginationParams).
+		Return(pagination.Paginated[store.User]{}, errors.New("sad life"))
+	defer suite.s.AssertExpectations(suite.T())
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL: fmt.Sprintf("/%s/members?%s", suite.sampleOperationID.String(),
+			pagination.ParamsToQueryString(suite.samplePaginationParams)),
+		Token: suite.tokenOK,
+	})
+	suite.Equal(http.StatusInternalServerError, rr.Code, "should return correct code")
+}
+
+func (suite *handleGetOperationMembersByOperationSuite) TestOK() {
+	suite.s.On("OperationMembersByOperation", mock.Anything, suite.sampleOperationID, suite.samplePaginationParams).
+		Return(suite.sampleMembers, nil)
+	defer suite.s.AssertExpectations(suite.T())
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL: fmt.Sprintf("/%s/members?%s", suite.sampleOperationID.String(),
+			pagination.ParamsToQueryString(suite.samplePaginationParams)),
+		Token: suite.tokenOK,
+	})
+	suite.Require().Equal(http.StatusOK, rr.Code, "should return correct code")
+	var got pagination.Paginated[publicUser]
+	suite.Require().NoError(json.NewDecoder(rr.Body).Decode(&got), "should return valid body")
+	suite.Equal(suite.samplePublicMembers, got, "should return correct body")
+}
+
+func Test_handleGetOperationMembersByOperation(t *testing.T) {
+	suite.Run(t, new(handleGetOperationMembersByOperationSuite))
+}
+
+// handleUpdateOperationMembersByOperationSuite tests
+// handleUpdateOperationMembersByOperation.
+type handleUpdateOperationMembersByOperationSuite struct {
+	suite.Suite
+	s                 *StoreMock
+	r                 *gin.Engine
+	sampleOperationID uuid.UUID
+	sampleMembers     []uuid.UUID
+	tokenOK           auth.Token
+}
+
+func (suite *handleUpdateOperationMembersByOperationSuite) SetupTest() {
+	suite.s = &StoreMock{}
+	suite.r = testutil.NewGinEngine()
+	populateRoutes(suite.r, zap.NewNop(), "", suite.s)
+	suite.sampleOperationID = testutil.NewUUIDV4()
+	suite.sampleMembers = make([]uuid.UUID, 16)
+	for i := range suite.sampleMembers {
+		suite.sampleMembers[i] = testutil.NewUUIDV4()
+	}
+	suite.tokenOK = auth.Token{
+		UserID:          testutil.NewUUIDV4(),
+		Username:        "great",
+		IsAuthenticated: true,
+		IsAdmin:         false,
+		Permissions:     []permission.Permission{{Name: permission.UpdateOperationMembersPermissionName}},
+	}
+}
+
+func (suite *handleUpdateOperationMembersByOperationSuite) TestSecretMismatch() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPut,
+		URL:    fmt.Sprintf("/%s/members", suite.sampleOperationID.String()),
+		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.sampleMembers)),
+		Token:  suite.tokenOK,
+		Secret: "meow",
+	})
+	suite.Equal(http.StatusInternalServerError, rr.Code, "should return correct code")
+}
+
+func (suite *handleUpdateOperationMembersByOperationSuite) TestNotAuthenticated() {
+	suite.tokenOK.IsAuthenticated = false
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPut,
+		URL:    fmt.Sprintf("/%s/members", suite.sampleOperationID.String()),
+		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.sampleMembers)),
+		Token:  suite.tokenOK,
+		Secret: "",
+	})
+	suite.Equal(http.StatusUnauthorized, rr.Code, "should return correct code")
+}
+
+func (suite *handleUpdateOperationMembersByOperationSuite) TestMissingPermission() {
+	suite.tokenOK.Permissions = []permission.Permission{}
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPut,
+		URL:    fmt.Sprintf("/%s/members", suite.sampleOperationID.String()),
+		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.sampleMembers)),
+		Token:  suite.tokenOK,
+		Secret: "",
+	})
+	suite.Equal(http.StatusForbidden, rr.Code, "should return correct code")
+}
+
+func (suite *handleUpdateOperationMembersByOperationSuite) TestInvalidBody() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPut,
+		URL:    fmt.Sprintf("/%s/members", suite.sampleOperationID.String()),
+		Body:   strings.NewReader("{invalid"),
+		Token:  suite.tokenOK,
+		Secret: "",
+	})
+	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
+}
+
+func (suite *handleUpdateOperationMembersByOperationSuite) TestUpdateFail() {
+	suite.s.On("UpdateOperationMembersByOperation", mock.Anything, suite.sampleOperationID, suite.sampleMembers).
+		Return(errors.New("sad life"))
+	defer suite.s.AssertExpectations(suite.T())
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPut,
+		URL:    fmt.Sprintf("/%s/members", suite.sampleOperationID.String()),
+		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.sampleMembers)),
+		Token:  suite.tokenOK,
+		Secret: "",
+	})
+	suite.Equal(http.StatusInternalServerError, rr.Code, "should return correct code")
+}
+
+func (suite *handleUpdateOperationMembersByOperationSuite) TestOK() {
+	suite.s.On("UpdateOperationMembersByOperation", mock.Anything, suite.sampleOperationID, suite.sampleMembers).
+		Return(nil)
+	defer suite.s.AssertExpectations(suite.T())
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPut,
+		URL:    fmt.Sprintf("/%s/members", suite.sampleOperationID.String()),
+		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.sampleMembers)),
+		Token:  suite.tokenOK,
+		Secret: "",
+	})
+	suite.Equal(http.StatusOK, rr.Code, "should return correct code")
+}
+
+func Test_handleUpdateOperationMembersByOperation(t *testing.T) {
+	suite.Run(t, new(handleUpdateOperationMembersByOperationSuite))
+}

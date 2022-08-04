@@ -13,6 +13,7 @@ Welcome to MDS Server's documentation!
     sites/permissions
     sites/operations
     sites/groups
+    sites/address-book
     sites/development
 
 

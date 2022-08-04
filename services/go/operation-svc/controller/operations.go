@@ -57,7 +57,11 @@ func (c *Controller) CreateOperation(ctx context.Context, operation store.Operat
 		// Notify.
 		err = c.Notifier.NotifyOperationCreated(created)
 		if err != nil {
-			return meh.Wrap(err, "notify", meh.Details{"created": created})
+			return meh.Wrap(err, "notify operation updated", meh.Details{"created": created})
+		}
+		err = c.Notifier.NotifyOperationMembersUpdated(created.ID, []uuid.UUID{})
+		if err != nil {
+			return meh.Wrap(err, "ntoify operation members updated", meh.Details{"created_id": created.ID})
 		}
 		return nil
 	})

@@ -41,3 +41,31 @@ func UpdateOperation() Matcher {
 		},
 	}
 }
+
+// ViewOperationMembersPermissionName for ViewOperationMembers.
+const ViewOperationMembersPermissionName Name = "operation.members.view"
+
+// ViewOperationMembers allows retrieving members for an operation.
+func ViewOperationMembers() Matcher {
+	return Matcher{
+		Name: "view-operation-members",
+		MatchFn: func(granted map[Name]Permission) (bool, error) {
+			_, ok := granted[ViewOperationMembersPermissionName]
+			return ok, nil
+		},
+	}
+}
+
+// UpdateOperationMembersPermissionName for UpdateOperationMembers.
+const UpdateOperationMembersPermissionName Name = "operation.members.update"
+
+// UpdateOperationMembers allows setting members for an operation.
+func UpdateOperationMembers() Matcher {
+	return Matcher{
+		Name: "update-operation-members",
+		MatchFn: func(granted map[Name]Permission) (bool, error) {
+			_, ok := granted[UpdateOperationMembersPermissionName]
+			return ok, nil
+		},
+	}
+}

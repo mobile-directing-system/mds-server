@@ -37,6 +37,7 @@ extensions = [
 extlinks = {
     "docker-homepage": ("https://www.docker.com/", "Docker"),
     "docker-install": ("https://docs.docker.com/get-docker/", "Install Docker"),
+    "e-164": ("https://en.wikipedia.org/wiki/E.164", "E.164"),
     "fluent-bit-homepage": ("https://fluentbit.io/", "Fluent Bit"),
     "git-homepage": ("https://git-scm.com/", "Git"),
     "github-repo": ("https://github.com/mobile-directing-system/mds-server", "GitHub Repository"),

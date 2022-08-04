@@ -2,6 +2,7 @@ package controller
 
 import (
 	"errors"
+	"github.com/gofrs/uuid"
 	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/operation-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
@@ -215,13 +216,35 @@ func (suite *ControllerCreateOperationSuite) TestStoreCreateFail() {
 	wait()
 }
 
-func (suite *ControllerCreateOperationSuite) TestNotifyFail() {
+func (suite *ControllerCreateOperationSuite) TestNotifyOperationUpdatedFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
 	suite.ctrl.Store.On("CreateOperation", timeout, suite.ctrl.DB.Tx[0], suite.create).
 		Return(suite.create, nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 	suite.ctrl.Notifier.On("NotifyOperationCreated", suite.create).
+		Return(errors.New("sad life"))
+	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		_, err := suite.ctrl.Ctrl.CreateOperation(timeout, suite.create)
+		suite.Error(err, "should fail")
+		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerCreateOperationSuite) TestNotifyOperationMembersUpdatedFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
+	suite.ctrl.Store.On("CreateOperation", timeout, suite.ctrl.DB.Tx[0], suite.create).
+		Return(suite.create, nil)
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+	suite.ctrl.Notifier.On("NotifyOperationCreated", suite.create).
+		Return(nil)
+	suite.ctrl.Notifier.On("NotifyOperationMembersUpdated", suite.create.ID, []uuid.UUID{}).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
@@ -242,6 +265,8 @@ func (suite *ControllerCreateOperationSuite) TestOK() {
 		Return(suite.create, nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 	suite.ctrl.Notifier.On("NotifyOperationCreated", suite.create).
+		Return(nil)
+	suite.ctrl.Notifier.On("NotifyOperationMembersUpdated", suite.create.ID, []uuid.UUID{}).
 		Return(nil)
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 

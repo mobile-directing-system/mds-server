@@ -8,6 +8,13 @@ create table operations
     id uuid primary key not null
 );
 
+create table operation_members
+(
+    operation uuid not null references operations (id)
+        on delete cascade on update restrict,
+    "user"    uuid not null
+);
+
 -- Create users table.
 
 create table users

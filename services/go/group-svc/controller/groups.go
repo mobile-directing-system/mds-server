@@ -14,8 +14,19 @@ import (
 func (c *Controller) CreateGroup(ctx context.Context, group store.Group) (store.Group, error) {
 	var created store.Group
 	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
-		// Create in store.
 		var err error
+		// If group is assigned to operation, assure that all members are also part of
+		// the operation.
+		if group.Operation.Valid {
+			err = c.assureUsersMemberOfOperation(ctx, tx, group.Operation.UUID, group.Members)
+			if err != nil {
+				return meh.Wrap(err, "assure group members also member of operation", meh.Details{
+					"operation_id":  group.Operation.UUID,
+					"group_members": group.Members,
+				})
+			}
+		}
+		// Create in store.
 		created, err = c.Store.CreateGroup(ctx, tx, group)
 		if err != nil {
 			return meh.Wrap(err, "create group in store", meh.Details{"group": group})
@@ -33,11 +44,47 @@ func (c *Controller) CreateGroup(ctx context.Context, group store.Group) (store.
 	return created, nil
 }
 
+// assureUsersMemberOfOperation assures that the given users are part of the
+// operation with the given id. If not, an meh.ErrBadInput error will be
+// returned.
+func (c *Controller) assureUsersMemberOfOperation(ctx context.Context, tx pgx.Tx, operationID uuid.UUID, users []uuid.UUID) error {
+	operationMembers, err := c.Store.OperationMembersByOperation(ctx, tx, operationID)
+	if err != nil {
+		return meh.Wrap(err, "operation members from store",
+			meh.Details{"operation_id": operationID})
+	}
+	operationMembersMap := make(map[uuid.UUID]struct{})
+	for _, operationMember := range operationMembers {
+		operationMembersMap[operationMember] = struct{}{}
+	}
+	for _, user := range users {
+		if _, ok := operationMembersMap[user]; !ok {
+			return meh.NewBadInputErr("user not part of operation", meh.Details{
+				"operation_id": operationID,
+				"member":       user,
+			})
+		}
+	}
+	return nil
+}
+
 // UpdateGroup updates the given store.Group, identifed by its id, and notifies.
 func (c *Controller) UpdateGroup(ctx context.Context, group store.Group) error {
 	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
+		var err error
+		// If group is assigned to operation, assure that all members are also part of
+		// the operation.
+		if group.Operation.Valid {
+			err = c.assureUsersMemberOfOperation(ctx, tx, group.Operation.UUID, group.Members)
+			if err != nil {
+				return meh.Wrap(err, "assure group members also member of operation", meh.Details{
+					"operation_id":  group.Operation.UUID,
+					"group_members": group.Members,
+				})
+			}
+		}
 		// Update in store.
-		err := c.Store.UpdateGroup(ctx, tx, group)
+		err = c.Store.UpdateGroup(ctx, tx, group)
 		if err != nil {
 			return meh.Wrap(err, "update group in store", meh.Details{"group": group})
 		}
@@ -93,7 +140,8 @@ func (c *Controller) GroupByID(ctx context.Context, groupID uuid.UUID) (store.Gr
 }
 
 // Groups retrieves a paginated store.Group list.
-func (c *Controller) Groups(ctx context.Context, filters store.GroupFilters, params pagination.Params) (pagination.Paginated[store.Group], error) {
+func (c *Controller) Groups(ctx context.Context, filters store.GroupFilters,
+	params pagination.Params) (pagination.Paginated[store.Group], error) {
 	var groups pagination.Paginated[store.Group]
 	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
 		var err error
