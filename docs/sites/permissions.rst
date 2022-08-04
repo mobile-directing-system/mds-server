@@ -80,6 +80,49 @@ Allows retrieving permissions of users.
 
 Options: `none`
 
+Address book
+------------
+
+.. _permission.logistics.address-book.entry.create.any:
+
+logistics.address-book.entry.create.any
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Allows creating address book entries, that can also be global or associated to foreign users.
+This also includes associating entries with operations, the target user or the requesting client is not part of.
+
+Options: `none`
+
+.. _permission.logistics.address-book.entry.update.any:
+
+logistics.address-book.entry.update.any
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Allows updating address book entries, that can also be global or associated to foreign users.
+This also includes associating entries with operations, the target user or the requesting client is not part of.
+
+Options: `none`
+
+.. _permission.logistics.address-book.entry.delete.any:
+
+logistics.address-book.entry.delete.any
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Allows deletion of address book entries, that can also be global or associated to foreign users.
+This also includes associating entries with operations, the requesting client is not part of.
+
+Options: `none`
+
+.. _permission.logistics.address-book.entry.view.any:
+
+logistics.address-book.entry.view.any
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Allows retrieval of all address book entries, including that can also be global or associated to foreign users.
+This also includes associating entries with operations, the requesting client is not part of.
+
+Options: `none`
+
 Groups
 ------
 

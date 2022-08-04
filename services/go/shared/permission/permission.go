@@ -12,5 +12,3 @@ type Permission struct {
 	// Options contains additional options for the permission.
 	Options nulls.JSONRawMessage `json:"options,omitempty"`
 }
-
-// TODO: VALIDATION
