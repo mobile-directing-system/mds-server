@@ -67,3 +67,8 @@ Paginated responses will look like the following:
         - Amount of entries in the ``entries``-field.
     *   - ``entries``
         - The actual entries. Structure depends on the retrieved data.
+
+Misc
+====
+
+- Durations are always represented in nanoseconds.

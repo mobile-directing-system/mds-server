@@ -3,7 +3,7 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Development" href="development.html" /><link rel="prev" title="Operations" href="operations.html" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Address Book" href="address-book.html" /><link rel="prev" title="Operations" href="operations.html" />
 
     <meta name="generator" content="sphinx-4.5.0, furo 2022.06.21"/>
         <title>Groups - MDS Server documentation</title>
@@ -162,6 +162,7 @@
 <li class="toctree-l1"><a class="reference internal" href="permissions.html">Permissions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="operations.html">Operations</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Groups</a></li>
+<li class="toctree-l1"><a class="reference internal" href="address-book.html">Address Book</a></li>
 <li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
 </ul>
 
@@ -200,7 +201,8 @@
 <h1>Groups<a class="headerlink" href="#groups" title="Permalink to this headline">#</a></h1>
 <p>Groups are used for grouping users globally but also for operations.
 These groups can be used in the adress book.</p>
-<p>A valid group must have an non-empty title.</p>
+<p>A valid group must have an non-empty title.
+If a group is assigned to an operation, all group members must also be member of the operation.</p>
 <section id="create-group">
 <h2>Create group<a class="headerlink" href="#create-group" title="Permalink to this headline">#</a></h2>
 <p>In order to create a group, the <a class="reference internal" href="permissions.html#permission-group-create"><span class="std std-ref">group.create</span></a> permission is needed.
@@ -311,12 +313,12 @@ A single group can be retrieved using:</p>
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="development.html">
+          <a class="next-page" href="address-book.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Development</div>
+                <div class="title">Address Book</div>
               </div>
               <svg><use href="#svg-arrow-right"></use></svg>
             </a>

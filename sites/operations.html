@@ -162,6 +162,7 @@
 <li class="toctree-l1"><a class="reference internal" href="permissions.html">Permissions</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Operations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="groups.html">Groups</a></li>
+<li class="toctree-l1"><a class="reference internal" href="address-book.html">Address Book</a></li>
 <li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
 </ul>
 
@@ -283,6 +284,38 @@ If provided, updating is done via:</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">is_archived</span></code></p></li>
 </ul>
 </section>
+<section id="update-operation-members">
+<h2>Update operation members<a class="headerlink" href="#update-operation-members" title="Permalink to this headline">#</a></h2>
+<p>Updating operation members requires the <a class="reference internal" href="permissions.html#permission-operation-members-update"><span class="std std-ref">operation.members.update</span></a> permission:</p>
+<p><cite>PUT /operations/&lt;operation_id&gt;/members</cite></p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="w"></span>
+<span class="w">    </span><span class="s2">&quot;&lt;user_id_1&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="s2">&quot;&lt;user_id_2&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="s2">&quot;&lt;user_id_n&gt;&quot;</span><span class="w"></span>
+<span class="p">]</span><span class="w"></span>
+</pre></div>
+</div>
+</section>
+<section id="retrieve-operation-members">
+<h2>Retrieve operation members<a class="headerlink" href="#retrieve-operation-members" title="Permalink to this headline">#</a></h2>
+<p>Retrieving a <a class="reference internal" href="general-http-api.html#http-api-pagination"><span class="std std-ref">paginated</span></a> member list requires the <a class="reference internal" href="permissions.html#permission-operation-members-view"><span class="std std-ref">operation.members.view</span></a> permission and is done via:</p>
+<p><cite>GET /operations/&lt;operation_id&gt;/members</cite></p>
+<p>Entry payload:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;user_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;username&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;first_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;first_name&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;last_name&gt;&quot;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+<p>The following fields can be used for ordering:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">username</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">first_name</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">last_name</span></code></p></li>
+</ul>
+</section>
 </section>
 
         </article>
@@ -346,6 +379,8 @@ If provided, updating is done via:</p>
 <li><a class="reference internal" href="#create-operation">Create operation</a></li>
 <li><a class="reference internal" href="#update-operation">Update operation</a></li>
 <li><a class="reference internal" href="#retrieve-operations">Retrieve operations</a></li>
+<li><a class="reference internal" href="#update-operation-members">Update operation members</a></li>
+<li><a class="reference internal" href="#retrieve-operation-members">Retrieve operation members</a></li>
 </ul>
 </li>
 </ul>

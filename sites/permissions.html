@@ -162,6 +162,7 @@
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Permissions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="operations.html">Operations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="groups.html">Groups</a></li>
+<li class="toctree-l1"><a class="reference internal" href="address-book.html">Address Book</a></li>
 <li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
 </ul>
 
@@ -257,6 +258,33 @@ Retrieval is done via:</p>
 <p>Options: <cite>none</cite></p>
 </section>
 </section>
+<section id="address-book">
+<h3>Address book<a class="headerlink" href="#address-book" title="Permalink to this headline">#</a></h3>
+<section id="logistics-address-book-entry-create-any">
+<span id="permission-logistics-address-book-entry-create-any"></span><h4>logistics.address-book.entry.create.any<a class="headerlink" href="#logistics-address-book-entry-create-any" title="Permalink to this headline">#</a></h4>
+<p>Allows creating address book entries, that can also be global or associated to foreign users.
+This also includes associating entries with operations, the target user or the requesting client is not part of.</p>
+<p>Options: <cite>none</cite></p>
+</section>
+<section id="logistics-address-book-entry-update-any">
+<span id="permission-logistics-address-book-entry-update-any"></span><h4>logistics.address-book.entry.update.any<a class="headerlink" href="#logistics-address-book-entry-update-any" title="Permalink to this headline">#</a></h4>
+<p>Allows updating address book entries, that can also be global or associated to foreign users.
+This also includes associating entries with operations, the target user or the requesting client is not part of.</p>
+<p>Options: <cite>none</cite></p>
+</section>
+<section id="logistics-address-book-entry-delete-any">
+<span id="permission-logistics-address-book-entry-delete-any"></span><h4>logistics.address-book.entry.delete.any<a class="headerlink" href="#logistics-address-book-entry-delete-any" title="Permalink to this headline">#</a></h4>
+<p>Allows deletion of address book entries, that can also be global or associated to foreign users.
+This also includes associating entries with operations, the requesting client is not part of.</p>
+<p>Options: <cite>none</cite></p>
+</section>
+<section id="logistics-address-book-entry-view-any">
+<span id="permission-logistics-address-book-entry-view-any"></span><h4>logistics.address-book.entry.view.any<a class="headerlink" href="#logistics-address-book-entry-view-any" title="Permalink to this headline">#</a></h4>
+<p>Allows retrieval of all address book entries, including that can also be global or associated to foreign users.
+This also includes associating entries with operations, the requesting client is not part of.</p>
+<p>Options: <cite>none</cite></p>
+</section>
+</section>
 <section id="groups">
 <h3>Groups<a class="headerlink" href="#groups" title="Permalink to this headline">#</a></h3>
 <section id="group-create">
@@ -293,6 +321,14 @@ Retrieval is done via:</p>
 <section id="operation-update">
 <span id="permission-operation-update"></span><h4>operation.update<a class="headerlink" href="#operation-update" title="Permalink to this headline">#</a></h4>
 <p>Allows updating of operations. This also includes marking them as finished or archived.</p>
+</section>
+<section id="operation-members-view">
+<span id="permission-operation-members-view"></span><h4>operation.members.view<a class="headerlink" href="#operation-members-view" title="Permalink to this headline">#</a></h4>
+<p>Allows retrieving members for operations.</p>
+</section>
+<section id="operation-members-update">
+<span id="permission-operation-members-update"></span><h4>operation.members.update<a class="headerlink" href="#operation-members-update" title="Permalink to this headline">#</a></h4>
+<p>Allows (un)assigning members to operations.</p>
 </section>
 </section>
 <section id="users">
@@ -397,6 +433,13 @@ Retrieval is done via:</p>
 <li><a class="reference internal" href="#permissions-view">permissions.view</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#address-book">Address book</a><ul>
+<li><a class="reference internal" href="#logistics-address-book-entry-create-any">logistics.address-book.entry.create.any</a></li>
+<li><a class="reference internal" href="#logistics-address-book-entry-update-any">logistics.address-book.entry.update.any</a></li>
+<li><a class="reference internal" href="#logistics-address-book-entry-delete-any">logistics.address-book.entry.delete.any</a></li>
+<li><a class="reference internal" href="#logistics-address-book-entry-view-any">logistics.address-book.entry.view.any</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#groups">Groups</a><ul>
 <li><a class="reference internal" href="#group-create">group.create</a></li>
 <li><a class="reference internal" href="#group-update">group.update</a></li>
@@ -408,6 +451,8 @@ Retrieval is done via:</p>
 <li><a class="reference internal" href="#operation-view-any">operation.view.any</a></li>
 <li><a class="reference internal" href="#operation-create">operation.create</a></li>
 <li><a class="reference internal" href="#operation-update">operation.update</a></li>
+<li><a class="reference internal" href="#operation-members-view">operation.members.view</a></li>
+<li><a class="reference internal" href="#operation-members-update">operation.members.update</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#users">Users</a><ul>
