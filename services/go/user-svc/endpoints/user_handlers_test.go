@@ -12,6 +12,7 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/shared/httpendpoints"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/permission"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/search"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
 	"github.com/mobile-directing-system/mds-server/services/go/user-svc/store"
 	"github.com/stretchr/testify/mock"
@@ -20,6 +21,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
 
 // handleCreateUserStoreMock mocks handleCreateUserStore.
@@ -1095,4 +1097,258 @@ func (suite *handleGetUsersSuite) TestOK() {
 
 func Test_handleGetUsers(t *testing.T) {
 	suite.Run(t, new(handleGetUsersSuite))
+}
+
+// handleSearchUsersStoreMock mocks handleSearchUsersStore.
+type handleSearchUsersStoreMock struct {
+	mock.Mock
+}
+
+func (m *handleSearchUsersStoreMock) SearchUsers(ctx context.Context, searchParams search.Params) (search.Result[store.User], error) {
+	args := m.Called(ctx, searchParams)
+	return args.Get(0).(search.Result[store.User]), args.Error(1)
+}
+
+// handleSearchUsersSuite tests handleSearchUsers.
+type handleSearchUsersSuite struct {
+	suite.Suite
+	s                  *handleSearchUsersStoreMock
+	r                  *gin.Engine
+	tokenOK            auth.Token
+	sampleResult       search.Result[store.User]
+	samplePublicResult search.Result[getUsersResponseUser]
+	sampleParams       search.Params
+}
+
+func (suite *handleSearchUsersSuite) SetupTest() {
+	suite.s = &handleSearchUsersStoreMock{}
+	suite.r = testutil.NewGinEngine()
+	suite.r.GET("/search", httpendpoints.GinHandlerFunc(zap.NewNop(), "", handleSearchUsers(suite.s)))
+	suite.tokenOK = auth.Token{
+		UserID:          testutil.NewUUIDV4(),
+		Username:        "fame",
+		IsAuthenticated: true,
+		IsAdmin:         false,
+		Permissions:     []permission.Permission{{Name: permission.ViewUserPermissionName}},
+		RandomSalt:      nil,
+	}
+	suite.sampleResult = search.Result[store.User]{
+		Hits: []store.User{
+			{
+				ID:        testutil.NewUUIDV4(),
+				Username:  "hook",
+				FirstName: "build",
+				LastName:  "canal",
+				IsAdmin:   true,
+			},
+			{
+				ID:        testutil.NewUUIDV4(),
+				Username:  "field",
+				FirstName: "burn",
+				LastName:  "paw",
+				IsAdmin:   false,
+			},
+		},
+		EstimatedTotalHits: 43,
+		Offset:             278,
+		Limit:              362,
+		ProcessingTime:     388 * time.Millisecond,
+		Query:              "over",
+	}
+	suite.samplePublicResult = search.ResultFromResult(suite.sampleResult, []getUsersResponseUser{
+		{
+			ID:        suite.sampleResult.Hits[0].ID,
+			Username:  suite.sampleResult.Hits[0].Username,
+			FirstName: suite.sampleResult.Hits[0].FirstName,
+			LastName:  suite.sampleResult.Hits[0].LastName,
+			IsAdmin:   suite.sampleResult.Hits[0].IsAdmin,
+		},
+		{
+			ID:        suite.sampleResult.Hits[1].ID,
+			Username:  suite.sampleResult.Hits[1].Username,
+			FirstName: suite.sampleResult.Hits[1].FirstName,
+			LastName:  suite.sampleResult.Hits[1].LastName,
+			IsAdmin:   suite.sampleResult.Hits[1].IsAdmin,
+		},
+	})
+	suite.sampleParams = search.Params{
+		Query:  "needle",
+		Offset: 819,
+		Limit:  7,
+	}
+}
+
+func (suite *handleSearchUsersSuite) TestSecretMismatch() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    fmt.Sprintf("/search?%s", search.ParamsToQueryString(suite.sampleParams)),
+		Token:  suite.tokenOK,
+		Secret: "meow",
+	})
+	suite.Equal(http.StatusInternalServerError, rr.Code, "should return correct code")
+}
+
+func (suite *handleSearchUsersSuite) TestNotAuthenticated() {
+	suite.tokenOK.IsAuthenticated = false
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    fmt.Sprintf("/search?%s", search.ParamsToQueryString(suite.sampleParams)),
+		Token:  suite.tokenOK,
+	})
+
+	suite.Equal(http.StatusUnauthorized, rr.Code, "should return correct code")
+}
+
+func (suite *handleSearchUsersSuite) TestMissingPermission() {
+	suite.tokenOK.Permissions = []permission.Permission{}
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    fmt.Sprintf("/search?%s", search.ParamsToQueryString(suite.sampleParams)),
+		Token:  suite.tokenOK,
+	})
+
+	suite.Equal(http.StatusForbidden, rr.Code, "should return correct code")
+}
+
+func (suite *handleSearchUsersSuite) TestInvalidSearchParams() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    fmt.Sprintf("/search?%s=abc", search.QueryParamOffset),
+		Token:  suite.tokenOK,
+	})
+	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
+}
+
+func (suite *handleSearchUsersSuite) TestStoreRetrievalFail() {
+	suite.s.On("SearchUsers", mock.Anything, suite.sampleParams).
+		Return(search.Result[store.User]{}, errors.New("sad life"))
+	defer suite.s.AssertExpectations(suite.T())
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    fmt.Sprintf("/search?%s", search.ParamsToQueryString(suite.sampleParams)),
+		Token:  suite.tokenOK,
+	})
+
+	suite.Equal(http.StatusInternalServerError, rr.Code, "should return correct code")
+}
+
+func (suite *handleSearchUsersSuite) TestOK() {
+	suite.s.On("SearchUsers", mock.Anything, suite.sampleParams).
+		Return(suite.sampleResult, nil)
+	defer suite.s.AssertExpectations(suite.T())
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    fmt.Sprintf("/search?%s", search.ParamsToQueryString(suite.sampleParams)),
+		Token:  suite.tokenOK,
+	})
+
+	suite.Require().Equal(http.StatusOK, rr.Code, "should return correct code")
+	var got search.Result[getUsersResponseUser]
+	suite.Require().NoError(json.NewDecoder(rr.Body).Decode(&got), "should return valid body")
+	suite.Equal(suite.samplePublicResult, got, "should return correct body")
+}
+
+func Test_handleSearchUsers(t *testing.T) {
+	suite.Run(t, new(handleSearchUsersSuite))
+}
+
+// handleRebuildUserSearchStoreMocks mocks handleRebuildUserSearchStore.
+type handleRebuildUserSearchStoreMock struct {
+	mock.Mock
+}
+
+func (m *handleRebuildUserSearchStoreMock) RebuildUserSearch(ctx context.Context) {
+	m.Called(ctx)
+}
+
+// handleRebuildUserSearchSuite tests handleRebuildUserSearch.
+type handleRebuildUserSearchSuite struct {
+	suite.Suite
+	s       *handleRebuildUserSearchStoreMock
+	r       *gin.Engine
+	tokenOK auth.Token
+}
+
+func (suite *handleRebuildUserSearchSuite) SetupTest() {
+	suite.s = &handleRebuildUserSearchStoreMock{}
+	suite.r = testutil.NewGinEngine()
+	suite.r.POST("/search/rebuild", httpendpoints.GinHandlerFunc(zap.NewNop(), "", handleRebuildUserSearch(suite.s)))
+	suite.tokenOK = auth.Token{
+		UserID:          testutil.NewUUIDV4(),
+		Username:        "organ",
+		IsAuthenticated: true,
+		IsAdmin:         false,
+		Permissions:     []permission.Permission{{Name: permission.RebuildSearchIndexPermissionName}},
+		RandomSalt:      nil,
+	}
+}
+
+func (suite *handleRebuildUserSearchSuite) TestSecretMismatch() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    "/search/rebuild",
+		Token:  suite.tokenOK,
+		Secret: "meow",
+	})
+	suite.Equal(http.StatusInternalServerError, rr.Code, "should return correct code")
+}
+
+func (suite *handleRebuildUserSearchSuite) TestNotAuthenticated() {
+	suite.tokenOK.IsAuthenticated = false
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    "/search/rebuild",
+		Token:  suite.tokenOK,
+	})
+
+	suite.Equal(http.StatusUnauthorized, rr.Code, "should return correct code")
+}
+
+func (suite *handleRebuildUserSearchSuite) TestMissingPermission() {
+	suite.tokenOK.Permissions = []permission.Permission{}
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    "/search/rebuild",
+		Token:  suite.tokenOK,
+	})
+
+	suite.Equal(http.StatusForbidden, rr.Code, "should return correct code")
+}
+
+func (suite *handleRebuildUserSearchSuite) TestOK() {
+	_, cancel, wait := testutil.NewTimeout(suite, timeout)
+	defer cancel()
+	suite.s.On("RebuildUserSearch", mock.Anything).Run(func(_ mock.Arguments) {
+		cancel()
+	}).Once()
+	defer suite.s.AssertExpectations(suite.T())
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    "/search/rebuild",
+		Token:  suite.tokenOK,
+	})
+
+	suite.Equal(http.StatusOK, rr.Code, "should return correct code")
+	wait()
+}
+
+func Test_handleRebuildUserSearch(t *testing.T) {
+	suite.Run(t, new(handleRebuildUserSearchSuite))
 }

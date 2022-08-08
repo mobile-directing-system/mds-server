@@ -11,6 +11,7 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/shared/httpendpoints"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/permission"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/search"
 	"github.com/mobile-directing-system/mds-server/services/go/user-svc/store"
 	"net/http"
 )
@@ -412,6 +413,61 @@ func handleGetUsers(s handleGetUsersStore) httpendpoints.HandlerFunc {
 				IsAdmin:   from.IsAdmin,
 			}
 		}))
+		return nil
+	}
+}
+
+// handleSearchUsersStore are the dependencies needed for handleSearchUsers.
+type handleSearchUsersStore interface {
+	SearchUsers(ctx context.Context, searchParams search.Params) (search.Result[store.User], error)
+}
+
+// handleSearchUsers searches for users.
+func handleSearchUsers(s handleSearchUsersStore) httpendpoints.HandlerFunc {
+	return func(c *gin.Context, token auth.Token) error {
+		// Check permissions.
+		err := auth.AssurePermission(token, permission.ViewUser())
+		if err != nil {
+			return meh.Wrap(err, "check permission", nil)
+		}
+		// Extract search params.
+		searchParams, err := search.ParamsFromRequest(c)
+		if err != nil {
+			return meh.Wrap(err, "search params from request", nil)
+		}
+		// Search.
+		result, err := s.SearchUsers(c.Request.Context(), searchParams)
+		if err != nil {
+			return meh.Wrap(err, "search users", meh.Details{"search_params": searchParams})
+		}
+		c.JSON(http.StatusOK, search.MapResult(result, func(from store.User) getUsersResponseUser {
+			return getUsersResponseUser{
+				ID:        from.ID,
+				Username:  from.Username,
+				FirstName: from.FirstName,
+				LastName:  from.LastName,
+				IsAdmin:   from.IsAdmin,
+			}
+		}))
+		return nil
+	}
+}
+
+// handleRebuildUserSearchStore are the dependencies needed for
+// handleRebuildUserSearch.
+type handleRebuildUserSearchStore interface {
+	RebuildUserSearch(ctx context.Context)
+}
+
+// handleRebuildUserSearch rebuilds the user search.
+func handleRebuildUserSearch(s handleRebuildUserSearchStore) httpendpoints.HandlerFunc {
+	return func(c *gin.Context, token auth.Token) error {
+		err := auth.AssurePermission(token, permission.RebuildSearchIndex())
+		if err != nil {
+			return meh.Wrap(err, "check permissions", nil)
+		}
+		go s.RebuildUserSearch(context.Background())
+		c.Status(http.StatusOK)
 		return nil
 	}
 }

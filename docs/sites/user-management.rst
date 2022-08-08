@@ -131,3 +131,23 @@ The following fields can be used for ordering:
 - ``first_name``
 - ``last_name``
 - ``is_admin``
+
+:ref:`Search <http-api.search>` is available via:
+
+`GET /users/search`
+
+Entry payload:
+
+.. code-block:: json
+
+    {
+        "id": "<assigned_id>",
+        "username": "<username>",
+        "first_name": "Max",
+        "last_name": "Mustermann",
+        "is_admin": false
+    }
+
+The search index can be rebuilt via:
+
+`POST /users/search/rebuild`

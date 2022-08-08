@@ -7,6 +7,7 @@ import (
 	"github.com/lefinal/meh"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pgutil"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/search"
 	"github.com/mobile-directing-system/mds-server/services/go/user-svc/store"
 	"go.uber.org/zap"
 )
@@ -47,6 +48,10 @@ type Store interface {
 	// UpdateUserPassByUserID updates the hashed password of the user with the given
 	// id.
 	UpdateUserPassByUserID(ctx context.Context, tx pgx.Tx, userID uuid.UUID, pass []byte) error
+	// SearchUsers searches for users with the given search.Params.
+	SearchUsers(ctx context.Context, tx pgx.Tx, searchParams search.Params) (search.Result[store.User], error)
+	// RebuildUserSearch rebuilds the user search.
+	RebuildUserSearch(ctx context.Context, tx pgx.Tx) error
 }
 
 // Notifier sends event messages.

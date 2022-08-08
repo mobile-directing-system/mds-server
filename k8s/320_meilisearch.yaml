@@ -1,0 +1,8 @@
+# Service account for Meilisearch, used by all Meilisearch deployments.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: meilisearch
+  labels:
+    app.kubernetes.io/name: meilisearch
+    app.kubernetes.io/instance: meilisearch

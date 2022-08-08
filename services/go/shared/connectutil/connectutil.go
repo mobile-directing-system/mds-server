@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -36,6 +37,10 @@ func AwaitHostReachable(ctx context.Context, host string) error {
 // AssureHostReachable checks if the given host is reachable with a timeout of 3
 // seconds.
 func AssureHostReachable(host string) error {
+	host = strings.TrimPrefix(host, "http://")
+	host = strings.TrimPrefix(host, "https://")
+	host = strings.TrimPrefix(host, "ws://")
+	host = strings.TrimPrefix(host, "wss://")
 	conn, err := net.DialTimeout("tcp", host, 3*time.Second)
 	if err != nil {
 		return meh.Wrap(err, "dial tcp", nil)

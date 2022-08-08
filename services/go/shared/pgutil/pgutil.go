@@ -2,6 +2,10 @@ package pgutil
 
 import (
 	"context"
+	"fmt"
+	"github.com/doug-martin/goqu/v9"
+	"github.com/doug-martin/goqu/v9/exp"
+	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v4"
 	"github.com/lefinal/meh"
 	"github.com/lefinal/meh/mehlog"
@@ -76,4 +80,25 @@ func RunInTx(ctx context.Context, txSupplier DBTxSupplier, fn func(ctx context.C
 		return meh.Wrap(err, "commit tx", details)
 	}
 	return nil
+}
+
+// QueryWithOrdinalityUUID adds sorting for manual ID order to the given goqu.SelectDataset.
+//
+// Based on
+// https://stackoverflow.com/questions/866465/order-by-the-in-value-list.
+func QueryWithOrdinalityUUID(qb *goqu.SelectDataset, idCol exp.IdentifierExpression, ids []uuid.UUID) *goqu.SelectDataset {
+	idsStr := make([]any, 0, len(ids))
+	for _, id := range ids {
+		idsStr = append(idsStr, id.String())
+	}
+	unnestListContent := ""
+	if len(ids) > 0 {
+		unnestListContent = strings.Repeat("?,", len(ids))
+		unnestListContent = unnestListContent[:len(unnestListContent)-1]
+	}
+	joinLiteral := fmt.Sprintf("unnest(ARRAY[%s]::uuid[]) WITH ORDINALITY pgutil_ord_t(%s, ord)",
+		unnestListContent, idCol.GetCol())
+	qb = qb.Join(goqu.L(joinLiteral, idsStr...), goqu.Using(idCol.GetCol())).
+		Order(goqu.I("pgutil_ord_t.ord").Asc())
+	return qb
 }

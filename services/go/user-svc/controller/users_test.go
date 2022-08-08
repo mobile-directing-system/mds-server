@@ -5,10 +5,13 @@ import (
 	"errors"
 	"github.com/gofrs/uuid"
 	"github.com/lefinal/nulls"
+	"github.com/lefinal/zaprec"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/search"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
 	"github.com/mobile-directing-system/mds-server/services/go/user-svc/store"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap/zapcore"
 	"testing"
 )
 
@@ -778,4 +781,157 @@ func (suite *ControllerUsersSuite) TestOK() {
 
 func TestController_Users(t *testing.T) {
 	suite.Run(t, new(ControllerUsersSuite))
+}
+
+// ControllerSearchUsersSuite tests Controller.SearchUsers.
+type ControllerSearchUsersSuite struct {
+	suite.Suite
+	ctrl         *ControllerMock
+	sampleParams search.Params
+	sampleUsers  []store.User
+}
+
+func (suite *ControllerSearchUsersSuite) SetupTest() {
+	suite.ctrl = NewMockController()
+	suite.sampleParams = search.Params{
+		Query:  "freedom",
+		Offset: 734,
+		Limit:  389,
+	}
+	suite.sampleUsers = []store.User{
+		{
+			ID:        testutil.NewUUIDV4(),
+			Username:  "possess",
+			FirstName: "among",
+			LastName:  "center",
+			IsAdmin:   true,
+		},
+		{
+			ID:        testutil.NewUUIDV4(),
+			Username:  "anybody",
+			FirstName: "bitter",
+			LastName:  "law",
+			IsAdmin:   false,
+		},
+	}
+}
+
+func (suite *ControllerSearchUsersSuite) TestTxFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	defer cancel()
+	suite.ctrl.DB.BeginFail = true
+
+	go func() {
+		defer cancel()
+		_, err := suite.ctrl.Ctrl.SearchUsers(timeout, suite.sampleParams)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerSearchUsersSuite) TestStoreSearchFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	defer cancel()
+	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
+	suite.ctrl.Store.On("SearchUsers", timeout, suite.ctrl.DB.Tx[0], suite.sampleParams).
+		Return(search.Result[store.User]{}, errors.New("sad life"))
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		_, err := suite.ctrl.Ctrl.SearchUsers(timeout, suite.sampleParams)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerSearchUsersSuite) TestOK() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	defer cancel()
+	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
+	suite.ctrl.Store.On("SearchUsers", timeout, suite.ctrl.DB.Tx[0], suite.sampleParams).
+		Return(search.Result[store.User]{Hits: suite.sampleUsers}, nil)
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		got, err := suite.ctrl.Ctrl.SearchUsers(timeout, suite.sampleParams)
+		suite.Require().NoError(err, "should not fail")
+		suite.Equal(suite.sampleUsers, got.Hits, "should return correct result")
+	}()
+
+	wait()
+}
+
+func TestController_SearchUsers(t *testing.T) {
+	suite.Run(t, new(ControllerSearchUsersSuite))
+}
+
+// ControllerRebuildUserSearchSuite tests Controller.RebuildUserSearch.
+type ControllerRebuildUserSearchSuite struct {
+	suite.Suite
+	ctrl     *ControllerMock
+	recorder *zaprec.RecordStore
+}
+
+func (suite *ControllerRebuildUserSearchSuite) SetupTest() {
+	suite.ctrl = NewMockController()
+	suite.ctrl.Logger, suite.recorder = zaprec.NewRecorder(zapcore.ErrorLevel)
+	suite.ctrl.Ctrl.Logger = suite.ctrl.Logger
+}
+
+func (suite *ControllerRebuildUserSearchSuite) TestTxFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	defer cancel()
+	suite.ctrl.DB.BeginFail = true
+
+	go func() {
+		defer cancel()
+		suite.ctrl.Ctrl.RebuildUserSearch(timeout)
+		suite.Len(suite.recorder.Records(), 1, "should have logged error")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerRebuildUserSearchSuite) TestStoreRebuildFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	defer cancel()
+	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
+	suite.ctrl.Store.On("RebuildUserSearch", timeout, suite.ctrl.DB.Tx[0]).
+		Return(errors.New("sad life"))
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		suite.ctrl.Ctrl.RebuildUserSearch(timeout)
+		suite.Len(suite.recorder.Records(), 1, "should have logged error")
+		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not have committed tx")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerRebuildUserSearchSuite) TestOK() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	defer cancel()
+	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
+	suite.ctrl.Store.On("RebuildUserSearch", timeout, suite.ctrl.DB.Tx[0]).
+		Return(nil)
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		suite.ctrl.Ctrl.RebuildUserSearch(timeout)
+		suite.Len(suite.recorder.Records(), 0, "should not have logged error")
+		suite.True(suite.ctrl.DB.Tx[0].IsCommitted, "should have committed tx")
+	}()
+
+	wait()
+}
+
+func TestController_RebuildUserSearch(t *testing.T) {
+	suite.Run(t, new(ControllerRebuildUserSearchSuite))
 }

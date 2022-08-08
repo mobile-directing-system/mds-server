@@ -52,6 +52,7 @@ profiles:
           - k8s/210_strimzi.yaml
           - k8s/300_kafka.yaml
           - k8s/310_kafka-topics.yaml
+          - k8s/320_meilisearch.yaml
           - k8s/500_mds-api-gateway-svc.yaml
           - k8s/501_mds-permission-svc.yaml
           - k8s/510_mds-user-svc.yaml
