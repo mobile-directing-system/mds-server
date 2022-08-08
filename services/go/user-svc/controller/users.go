@@ -5,8 +5,10 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v4"
 	"github.com/lefinal/meh"
+	"github.com/lefinal/meh/mehlog"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pgutil"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/search"
 	"github.com/mobile-directing-system/mds-server/services/go/user-svc/store"
 )
 
@@ -159,4 +161,38 @@ func (c *Controller) Users(ctx context.Context, params pagination.Params) (pagin
 		return pagination.Paginated[store.User]{}, meh.Wrap(err, "run in tx", nil)
 	}
 	return users, nil
+}
+
+// SearchUsers searches for users with the given search.Params.
+func (c *Controller) SearchUsers(ctx context.Context, searchParams search.Params) (search.Result[store.User], error) {
+	var result search.Result[store.User]
+	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
+		var err error
+		result, err = c.Store.SearchUsers(ctx, tx, searchParams)
+		if err != nil {
+			return meh.Wrap(err, "search users", meh.Details{"params": searchParams})
+		}
+		return nil
+	})
+	if err != nil {
+		return search.Result[store.User]{}, meh.Wrap(err, "run in tx", nil)
+	}
+	return result, nil
+}
+
+// RebuildUserSearch asynchronously rebuilds the user-search.
+func (c *Controller) RebuildUserSearch(ctx context.Context) {
+	c.Logger.Debug("rebuilding user-search...")
+	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
+		err := c.Store.RebuildUserSearch(ctx, tx)
+		if err != nil {
+			return meh.Wrap(err, "rebuild user search in store", nil)
+		}
+		return nil
+	})
+	if err != nil {
+		mehlog.Log(c.Logger, meh.Wrap(meh.Wrap(err, "run in tx", nil), "rebuild user search", nil))
+		return
+	}
+	c.Logger.Debug("user-search rebuilt")
 }

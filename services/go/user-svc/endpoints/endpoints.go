@@ -24,6 +24,8 @@ func Serve(lifetime context.Context, logger *zap.Logger, addr string, authSecret
 func populateRoutes(r *gin.Engine, logger *zap.Logger, secret string, ctrl *controller.Controller) {
 	r.GET("/", httpendpoints.GinHandlerFunc(logger, secret, handleGetUsers(ctrl)))
 	r.POST("/", httpendpoints.GinHandlerFunc(logger, secret, handleCreateUser(ctrl)))
+	r.GET("/search", httpendpoints.GinHandlerFunc(logger, secret, handleSearchUsers(ctrl)))
+	r.POST("/search/rebuild", httpendpoints.GinHandlerFunc(logger, secret, handleRebuildUserSearch(ctrl)))
 	r.GET("/:userID", httpendpoints.GinHandlerFunc(logger, secret, handleGetUserByID(ctrl)))
 	r.PUT("/:userID", httpendpoints.GinHandlerFunc(logger, secret, handleUpdateUserByID(ctrl)))
 	r.PUT("/:userID/pass", httpendpoints.GinHandlerFunc(logger, secret, handleUpdateUserPassByUserID(ctrl)))

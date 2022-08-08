@@ -5,6 +5,7 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v4"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/search"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
 	"github.com/mobile-directing-system/mds-server/services/go/user-svc/store"
 	"github.com/stretchr/testify/mock"
@@ -73,6 +74,15 @@ func (m *StoreMock) DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.U
 
 func (m *StoreMock) UpdateUserPassByUserID(ctx context.Context, tx pgx.Tx, userID uuid.UUID, pass []byte) error {
 	return m.Called(ctx, tx, userID, pass).Error(0)
+}
+
+func (m *StoreMock) SearchUsers(ctx context.Context, tx pgx.Tx, searchParams search.Params) (search.Result[store.User], error) {
+	args := m.Called(ctx, tx, searchParams)
+	return args.Get(0).(search.Result[store.User]), args.Error(1)
+}
+
+func (m *StoreMock) RebuildUserSearch(ctx context.Context, tx pgx.Tx) error {
+	return m.Called(ctx, tx).Error(0)
 }
 
 // NotifierMock mocks Notifier.
