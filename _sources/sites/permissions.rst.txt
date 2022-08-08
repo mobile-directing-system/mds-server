@@ -256,3 +256,15 @@ user.view
 Allows retrieving information of other users.
 
 Options: `none`
+
+Misc
+----
+
+.. _permission.core.search.rebuild-index:
+
+core.search.rebuild-index
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Allows rebuilding of search indices. Because of taking a long time, this permission is required.
+
+Options: `none`

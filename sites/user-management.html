@@ -302,6 +302,20 @@ A single user can be retrieved using:</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">last_name</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">is_admin</span></code></p></li>
 </ul>
+<p><a class="reference internal" href="general-http-api.html#http-api-search"><span class="std std-ref">Search</span></a> is available via:</p>
+<p><cite>GET /users/search</cite></p>
+<p>Entry payload:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assigned_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;username&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;first_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Max&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mustermann&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;is_admin&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+<p>The search index can be rebuilt via:</p>
+<p><cite>POST /users/search/rebuild</cite></p>
 </section>
 </section>
 
