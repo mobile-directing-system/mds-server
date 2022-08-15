@@ -86,6 +86,9 @@ func (m *Mall) UpdateOperationMembersByOperation(ctx context.Context, tx pgx.Tx,
 		return mehpg.NewQueryDBErr(err, "exec delete-query", deleteQuery)
 	}
 	// Create new members.
+	if len(newMembers) == 0 {
+		return nil
+	}
 	rows := make([]any, 0, len(newMembers))
 	for _, member := range newMembers {
 		rows = append(rows, goqu.Record{
