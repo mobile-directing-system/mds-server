@@ -77,7 +77,7 @@ func (suite *ControllerCreateUserSuite) TestNotifyFail() {
 	created.ID = testutil.NewUUIDV4()
 	suite.ctrl.Store.On("CreateUser", timeout, suite.ctrl.DB.Tx[0], suite.createUser).Return(created.User, nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyUserCreated", created).Return(errors.New("sad life"))
+	suite.ctrl.Notifier.On("NotifyUserCreated", timeout, suite.ctrl.DB.Tx[0], created).Return(errors.New("sad life"))
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
 	go func() {
@@ -99,7 +99,7 @@ func (suite *ControllerCreateUserSuite) TestOK() {
 	created.ID = testutil.NewUUIDV4()
 	suite.ctrl.Store.On("CreateUser", timeout, suite.ctrl.DB.Tx[0], suite.createUser).Return(created.User, nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyUserCreated", created).Return(nil)
+	suite.ctrl.Notifier.On("NotifyUserCreated", timeout, suite.ctrl.DB.Tx[0], created).Return(nil)
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
 	go func() {
@@ -304,7 +304,7 @@ func (suite *ControllerUpdateUserSuite) TestNotifyFail() {
 	suite.ctrl.Store.On("UserByID", timeout, suite.ctrl.DB.Tx[0], suite.updateUser.ID).Return(originalUser, nil)
 	suite.ctrl.Store.On("UpdateUser", timeout, suite.ctrl.DB.Tx[0], suite.updateUser).Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyUserUpdated", suite.updateUser).Return(errors.New("sad life"))
+	suite.ctrl.Notifier.On("NotifyUserUpdated", timeout, suite.ctrl.DB.Tx[0], suite.updateUser).Return(errors.New("sad life"))
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
 	go func() {
@@ -328,7 +328,7 @@ func (suite *ControllerUpdateUserSuite) TestOKSetAdmin() {
 	suite.ctrl.Store.On("UserByID", timeout, suite.ctrl.DB.Tx[0], suite.updateUser.ID).Return(originalUser, nil)
 	suite.ctrl.Store.On("UpdateUser", timeout, suite.ctrl.DB.Tx[0], suite.updateUser).Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyUserUpdated", suite.updateUser).Return(nil)
+	suite.ctrl.Notifier.On("NotifyUserUpdated", timeout, suite.ctrl.DB.Tx[0], suite.updateUser).Return(nil)
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
 	go func() {
@@ -352,7 +352,7 @@ func (suite *ControllerUpdateUserSuite) TestOKSetNonAdmin() {
 	suite.ctrl.Store.On("UserByID", timeout, suite.ctrl.DB.Tx[0], suite.updateUser.ID).Return(originalUser, nil)
 	suite.ctrl.Store.On("UpdateUser", timeout, suite.ctrl.DB.Tx[0], suite.updateUser).Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyUserUpdated", suite.updateUser).Return(nil)
+	suite.ctrl.Notifier.On("NotifyUserUpdated", timeout, suite.ctrl.DB.Tx[0], suite.updateUser).Return(nil)
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
 	go func() {
@@ -375,7 +375,7 @@ func (suite *ControllerUpdateUserSuite) TestOK() {
 	suite.ctrl.Store.On("UserByID", timeout, suite.ctrl.DB.Tx[0], suite.updateUser.ID).Return(originalUser, nil)
 	suite.ctrl.Store.On("UpdateUser", timeout, suite.ctrl.DB.Tx[0], suite.updateUser).Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyUserUpdated", suite.updateUser).Return(nil)
+	suite.ctrl.Notifier.On("NotifyUserUpdated", timeout, suite.ctrl.DB.Tx[0], suite.updateUser).Return(nil)
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
 	go func() {
@@ -448,7 +448,7 @@ func (suite *ControllerUpdateUserPassByUserIDSuite) TestNotifyFail() {
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
 	suite.ctrl.Store.On("UpdateUserPassByUserID", timeout, suite.ctrl.DB.Tx[0], suite.userID, suite.newPass).Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyUserPassUpdated", suite.userID, suite.newPass).Return(errors.New("sad life"))
+	suite.ctrl.Notifier.On("NotifyUserPassUpdated", timeout, suite.ctrl.DB.Tx[0], suite.userID, suite.newPass).Return(errors.New("sad life"))
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
 	go func() {
@@ -468,7 +468,7 @@ func (suite *ControllerUpdateUserPassByUserIDSuite) TestOK() {
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
 	suite.ctrl.Store.On("UpdateUserPassByUserID", timeout, suite.ctrl.DB.Tx[0], suite.userID, suite.newPass).Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyUserPassUpdated", suite.userID, suite.newPass).Return(nil)
+	suite.ctrl.Notifier.On("NotifyUserPassUpdated", timeout, suite.ctrl.DB.Tx[0], suite.userID, suite.newPass).Return(nil)
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
 	go func() {
@@ -583,7 +583,7 @@ func (suite *ControllerDeleteUserByIDSuite) TestNotifyFail() {
 		Return(store.User{ID: suite.userID}, nil)
 	suite.ctrl.Store.On("DeleteUserByID", timeout, suite.ctrl.DB.Tx[0], suite.userID).Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyUserDeleted", suite.userID).Return(errors.New("sad life"))
+	suite.ctrl.Notifier.On("NotifyUserDeleted", timeout, suite.ctrl.DB.Tx[0], suite.userID).Return(errors.New("sad life"))
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
 	go func() {
@@ -605,7 +605,7 @@ func (suite *ControllerDeleteUserByIDSuite) TestOK() {
 		Return(store.User{ID: suite.userID}, nil)
 	suite.ctrl.Store.On("DeleteUserByID", timeout, suite.ctrl.DB.Tx[0], suite.userID).Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyUserDeleted", suite.userID).Return(nil)
+	suite.ctrl.Notifier.On("NotifyUserDeleted", timeout, suite.ctrl.DB.Tx[0], suite.userID).Return(nil)
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
 	go func() {

@@ -6,7 +6,6 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/kafkautil"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
-	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
@@ -18,7 +17,7 @@ type PortNotifyUserLoggedInSuite struct {
 	sampleUserID          uuid.UUID
 	sampleUsername        string
 	sampleRequestMetadata controller.AuthRequestMetadata
-	expectedMessage       kafka.Message
+	expectedMessage       kafkautil.OutboundMessage
 }
 
 func (suite *PortNotifyUserLoggedInSuite) SetupTest() {
@@ -30,8 +29,7 @@ func (suite *PortNotifyUserLoggedInSuite) SetupTest() {
 		UserAgent:  "puzzle",
 		RemoteAddr: "desert",
 	}
-	var err error
-	suite.expectedMessage, err = kafkautil.KafkaMessageFromMessage(kafkautil.Message{
+	suite.expectedMessage = kafkautil.OutboundMessage{
 		Topic:     event.AuthTopic,
 		Key:       suite.sampleUserID.String(),
 		EventType: event.TypeUserLoggedIn,
@@ -42,22 +40,33 @@ func (suite *PortNotifyUserLoggedInSuite) SetupTest() {
 			UserAgent:  suite.sampleRequestMetadata.UserAgent,
 			RemoteAddr: suite.sampleRequestMetadata.RemoteAddr,
 		},
-	})
-	if err != nil {
-		panic(err)
 	}
 }
 
 func (suite *PortNotifyUserLoggedInSuite) TestWriteFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.port.recorder.WriteFail = true
-	err := suite.port.Port.NotifyUserLoggedIn(suite.sampleUserID, suite.sampleUsername, suite.sampleRequestMetadata)
-	suite.Error(err, "should fail")
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyUserLoggedIn(timeout, &testutil.DBTx{}, suite.sampleUserID, suite.sampleUsername, suite.sampleRequestMetadata)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
 }
 
 func (suite *PortNotifyUserLoggedInSuite) TestOK() {
-	err := suite.port.Port.NotifyUserLoggedIn(suite.sampleUserID, suite.sampleUsername, suite.sampleRequestMetadata)
-	suite.Require().NoError(err, "should not fail")
-	suite.Equal([]kafka.Message{suite.expectedMessage}, suite.port.recorder.Recorded, "should have written correct message")
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyUserLoggedIn(timeout, &testutil.DBTx{}, suite.sampleUserID, suite.sampleUsername, suite.sampleRequestMetadata)
+		suite.Require().NoError(err, "should not fail")
+		suite.Equal([]kafkautil.OutboundMessage{suite.expectedMessage}, suite.port.recorder.Recorded, "should have written correct message")
+	}()
+
+	wait()
 }
 
 func TestPort_NotifyUserLoggedIn(t *testing.T) {
@@ -71,7 +80,7 @@ type PortNotifyUserLoggedOutSuite struct {
 	sampleUserID          uuid.UUID
 	sampleUsername        string
 	sampleRequestMetadata controller.AuthRequestMetadata
-	expectedMessage       kafka.Message
+	expectedMessage       kafkautil.OutboundMessage
 }
 
 func (suite *PortNotifyUserLoggedOutSuite) SetupTest() {
@@ -83,8 +92,7 @@ func (suite *PortNotifyUserLoggedOutSuite) SetupTest() {
 		UserAgent:  "parent",
 		RemoteAddr: "against",
 	}
-	var err error
-	suite.expectedMessage, err = kafkautil.KafkaMessageFromMessage(kafkautil.Message{
+	suite.expectedMessage = kafkautil.OutboundMessage{
 		Topic:     event.AuthTopic,
 		Key:       suite.sampleUserID.String(),
 		EventType: event.TypeUserLoggedOut,
@@ -95,22 +103,33 @@ func (suite *PortNotifyUserLoggedOutSuite) SetupTest() {
 			UserAgent:  suite.sampleRequestMetadata.UserAgent,
 			RemoteAddr: suite.sampleRequestMetadata.RemoteAddr,
 		},
-	})
-	if err != nil {
-		panic(err)
 	}
 }
 
 func (suite *PortNotifyUserLoggedOutSuite) TestWriteFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.port.recorder.WriteFail = true
-	err := suite.port.Port.NotifyUserLoggedOut(suite.sampleUserID, suite.sampleUsername, suite.sampleRequestMetadata)
-	suite.Error(err, "should fail")
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyUserLoggedOut(timeout, &testutil.DBTx{}, suite.sampleUserID, suite.sampleUsername, suite.sampleRequestMetadata)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
 }
 
 func (suite *PortNotifyUserLoggedOutSuite) TestOK() {
-	err := suite.port.Port.NotifyUserLoggedOut(suite.sampleUserID, suite.sampleUsername, suite.sampleRequestMetadata)
-	suite.Require().NoError(err, "should not fail")
-	suite.Equal([]kafka.Message{suite.expectedMessage}, suite.port.recorder.Recorded, "should have written correct message")
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyUserLoggedOut(timeout, &testutil.DBTx{}, suite.sampleUserID, suite.sampleUsername, suite.sampleRequestMetadata)
+		suite.Require().NoError(err, "should not fail")
+		suite.Equal([]kafkautil.OutboundMessage{suite.expectedMessage}, suite.port.recorder.Recorded, "should have written correct message")
+	}()
+
+	wait()
 }
 
 func TestPort_NotifyUserLoggedOut(t *testing.T) {

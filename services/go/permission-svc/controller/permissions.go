@@ -49,7 +49,7 @@ func (c *Controller) UpdatePermissionsByUser(ctx context.Context, userID uuid.UU
 			})
 		}
 		// Notify.
-		err = c.Notifier.NotifyPermissionsUpdated(userID, permissions)
+		err = c.Notifier.NotifyPermissionsUpdated(ctx, tx, userID, permissions)
 		if err != nil {
 			return meh.Wrap(err, "notify permissions updated", meh.Details{
 				"user_id":     userID,

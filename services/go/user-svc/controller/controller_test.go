@@ -90,18 +90,18 @@ type NotifierMock struct {
 	mock.Mock
 }
 
-func (m *NotifierMock) NotifyUserCreated(user store.UserWithPass) error {
-	return m.Called(user).Error(0)
+func (m *NotifierMock) NotifyUserCreated(ctx context.Context, tx pgx.Tx, user store.UserWithPass) error {
+	return m.Called(ctx, tx, user).Error(0)
 }
 
-func (m *NotifierMock) NotifyUserUpdated(user store.User) error {
-	return m.Called(user).Error(0)
+func (m *NotifierMock) NotifyUserUpdated(ctx context.Context, tx pgx.Tx, user store.User) error {
+	return m.Called(ctx, tx, user).Error(0)
 }
 
-func (m *NotifierMock) NotifyUserPassUpdated(userID uuid.UUID, newPass []byte) error {
-	return m.Called(userID, newPass).Error(0)
+func (m *NotifierMock) NotifyUserPassUpdated(ctx context.Context, tx pgx.Tx, userID uuid.UUID, newPass []byte) error {
+	return m.Called(ctx, tx, userID, newPass).Error(0)
 }
 
-func (m *NotifierMock) NotifyUserDeleted(userID uuid.UUID) error {
-	return m.Called(userID).Error(0)
+func (m *NotifierMock) NotifyUserDeleted(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error {
+	return m.Called(ctx, tx, userID).Error(0)
 }

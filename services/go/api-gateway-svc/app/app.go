@@ -34,6 +34,8 @@ func init() {
 
 const kafkaGroupID = "mds-api-gateway-svc"
 
+const dbScope = "app"
+
 // Run the gateway.
 func Run(ctx context.Context) error {
 	c, err := parseConfigFromEnv()
@@ -53,7 +55,7 @@ func Run(ctx context.Context) error {
 		return meh.NilOrWrap(err, "serve ready-probe-server", meh.Details{"addr": c.ReadyProbeServeAddr})
 	})
 	// Connect to database.
-	sqlDB, err := pgconnect.ConnectAndRunMigrations(ctx, logger, c.DBConnString, dbMigrations)
+	sqlDB, err := pgconnect.ConnectAndRunMigrations(ctx, logger, c.DBConnString, dbScope, dbMigrations)
 	if err != nil {
 		return meh.Wrap(err, "connect db and run migrations", meh.Details{"db_conn_string": c.DBConnString})
 	}
@@ -89,8 +91,11 @@ func Run(ctx context.Context) error {
 		return meh.Wrap(err, "await ready", nil)
 	}
 	// Setup Kafka.
-	kafkaWriter := kafkautil.NewWriter(logger.Named("kafka-writer"), c.KafkaAddr)
-	eventPort := eventport.NewPort(kafkaWriter)
+	kafkaConnector, err := kafkautil.InitNewConnector(ctx, logger.Named("kafka-connector"), sqlDB)
+	if err != nil {
+		return meh.Wrap(err, "init new kafka connector", nil)
+	}
+	eventPort := eventport.NewPort(kafkaConnector)
 	// Setup controller.
 	ctrl := &controller.Controller{
 		Logger:                logger.Named("controller"),
@@ -100,14 +105,15 @@ func Run(ctx context.Context) error {
 		DB:                    sqlDB,
 		Notifier:              eventPort,
 	}
-	// Read messages.
+	// Run Kafka connector.
 	eg.Go(func() error {
 		logger := logger.Named("kafka-reader")
 		kafkaReader := kafkautil.NewReader(logger, c.KafkaAddr, kafkaGroupID,
 			[]event.Topic{event.PermissionsTopic, event.UsersTopic})
-		err := kafkautil.Read(egCtx, logger, kafkaReader, eventPort.HandlerFn(ctrl))
+		kafkaWriter := kafkautil.NewWriter(logger.Named("kafka-writer"), c.KafkaAddr)
+		err := kafkautil.RunConnector(ctx, kafkaConnector, sqlDB, kafkaWriter, kafkaReader, eventPort.HandlerFn(ctrl))
 		if err != nil {
-			return meh.Wrap(err, "read kafka messages", nil)
+			return meh.Wrap(err, "run connector", nil)
 		}
 		return nil
 	})

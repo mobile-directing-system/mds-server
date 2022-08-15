@@ -31,19 +31,6 @@ func (suite *ControllerCreateUserSuite) SetupTest() {
 	}
 }
 
-func (suite *ControllerCreateUserSuite) TestTxFail() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.BeginFail = true
-
-	go func() {
-		defer cancel()
-		err := suite.ctrl.Ctrl.CreateUser(timeout, suite.sampleUser)
-		suite.Error(err, "should fail")
-	}()
-
-	wait()
-}
-
 func (suite *ControllerCreateUserSuite) TestCreateInStoreFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
@@ -53,9 +40,8 @@ func (suite *ControllerCreateUserSuite) TestCreateInStoreFail() {
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.CreateUser(timeout, suite.sampleUser)
+		err := suite.ctrl.Ctrl.CreateUser(timeout, &testutil.DBTx{}, suite.sampleUser)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit")
 	}()
 
 	wait()
@@ -70,9 +56,8 @@ func (suite *ControllerCreateUserSuite) TestOK() {
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.CreateUser(timeout, suite.sampleUser)
+		err := suite.ctrl.Ctrl.CreateUser(timeout, &testutil.DBTx{}, suite.sampleUser)
 		suite.NoError(err, "should not fail")
-		suite.True(suite.ctrl.DB.Tx[0].IsCommitted, "should commit")
 	}()
 
 	wait()
@@ -99,19 +84,6 @@ func (suite *ControllerUpdateUserSuite) SetupTest() {
 	}
 }
 
-func (suite *ControllerUpdateUserSuite) TestTxFail() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.BeginFail = true
-
-	go func() {
-		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.sampleUser)
-		suite.Error(err, "should fail")
-	}()
-
-	wait()
-}
-
 func (suite *ControllerUpdateUserSuite) TestUpdateInStoreFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
@@ -121,9 +93,8 @@ func (suite *ControllerUpdateUserSuite) TestUpdateInStoreFail() {
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.sampleUser)
+		err := suite.ctrl.Ctrl.UpdateUser(timeout, &testutil.DBTx{}, suite.sampleUser)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit")
 	}()
 
 	wait()
@@ -138,9 +109,8 @@ func (suite *ControllerUpdateUserSuite) TestOK() {
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.sampleUser)
+		err := suite.ctrl.Ctrl.UpdateUser(timeout, &testutil.DBTx{}, suite.sampleUser)
 		suite.NoError(err, "should not fail")
-		suite.True(suite.ctrl.DB.Tx[0].IsCommitted, "should commit")
 	}()
 
 	wait()
@@ -193,19 +163,6 @@ func (suite *ControllerDeleteUserByIDSuite) SetupTest() {
 	}
 }
 
-func (suite *ControllerDeleteUserByIDSuite) TestTxFail() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.BeginFail = true
-
-	go func() {
-		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, suite.sampleUserID)
-		suite.Error(err, "should fail")
-	}()
-
-	wait()
-}
-
 func (suite *ControllerDeleteUserByIDSuite) TestRetrieveCurrentOperationsFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
@@ -215,9 +172,8 @@ func (suite *ControllerDeleteUserByIDSuite) TestRetrieveCurrentOperationsFail() 
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, suite.sampleUserID)
+		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, &testutil.DBTx{}, suite.sampleUserID)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit")
 	}()
 
 	wait()
@@ -234,9 +190,8 @@ func (suite *ControllerDeleteUserByIDSuite) TestRetrieveOperationMembersFail() {
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, suite.sampleUserID)
+		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, &testutil.DBTx{}, suite.sampleUserID)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit")
 	}()
 
 	wait()
@@ -255,9 +210,8 @@ func (suite *ControllerDeleteUserByIDSuite) TestUpdateOperationMembersFail() {
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, suite.sampleUserID)
+		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, &testutil.DBTx{}, suite.sampleUserID)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit")
 	}()
 
 	wait()
@@ -278,9 +232,8 @@ func (suite *ControllerDeleteUserByIDSuite) TestDeleteUserFail() {
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, suite.sampleUserID)
+		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, &testutil.DBTx{}, suite.sampleUserID)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit")
 	}()
 
 	wait()
@@ -298,15 +251,14 @@ func (suite *ControllerDeleteUserByIDSuite) TestNotifyUpdatedMembersFail() {
 	suite.ctrl.Store.On("DeleteUserByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleUserID).
 		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyOperationMembersUpdated", mock.Anything, mock.Anything).
+	suite.ctrl.Notifier.On("NotifyOperationMembersUpdated", timeout, suite.ctrl.DB.Tx[0], mock.Anything, mock.Anything).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, suite.sampleUserID)
+		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, &testutil.DBTx{}, suite.sampleUserID)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit")
 	}()
 
 	wait()
@@ -332,7 +284,7 @@ func (suite *ControllerDeleteUserByIDSuite) TestOK() {
 		suite.ctrl.Store.On("UpdateOperationMembersByOperation", timeout, suite.ctrl.DB.Tx[0], operation.ID, newMembers).
 			Return(nil).Once()
 		// Notification.
-		suite.ctrl.Notifier.On("NotifyOperationMembersUpdated", operation.ID, newMembers).
+		suite.ctrl.Notifier.On("NotifyOperationMembersUpdated", timeout, suite.ctrl.DB.Tx[0], operation.ID, newMembers).
 			Return(nil).Once()
 	}
 	suite.ctrl.Store.On("DeleteUserByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleUserID).
@@ -342,9 +294,8 @@ func (suite *ControllerDeleteUserByIDSuite) TestOK() {
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, suite.sampleUserID)
+		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, &testutil.DBTx{}, suite.sampleUserID)
 		suite.NoError(err, "should not fail")
-		suite.True(suite.ctrl.DB.Tx[0].IsCommitted, "should commit")
 	}()
 
 	wait()

@@ -37,31 +37,17 @@ func (suite *ControllerCreateGroupSuite) SetupTest() {
 	}
 }
 
-func (suite *ControllerCreateGroupSuite) TestTxFail() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.BeginFail = true
-
-	go func() {
-		defer cancel()
-		err := suite.ctrl.Ctrl.CreateGroup(timeout, suite.sampleGroup)
-		suite.Error(err, "should fail")
-	}()
-
-	wait()
-}
-
 func (suite *ControllerCreateGroupSuite) TestCreateInStoreFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("CreateGroup", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroup).
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("CreateGroup", timeout, tx, suite.sampleGroup).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.CreateGroup(timeout, suite.sampleGroup)
+		err := suite.ctrl.Ctrl.CreateGroup(timeout, tx, suite.sampleGroup)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
 	}()
 
 	wait()
@@ -69,16 +55,15 @@ func (suite *ControllerCreateGroupSuite) TestCreateInStoreFail() {
 
 func (suite *ControllerCreateGroupSuite) TestOK() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("CreateGroup", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroup).
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("CreateGroup", timeout, tx, suite.sampleGroup).
 		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.CreateGroup(timeout, suite.sampleGroup)
+		err := suite.ctrl.Ctrl.CreateGroup(timeout, tx, suite.sampleGroup)
 		suite.NoError(err, "should not fail")
-		suite.True(suite.ctrl.DB.Tx[0].IsCommitted, "should commit tx")
 	}()
 
 	wait()
@@ -115,31 +100,17 @@ func (suite *ControllerUpdateGroupSuite) SetupTest() {
 	}
 }
 
-func (suite *ControllerUpdateGroupSuite) TestTxFail() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.BeginFail = true
-
-	go func() {
-		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateGroup(timeout, suite.sampleGroup)
-		suite.Error(err, "should fail")
-	}()
-
-	wait()
-}
-
 func (suite *ControllerUpdateGroupSuite) TestUpdateInStoreFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("UpdateGroup", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroup).
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("UpdateGroup", timeout, tx, suite.sampleGroup).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateGroup(timeout, suite.sampleGroup)
+		err := suite.ctrl.Ctrl.UpdateGroup(timeout, tx, suite.sampleGroup)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
 	}()
 
 	wait()
@@ -147,17 +118,16 @@ func (suite *ControllerUpdateGroupSuite) TestUpdateInStoreFail() {
 
 func (suite *ControllerUpdateGroupSuite) TestOK() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("UpdateGroup", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroup).
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("UpdateGroup", timeout, tx, suite.sampleGroup).
 		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateGroup(timeout, suite.sampleGroup)
+		err := suite.ctrl.Ctrl.UpdateGroup(timeout, tx, suite.sampleGroup)
 		suite.NoError(err, "should not fail")
-		suite.True(suite.ctrl.DB.Tx[0].IsCommitted, "should commit tx")
 	}()
 
 	wait()
@@ -185,31 +155,17 @@ func (suite *ControllerDeleteGroupByIDSuite) SetupTest() {
 	}
 }
 
-func (suite *ControllerDeleteGroupByIDSuite) TestTxFail() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.BeginFail = true
-
-	go func() {
-		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteGroupByID(timeout, suite.sampleGroupID)
-		suite.Error(err, "should fail")
-	}()
-
-	wait()
-}
-
 func (suite *ControllerDeleteGroupByIDSuite) TestDeleteForwardToGroupChannelsFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("DeleteForwardToGroupChannelsByGroup", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroupID).
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("DeleteForwardToGroupChannelsByGroup", timeout, tx, suite.sampleGroupID).
 		Return(nil, errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteGroupByID(timeout, suite.sampleGroupID)
+		err := suite.ctrl.Ctrl.DeleteGroupByID(timeout, tx, suite.sampleGroupID)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
 	}()
 
 	wait()
@@ -217,18 +173,17 @@ func (suite *ControllerDeleteGroupByIDSuite) TestDeleteForwardToGroupChannelsFai
 
 func (suite *ControllerDeleteGroupByIDSuite) TestDeleteInStoreFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("DeleteForwardToGroupChannelsByGroup", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroupID).
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("DeleteForwardToGroupChannelsByGroup", timeout, tx, suite.sampleGroupID).
 		Return(suite.sampleAffectedEntries, nil)
-	suite.ctrl.Store.On("DeleteGroupByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroupID).
+	suite.ctrl.Store.On("DeleteGroupByID", timeout, tx, suite.sampleGroupID).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteGroupByID(timeout, suite.sampleGroupID)
+		err := suite.ctrl.Ctrl.DeleteGroupByID(timeout, tx, suite.sampleGroupID)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
 	}()
 
 	wait()
@@ -236,20 +191,19 @@ func (suite *ControllerDeleteGroupByIDSuite) TestDeleteInStoreFail() {
 
 func (suite *ControllerDeleteGroupByIDSuite) TestRetrieveUpdatedChannelsFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("DeleteForwardToGroupChannelsByGroup", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroupID).
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("DeleteForwardToGroupChannelsByGroup", timeout, tx, suite.sampleGroupID).
 		Return(suite.sampleAffectedEntries, nil)
-	suite.ctrl.Store.On("DeleteGroupByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroupID).
+	suite.ctrl.Store.On("DeleteGroupByID", timeout, tx, suite.sampleGroupID).
 		Return(nil)
-	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], mock.Anything).
+	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, tx, mock.Anything).
 		Return(store.Channel{}, errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteGroupByID(timeout, suite.sampleGroupID)
+		err := suite.ctrl.Ctrl.DeleteGroupByID(timeout, tx, suite.sampleGroupID)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
 	}()
 
 	wait()
@@ -257,23 +211,22 @@ func (suite *ControllerDeleteGroupByIDSuite) TestRetrieveUpdatedChannelsFail() {
 
 func (suite *ControllerDeleteGroupByIDSuite) TestNotifyFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("DeleteForwardToGroupChannelsByGroup", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroupID).
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("DeleteForwardToGroupChannelsByGroup", timeout, tx, suite.sampleGroupID).
 		Return(suite.sampleAffectedEntries, nil)
-	suite.ctrl.Store.On("DeleteGroupByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroupID).
+	suite.ctrl.Store.On("DeleteGroupByID", timeout, tx, suite.sampleGroupID).
 		Return(nil)
-	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], mock.Anything).
+	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, tx, mock.Anything).
 		Return(store.Channel{}, nil)
-	suite.ctrl.Notifier.On("NotifyAddressBookEntryChannelsUpdated", mock.Anything, mock.Anything).
+	suite.ctrl.Notifier.On("NotifyAddressBookEntryChannelsUpdated", timeout, tx, mock.Anything, mock.Anything).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteGroupByID(timeout, suite.sampleGroupID)
+		err := suite.ctrl.Ctrl.DeleteGroupByID(timeout, tx, suite.sampleGroupID)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
 	}()
 
 	wait()
@@ -281,18 +234,17 @@ func (suite *ControllerDeleteGroupByIDSuite) TestNotifyFail() {
 
 func (suite *ControllerDeleteGroupByIDSuite) TestOKWithoutAffectedEntries() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("DeleteForwardToGroupChannelsByGroup", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroupID).
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("DeleteForwardToGroupChannelsByGroup", timeout, tx, suite.sampleGroupID).
 		Return(nil, nil)
-	suite.ctrl.Store.On("DeleteGroupByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroupID).
+	suite.ctrl.Store.On("DeleteGroupByID", timeout, tx, suite.sampleGroupID).
 		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteGroupByID(timeout, suite.sampleGroupID)
+		err := suite.ctrl.Ctrl.DeleteGroupByID(timeout, tx, suite.sampleGroupID)
 		suite.NoError(err, "should not fail")
-		suite.True(suite.ctrl.DB.Tx[0].IsCommitted, "should commit tx")
 	}()
 
 	wait()
@@ -300,16 +252,16 @@ func (suite *ControllerDeleteGroupByIDSuite) TestOKWithoutAffectedEntries() {
 
 func (suite *ControllerDeleteGroupByIDSuite) TestOKWithAffectedEntries() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("DeleteForwardToGroupChannelsByGroup", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroupID).
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("DeleteForwardToGroupChannelsByGroup", timeout, tx, suite.sampleGroupID).
 		Return(suite.sampleAffectedEntries, nil)
-	suite.ctrl.Store.On("DeleteGroupByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroupID).
+	suite.ctrl.Store.On("DeleteGroupByID", timeout, tx, suite.sampleGroupID).
 		Return(nil)
 	for _, entryID := range suite.sampleAffectedEntries {
 		channels := make([]store.Channel, 8)
-		suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], entryID).
+		suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, tx, entryID).
 			Return(channels, nil).Once()
-		suite.ctrl.Notifier.On("NotifyAddressBookEntryChannelsUpdated", entryID, channels).
+		suite.ctrl.Notifier.On("NotifyAddressBookEntryChannelsUpdated", timeout, tx, entryID, channels).
 			Return(nil).Once()
 	}
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
@@ -317,9 +269,8 @@ func (suite *ControllerDeleteGroupByIDSuite) TestOKWithAffectedEntries() {
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteGroupByID(timeout, suite.sampleGroupID)
+		err := suite.ctrl.Ctrl.DeleteGroupByID(timeout, tx, suite.sampleGroupID)
 		suite.NoError(err, "should not fail")
-		suite.True(suite.ctrl.DB.Tx[0].IsCommitted, "should commit tx")
 	}()
 
 	wait()

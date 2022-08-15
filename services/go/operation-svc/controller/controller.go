@@ -50,9 +50,9 @@ type Store interface {
 // Notifier sends event messages.
 type Notifier interface {
 	// NotifyOperationCreated emits an event.TypeOperationCreated event.
-	NotifyOperationCreated(operation store.Operation) error
+	NotifyOperationCreated(ctx context.Context, tx pgx.Tx, operation store.Operation) error
 	// NotifyOperationUpdated emits an event.TypeOperationUpdated event.
-	NotifyOperationUpdated(operation store.Operation) error
+	NotifyOperationUpdated(ctx context.Context, tx pgx.Tx, operation store.Operation) error
 	// NotifyOperationMembersUpdated emits an event.TypeOperationMembersUpdated.
-	NotifyOperationMembersUpdated(operationID uuid.UUID, members []uuid.UUID) error
+	NotifyOperationMembersUpdated(ctx context.Context, tx pgx.Tx, operationID uuid.UUID, members []uuid.UUID) error
 }

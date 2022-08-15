@@ -1,9 +1,11 @@
 package eventport
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gofrs/uuid"
+	"github.com/jackc/pgx/v4"
 	"github.com/lefinal/meh"
 	"github.com/mobile-directing-system/mds-server/services/go/logistics-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
@@ -33,8 +35,8 @@ func assureChannelTypesSupported() {
 
 // NotifyAddressBookEntryCreated emits an event.TypeAddressBookEntryCreated
 // event.
-func (p *Port) NotifyAddressBookEntryCreated(entry store.AddressBookEntry) error {
-	err := kafkautil.WriteMessages(p.writer, kafkautil.Message{
+func (p *Port) NotifyAddressBookEntryCreated(ctx context.Context, tx pgx.Tx, entry store.AddressBookEntry) error {
+	err := p.writer.AddOutboxMessages(ctx, tx, kafkautil.OutboundMessage{
 		Topic:     event.AddressBookTopic,
 		Key:       entry.ID.String(),
 		EventType: event.TypeAddressBookEntryCreated,
@@ -54,8 +56,8 @@ func (p *Port) NotifyAddressBookEntryCreated(entry store.AddressBookEntry) error
 
 // NotifyAddressBookEntryUpdated emits an event.TypeAddressBookEntryUpdated
 // event.
-func (p *Port) NotifyAddressBookEntryUpdated(entry store.AddressBookEntry) error {
-	err := kafkautil.WriteMessages(p.writer, kafkautil.Message{
+func (p *Port) NotifyAddressBookEntryUpdated(ctx context.Context, tx pgx.Tx, entry store.AddressBookEntry) error {
+	err := p.writer.AddOutboxMessages(ctx, tx, kafkautil.OutboundMessage{
 		Topic:     event.AddressBookTopic,
 		Key:       entry.ID.String(),
 		EventType: event.TypeAddressBookEntryUpdated,
@@ -75,8 +77,8 @@ func (p *Port) NotifyAddressBookEntryUpdated(entry store.AddressBookEntry) error
 
 // NotifyAddressBookEntryDeleted emits an event.TypeAddressBookEntryDeleted
 // event.
-func (p *Port) NotifyAddressBookEntryDeleted(entryID uuid.UUID) error {
-	err := kafkautil.WriteMessages(p.writer, kafkautil.Message{
+func (p *Port) NotifyAddressBookEntryDeleted(ctx context.Context, tx pgx.Tx, entryID uuid.UUID) error {
+	err := p.writer.AddOutboxMessages(ctx, tx, kafkautil.OutboundMessage{
 		Topic:     event.AddressBookTopic,
 		Key:       entryID.String(),
 		EventType: event.TypeAddressBookEntryDeleted,
@@ -258,7 +260,7 @@ func mapPushChannelDetails(detailsRaw store.ChannelDetails) (json.RawMessage, er
 
 // NotifyAddressBookEntryChannelsUpdated emits an
 // event.TypeAddressBookEntryChannelsUpdated event.
-func (p *Port) NotifyAddressBookEntryChannelsUpdated(entryID uuid.UUID, channels []store.Channel) error {
+func (p *Port) NotifyAddressBookEntryChannelsUpdated(ctx context.Context, tx pgx.Tx, entryID uuid.UUID, channels []store.Channel) error {
 	value := event.AddressBookEntryChannelsUpdated{
 		Entry:    entryID,
 		Channels: make([]event.AddressBookEntryChannelsUpdatedChannel, 0, len(channels)),
@@ -288,7 +290,7 @@ func (p *Port) NotifyAddressBookEntryChannelsUpdated(entryID uuid.UUID, channels
 		}
 		value.Channels = append(value.Channels, mappedChannel)
 	}
-	err := kafkautil.WriteMessages(p.writer, kafkautil.Message{
+	err := p.writer.AddOutboxMessages(ctx, tx, kafkautil.OutboundMessage{
 		Topic:     event.AddressBookTopic,
 		Key:       entryID.String(),
 		EventType: event.TypeAddressBookEntryChannelsUpdated,

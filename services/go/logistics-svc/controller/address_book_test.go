@@ -74,7 +74,7 @@ func (suite *ControllerCreateAddressBookEntriesuite) TestNotifyFail() {
 	suite.ctrl.Store.On("CreateAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
 		Return(created, nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyAddressBookEntryCreated", created.AddressBookEntry).
+	suite.ctrl.Notifier.On("NotifyAddressBookEntryCreated", timeout, suite.ctrl.DB.Tx[0], created.AddressBookEntry).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
@@ -104,7 +104,7 @@ func (suite *ControllerCreateAddressBookEntriesuite) TestOK() {
 	suite.ctrl.Store.On("CreateAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
 		Return(created, nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyAddressBookEntryCreated", created.AddressBookEntry).
+	suite.ctrl.Notifier.On("NotifyAddressBookEntryCreated", timeout, suite.ctrl.DB.Tx[0], created.AddressBookEntry).
 		Return(nil)
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
@@ -248,7 +248,7 @@ func (suite *ControllerUpdateAddressBookEntrySuite) TestNotifyFail() {
 	suite.ctrl.Store.On("UpdateAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
 		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyAddressBookEntryUpdated", suite.sampleEntry).
+	suite.ctrl.Notifier.On("NotifyAddressBookEntryUpdated", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
@@ -270,7 +270,7 @@ func (suite *ControllerUpdateAddressBookEntrySuite) TestOK() {
 	suite.ctrl.Store.On("UpdateAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
 		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyAddressBookEntryUpdated", suite.sampleEntry).
+	suite.ctrl.Notifier.On("NotifyAddressBookEntryUpdated", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
 		Return(nil)
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
@@ -406,7 +406,7 @@ func (suite *ControllerDeleteAddressBookEntryByIDSuite) TestNotifyFail() {
 	suite.ctrl.Store.On("DeleteAddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
 		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyAddressBookEntryDeleted", suite.sampleEntry).
+	suite.ctrl.Notifier.On("NotifyAddressBookEntryDeleted", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
@@ -428,7 +428,7 @@ func (suite *ControllerDeleteAddressBookEntryByIDSuite) TestOK() {
 	suite.ctrl.Store.On("DeleteAddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
 		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyAddressBookEntryDeleted", suite.sampleEntry).
+	suite.ctrl.Notifier.On("NotifyAddressBookEntryDeleted", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
 		Return(nil)
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 

@@ -474,7 +474,7 @@ func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestNotifyFail() {
 	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], mock.Anything).
 		Return(suite.newChannels, nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyAddressBookEntryChannelsUpdated", mock.Anything, mock.Anything).
+	suite.ctrl.Notifier.On("NotifyAddressBookEntryChannelsUpdated", timeout, suite.ctrl.DB.Tx[0], mock.Anything, mock.Anything).
 		Return(errors.New("sad lifei"))
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
@@ -515,7 +515,7 @@ func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestOK() {
 	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID).
 		Return(suite.finalChannels, nil).Once()
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyAddressBookEntryChannelsUpdated", suite.sampleEntryID, suite.finalChannels).
+	suite.ctrl.Notifier.On("NotifyAddressBookEntryChannelsUpdated", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID, suite.finalChannels).
 		Return(nil)
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 

@@ -33,6 +33,8 @@ func init() {
 
 const kafkaGroupID = "mds-group-svc"
 
+const dbScope = "app"
+
 // Run the application.
 func Run(ctx context.Context) error {
 	c, err := parseConfigFromEnv()
@@ -52,7 +54,7 @@ func Run(ctx context.Context) error {
 		return meh.NilOrWrap(err, "serve ready-probe-server", meh.Details{"addr": c.ReadyProbeServeAddr})
 	})
 	// Connect to database.
-	sqlDB, err := pgconnect.ConnectAndRunMigrations(ctx, logger, c.DBConnString, dbMigrations)
+	sqlDB, err := pgconnect.ConnectAndRunMigrations(ctx, logger, c.DBConnString, dbScope, dbMigrations)
 	if err != nil {
 		return meh.Wrap(err, "connect db and run migrations", meh.Details{"db_conn_string": c.DBConnString})
 	}
@@ -81,7 +83,11 @@ func Run(ctx context.Context) error {
 		return meh.Wrap(err, "await ready", nil)
 	}
 	// Setup.
-	eventPort := eventport.NewPort(kafkautil.NewWriter(logger.Named("kafka"), c.KafkaAddr))
+	kafkaConnector, err := kafkautil.InitNewConnector(ctx, logger.Named("kafka-connector"), sqlDB)
+	if err != nil {
+		return meh.Wrap(err, "init new kafka connector", nil)
+	}
+	eventPort := eventport.NewPort(kafkaConnector)
 	ctrl := &controller.Controller{
 		Logger:   logger.Named("controller"),
 		DB:       sqlDB,
@@ -93,14 +99,15 @@ func Run(ctx context.Context) error {
 		err := endpoints.Serve(egCtx, logger.Named("endpoints"), c.ServeAddr, c.AuthTokenSecret, ctrl)
 		return meh.NilOrWrap(err, "serve endpoints", meh.Details{"serve_addr": c.ServeAddr})
 	})
-	// Listen for events.
+	// Run Kafka connector.
 	eg.Go(func() error {
 		logger := logger.Named("kafka-reader")
 		kafkaReader := kafkautil.NewReader(logger, c.KafkaAddr, kafkaGroupID,
 			[]event.Topic{event.OperationsTopic, event.UsersTopic})
-		err := kafkautil.Read(egCtx, logger, kafkaReader, eventPort.HandlerFn(ctrl))
+		kafkaWriter := kafkautil.NewWriter(logger.Named("kafka"), c.KafkaAddr)
+		err := kafkautil.RunConnector(ctx, kafkaConnector, sqlDB, kafkaWriter, kafkaReader, eventPort.HandlerFn(ctrl))
 		if err != nil {
-			return meh.Wrap(err, "read kafka messages", nil)
+			return meh.Wrap(err, "run connector", nil)
 		}
 		return nil
 	})

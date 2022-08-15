@@ -50,7 +50,7 @@ func (c *Controller) AssureAdminUser(ctx context.Context) error {
 		}
 		// Write events.
 		adminUserWithPass.User = adminUser
-		err = c.Notifier.NotifyUserCreated(adminUserWithPass)
+		err = c.Notifier.NotifyUserCreated(ctx, tx, adminUserWithPass)
 		if err != nil {
 			return meh.Wrap(err, "notify user created", nil)
 		}

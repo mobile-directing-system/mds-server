@@ -115,10 +115,12 @@ type NotifierMock struct {
 	mock.Mock
 }
 
-func (m *NotifierMock) NotifyUserLoggedIn(userID uuid.UUID, username string, requestMetadata AuthRequestMetadata) error {
-	return m.Called(userID, username, requestMetadata).Error(0)
+func (m *NotifierMock) NotifyUserLoggedIn(ctx context.Context, tx pgx.Tx, userID uuid.UUID, username string,
+	requestMetadata AuthRequestMetadata) error {
+	return m.Called(ctx, tx, userID, username, requestMetadata).Error(0)
 }
 
-func (m *NotifierMock) NotifyUserLoggedOut(userID uuid.UUID, username string, requestMetadata AuthRequestMetadata) error {
-	return m.Called(userID, username, requestMetadata).Error(0)
+func (m *NotifierMock) NotifyUserLoggedOut(ctx context.Context, tx pgx.Tx, userID uuid.UUID, username string,
+	requestMetadata AuthRequestMetadata) error {
+	return m.Called(ctx, tx, userID, username, requestMetadata).Error(0)
 }

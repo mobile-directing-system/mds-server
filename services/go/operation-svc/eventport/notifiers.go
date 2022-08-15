@@ -1,7 +1,9 @@
 package eventport
 
 import (
+	"context"
 	"github.com/gofrs/uuid"
+	"github.com/jackc/pgx/v4"
 	"github.com/lefinal/meh"
 	"github.com/mobile-directing-system/mds-server/services/go/operation-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
@@ -9,8 +11,8 @@ import (
 )
 
 // NotifyOperationCreated emits an event.TypeOperationCreated event.
-func (p *Port) NotifyOperationCreated(operation store.Operation) error {
-	err := kafkautil.WriteMessages(p.writer, kafkautil.Message{
+func (p *Port) NotifyOperationCreated(ctx context.Context, tx pgx.Tx, operation store.Operation) error {
+	err := p.writer.AddOutboxMessages(ctx, tx, kafkautil.OutboundMessage{
 		Topic:     event.OperationsTopic,
 		Key:       operation.ID.String(),
 		EventType: event.TypeOperationCreated,
@@ -30,8 +32,8 @@ func (p *Port) NotifyOperationCreated(operation store.Operation) error {
 }
 
 // NotifyOperationUpdated emits an event.TypeOperationUpdated event.
-func (p *Port) NotifyOperationUpdated(operation store.Operation) error {
-	err := kafkautil.WriteMessages(p.writer, kafkautil.Message{
+func (p *Port) NotifyOperationUpdated(ctx context.Context, tx pgx.Tx, operation store.Operation) error {
+	err := p.writer.AddOutboxMessages(ctx, tx, kafkautil.OutboundMessage{
 		Topic:     event.OperationsTopic,
 		Key:       operation.ID.String(),
 		EventType: event.TypeOperationUpdated,
@@ -51,8 +53,8 @@ func (p *Port) NotifyOperationUpdated(operation store.Operation) error {
 }
 
 // NotifyOperationMembersUpdated emits an event.TypeOperationMembersUpdated.
-func (p *Port) NotifyOperationMembersUpdated(operationID uuid.UUID, members []uuid.UUID) error {
-	err := kafkautil.WriteMessages(p.writer, kafkautil.Message{
+func (p *Port) NotifyOperationMembersUpdated(ctx context.Context, tx pgx.Tx, operationID uuid.UUID, members []uuid.UUID) error {
+	err := p.writer.AddOutboxMessages(ctx, tx, kafkautil.OutboundMessage{
 		Topic:     event.OperationsTopic,
 		Key:       operationID.String(),
 		EventType: event.TypeOperationMembersUpdated,

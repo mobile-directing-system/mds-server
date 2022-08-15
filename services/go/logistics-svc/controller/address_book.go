@@ -61,7 +61,7 @@ func (c *Controller) CreateAddressBookEntry(ctx context.Context, create store.Ad
 		if err != nil {
 			return meh.Wrap(err, "create entry in store", meh.Details{"entry": create})
 		}
-		err = c.Notifier.NotifyAddressBookEntryCreated(created.AddressBookEntry)
+		err = c.Notifier.NotifyAddressBookEntryCreated(ctx, tx, created.AddressBookEntry)
 		if err != nil {
 			return meh.Wrap(err, "notify", meh.Details{"created": created.AddressBookEntry})
 		}
@@ -95,7 +95,7 @@ func (c *Controller) UpdateAddressBookEntry(ctx context.Context, update store.Ad
 		if err != nil {
 			return meh.Wrap(err, "update entry in store", meh.Details{"entry": update})
 		}
-		err = c.Notifier.NotifyAddressBookEntryUpdated(update)
+		err = c.Notifier.NotifyAddressBookEntryUpdated(ctx, tx, update)
 		if err != nil {
 			return meh.Wrap(err, "notify", meh.Details{"updated": update})
 		}
@@ -130,7 +130,7 @@ func (c *Controller) DeleteAddressBookEntryByID(ctx context.Context, entryID uui
 		if err != nil {
 			return meh.Wrap(err, "delete entry in store", meh.Details{"entry_id": entryID})
 		}
-		err = c.Notifier.NotifyAddressBookEntryDeleted(entryID)
+		err = c.Notifier.NotifyAddressBookEntryDeleted(ctx, tx, entryID)
 		if err != nil {
 			return meh.Wrap(err, "notify", meh.Details{"entry_id": entryID})
 		}

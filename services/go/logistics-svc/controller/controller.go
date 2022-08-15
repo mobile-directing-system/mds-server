@@ -88,14 +88,14 @@ type Store interface {
 type Notifier interface {
 	// NotifyAddressBookEntryCreated emits an event.TypeAddressBookEntryCreated
 	// event.
-	NotifyAddressBookEntryCreated(entry store.AddressBookEntry) error
+	NotifyAddressBookEntryCreated(ctx context.Context, tx pgx.Tx, entry store.AddressBookEntry) error
 	// NotifyAddressBookEntryUpdated emits an event.TypeAddressBookEntryUpdated
 	// event.
-	NotifyAddressBookEntryUpdated(entry store.AddressBookEntry) error
+	NotifyAddressBookEntryUpdated(ctx context.Context, tx pgx.Tx, entry store.AddressBookEntry) error
 	// NotifyAddressBookEntryDeleted emits an event.TypeAddressBookEntryDeleted
 	// event.
-	NotifyAddressBookEntryDeleted(entryID uuid.UUID) error
+	NotifyAddressBookEntryDeleted(ctx context.Context, tx pgx.Tx, entryID uuid.UUID) error
 	// NotifyAddressBookEntryChannelsUpdated emits an
 	// event.TypeAddressBookEntryChannelsUpdated event.
-	NotifyAddressBookEntryChannelsUpdated(entryID uuid.UUID, channels []store.Channel) error
+	NotifyAddressBookEntryChannelsUpdated(ctx context.Context, tx pgx.Tx, entryID uuid.UUID, channels []store.Channel) error
 }

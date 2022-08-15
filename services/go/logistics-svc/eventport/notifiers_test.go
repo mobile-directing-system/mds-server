@@ -8,7 +8,6 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/kafkautil"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
-	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/suite"
 	"testing"
 	"time"
@@ -19,7 +18,7 @@ type PortNotifyAddressBookEntryCreatedSuite struct {
 	suite.Suite
 	port                   *PortMock
 	sampleAddressBookEntry store.AddressBookEntry
-	expectedMessage        kafka.Message
+	expectedMessage        kafkautil.OutboundMessage
 }
 
 func (suite *PortNotifyAddressBookEntryCreatedSuite) SetupTest() {
@@ -31,8 +30,7 @@ func (suite *PortNotifyAddressBookEntryCreatedSuite) SetupTest() {
 		Operation:   nulls.NewUUID(testutil.NewUUIDV4()),
 		User:        nulls.NewUUID(testutil.NewUUIDV4()),
 	}
-	var err error
-	suite.expectedMessage, err = kafkautil.KafkaMessageFromMessage(kafkautil.Message{
+	suite.expectedMessage = kafkautil.OutboundMessage{
 		Topic:     event.AddressBookTopic,
 		Key:       suite.sampleAddressBookEntry.ID.String(),
 		EventType: event.TypeAddressBookEntryCreated,
@@ -43,22 +41,33 @@ func (suite *PortNotifyAddressBookEntryCreatedSuite) SetupTest() {
 			Operation:   suite.sampleAddressBookEntry.Operation,
 			User:        suite.sampleAddressBookEntry.User,
 		},
-	})
-	if err != nil {
-		panic(err)
 	}
 }
 
 func (suite *PortNotifyAddressBookEntryCreatedSuite) TestWriteFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.port.recorder.WriteFail = true
-	err := suite.port.Port.NotifyAddressBookEntryCreated(suite.sampleAddressBookEntry)
-	suite.Error(err, "should fail")
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyAddressBookEntryCreated(timeout, &testutil.DBTx{}, suite.sampleAddressBookEntry)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
 }
 
 func (suite *PortNotifyAddressBookEntryCreatedSuite) TestOK() {
-	err := suite.port.Port.NotifyAddressBookEntryCreated(suite.sampleAddressBookEntry)
-	suite.Require().NoError(err, "should not fail")
-	suite.Equal([]kafka.Message{suite.expectedMessage}, suite.port.recorder.Recorded, "should write correct message")
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyAddressBookEntryCreated(timeout, &testutil.DBTx{}, suite.sampleAddressBookEntry)
+		suite.Require().NoError(err, "should not fail")
+		suite.Equal([]kafkautil.OutboundMessage{suite.expectedMessage}, suite.port.recorder.Recorded, "should write correct message")
+	}()
+
+	wait()
 }
 
 func TestPort_NotifyAddressBookEntryCreated(t *testing.T) {
@@ -70,7 +79,7 @@ type PortNotifyAddressBookEntryUpdatedSuite struct {
 	suite.Suite
 	port                   *PortMock
 	sampleAddressBookEntry store.AddressBookEntry
-	expectedMessage        kafka.Message
+	expectedMessage        kafkautil.OutboundMessage
 }
 
 func (suite *PortNotifyAddressBookEntryUpdatedSuite) SetupTest() {
@@ -82,8 +91,7 @@ func (suite *PortNotifyAddressBookEntryUpdatedSuite) SetupTest() {
 		Operation:   nulls.NewUUID(testutil.NewUUIDV4()),
 		User:        nulls.NewUUID(testutil.NewUUIDV4()),
 	}
-	var err error
-	suite.expectedMessage, err = kafkautil.KafkaMessageFromMessage(kafkautil.Message{
+	suite.expectedMessage = kafkautil.OutboundMessage{
 		Topic:     event.AddressBookTopic,
 		Key:       suite.sampleAddressBookEntry.ID.String(),
 		EventType: event.TypeAddressBookEntryUpdated,
@@ -94,22 +102,33 @@ func (suite *PortNotifyAddressBookEntryUpdatedSuite) SetupTest() {
 			Operation:   suite.sampleAddressBookEntry.Operation,
 			User:        suite.sampleAddressBookEntry.User,
 		},
-	})
-	if err != nil {
-		panic(err)
 	}
 }
 
 func (suite *PortNotifyAddressBookEntryUpdatedSuite) TestWriteFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.port.recorder.WriteFail = true
-	err := suite.port.Port.NotifyAddressBookEntryUpdated(suite.sampleAddressBookEntry)
-	suite.Error(err, "should fail")
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyAddressBookEntryUpdated(timeout, &testutil.DBTx{}, suite.sampleAddressBookEntry)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
 }
 
 func (suite *PortNotifyAddressBookEntryUpdatedSuite) TestOK() {
-	err := suite.port.Port.NotifyAddressBookEntryUpdated(suite.sampleAddressBookEntry)
-	suite.Require().NoError(err, "should not fail")
-	suite.Equal([]kafka.Message{suite.expectedMessage}, suite.port.recorder.Recorded, "should write correct message")
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyAddressBookEntryUpdated(timeout, &testutil.DBTx{}, suite.sampleAddressBookEntry)
+		suite.Require().NoError(err, "should not fail")
+		suite.Equal([]kafkautil.OutboundMessage{suite.expectedMessage}, suite.port.recorder.Recorded, "should write correct message")
+	}()
+
+	wait()
 }
 
 func TestPort_NotifyAddressBookEntryUpdated(t *testing.T) {
@@ -122,36 +141,46 @@ type PortNotifyAddressBookEntryDeletedSuite struct {
 	suite.Suite
 	port                     *PortMock
 	sampleAddressBookEntryID uuid.UUID
-	expectedMessage          kafka.Message
+	expectedMessage          kafkautil.OutboundMessage
 }
 
 func (suite *PortNotifyAddressBookEntryDeletedSuite) SetupTest() {
 	suite.port = newMockPort()
 	suite.sampleAddressBookEntryID = testutil.NewUUIDV4()
-	var err error
-	suite.expectedMessage, err = kafkautil.KafkaMessageFromMessage(kafkautil.Message{
+	suite.expectedMessage = kafkautil.OutboundMessage{
 		Topic:     event.AddressBookTopic,
 		Key:       suite.sampleAddressBookEntryID.String(),
 		EventType: event.TypeAddressBookEntryDeleted,
 		Value: event.AddressBookEntryDeleted{
 			ID: suite.sampleAddressBookEntryID,
 		},
-	})
-	if err != nil {
-		panic(err)
 	}
 }
 
 func (suite *PortNotifyAddressBookEntryDeletedSuite) TestWriteFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.port.recorder.WriteFail = true
-	err := suite.port.Port.NotifyAddressBookEntryDeleted(suite.sampleAddressBookEntryID)
-	suite.Error(err, "should fail")
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyAddressBookEntryDeleted(timeout, &testutil.DBTx{}, suite.sampleAddressBookEntryID)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
 }
 
 func (suite *PortNotifyAddressBookEntryDeletedSuite) TestOK() {
-	err := suite.port.Port.NotifyAddressBookEntryDeleted(suite.sampleAddressBookEntryID)
-	suite.Require().NoError(err, "should not fail")
-	suite.Equal([]kafka.Message{suite.expectedMessage}, suite.port.recorder.Recorded, "should write correct messages")
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyAddressBookEntryDeleted(timeout, &testutil.DBTx{}, suite.sampleAddressBookEntryID)
+		suite.Require().NoError(err, "should not fail")
+		suite.Equal([]kafkautil.OutboundMessage{suite.expectedMessage}, suite.port.recorder.Recorded, "should write correct messages")
+	}()
+
+	wait()
 }
 
 func TestPort_NotifyAddressBookEntryDeleted(t *testing.T) {
@@ -395,7 +424,7 @@ type PortNotifyAddressBookEntryChannelsUpdatedSuite struct {
 	port            *PortMock
 	sampleEntryID   uuid.UUID
 	sampleChannels  []store.Channel
-	expectedMessage kafka.Message
+	expectedMessage kafkautil.OutboundMessage
 }
 
 func (suite *PortNotifyAddressBookEntryChannelsUpdatedSuite) SetupTest() {
@@ -431,8 +460,7 @@ func (suite *PortNotifyAddressBookEntryChannelsUpdatedSuite) SetupTest() {
 			Timeout: 11 * time.Minute,
 		},
 	}
-	var err error
-	suite.expectedMessage, err = kafkautil.KafkaMessageFromMessage(kafkautil.Message{
+	suite.expectedMessage = kafkautil.OutboundMessage{
 		Topic:     event.AddressBookTopic,
 		Key:       suite.sampleEntryID.String(),
 		EventType: event.TypeAddressBookEntryChannelsUpdated,
@@ -465,41 +493,66 @@ func (suite *PortNotifyAddressBookEntryChannelsUpdatedSuite) SetupTest() {
 				},
 			},
 		},
-	})
-	if err != nil {
-		panic(err)
 	}
 }
 
 func (suite *PortNotifyAddressBookEntryChannelsUpdatedSuite) TestWriteFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.port.recorder.WriteFail = true
-	err := suite.port.Port.NotifyAddressBookEntryChannelsUpdated(suite.sampleEntryID, suite.sampleChannels)
-	suite.Error(err, "should fail")
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyAddressBookEntryChannelsUpdated(timeout, &testutil.DBTx{}, suite.sampleEntryID, suite.sampleChannels)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
 }
 
 func (suite *PortNotifyAddressBookEntryChannelsUpdatedSuite) TestUnsupportedChannelType() {
-	err := suite.port.Port.NotifyAddressBookEntryChannelsUpdated(suite.sampleEntryID, []store.Channel{
-		{
-			Type: "wf34",
-		},
-	})
-	suite.Error(err, "should fail")
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyAddressBookEntryChannelsUpdated(timeout, &testutil.DBTx{}, suite.sampleEntryID, []store.Channel{
+			{
+				Type: "wf34",
+			},
+		})
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
 }
 
 func (suite *PortNotifyAddressBookEntryChannelsUpdatedSuite) TestChannelDetailsTypeMismatch() {
-	err := suite.port.Port.NotifyAddressBookEntryChannelsUpdated(suite.sampleEntryID, []store.Channel{
-		{
-			Type:    store.ChannelTypePhoneCall,
-			Details: store.EmailChannelDetails{},
-		},
-	})
-	suite.Error(err, "should fail")
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyAddressBookEntryChannelsUpdated(timeout, &testutil.DBTx{}, suite.sampleEntryID, []store.Channel{
+			{
+				Type:    store.ChannelTypePhoneCall,
+				Details: store.EmailChannelDetails{},
+			},
+		})
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
 }
 
 func (suite *PortNotifyAddressBookEntryChannelsUpdatedSuite) TestOK() {
-	err := suite.port.Port.NotifyAddressBookEntryChannelsUpdated(suite.sampleEntryID, suite.sampleChannels)
-	suite.Require().NoError(err, "should not fail")
-	suite.Equal([]kafka.Message{suite.expectedMessage}, suite.port.recorder.Recorded, "should write correct messages")
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyAddressBookEntryChannelsUpdated(timeout, &testutil.DBTx{}, suite.sampleEntryID, suite.sampleChannels)
+		suite.Require().NoError(err, "should not fail")
+		suite.Equal([]kafkautil.OutboundMessage{suite.expectedMessage}, suite.port.recorder.Recorded, "should write correct messages")
+	}()
+
+	wait()
 }
 
 func TestPort_NotifyAddressBookEntryChannelsUpdated(t *testing.T) {

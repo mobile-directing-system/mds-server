@@ -1,20 +1,20 @@
 package eventport
 
 import (
-	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/kafkautil"
 	"time"
 )
 
 const timeout = 5 * time.Second
 
 type PortMock struct {
-	recorder *testutil.MessageRecorder
+	recorder *kafkautil.MessageRecorder
 	Port     *Port
 }
 
 func newMockPort() *PortMock {
 	p := &PortMock{
-		recorder: testutil.NewMessageRecorder(),
+		recorder: kafkautil.NewMessageRecorder(),
 	}
 	p.Port = NewPort(p.recorder)
 	return p

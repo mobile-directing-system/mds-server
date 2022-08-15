@@ -61,7 +61,7 @@ type Store interface {
 // Notifier for event notifications.
 type Notifier interface {
 	// NotifyUserLoggedIn notifies that a user has logged in.
-	NotifyUserLoggedIn(userID uuid.UUID, username string, requestMetadata AuthRequestMetadata) error
+	NotifyUserLoggedIn(ctx context.Context, tx pgx.Tx, userID uuid.UUID, username string, requestMetadata AuthRequestMetadata) error
 	// NotifyUserLoggedOut notifies that a user has logged out.
-	NotifyUserLoggedOut(userID uuid.UUID, username string, requestMetadata AuthRequestMetadata) error
+	NotifyUserLoggedOut(ctx context.Context, tx pgx.Tx, userID uuid.UUID, username string, requestMetadata AuthRequestMetadata) error
 }

@@ -11,6 +11,8 @@ require (
 	github.com/jackc/pgx/v4 v4.16.1
 	github.com/lefinal/meh v1.5.2
 	github.com/lefinal/nulls v1.2.3
+	github.com/lefinal/zaprec v1.0.0
+	github.com/lib/pq v1.10.2
 	github.com/meilisearch/meilisearch-go v0.20.1
 	github.com/segmentio/kafka-go v0.4.31
 	github.com/stretchr/testify v1.8.0

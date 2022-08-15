@@ -2,12 +2,28 @@ package testutil
 
 import (
 	"context"
+	"testing"
 	"time"
 )
 
 // TestFailer is an abstraction for failing tests instantly.
 type TestFailer interface {
 	FailNow(string, ...interface{}) bool
+}
+
+// tfailer implements TestFailer for testing.T.
+type tfailer struct {
+	t *testing.T
+}
+
+func (tf *tfailer) FailNow(s string, i ...interface{}) bool {
+	tf.t.Fatalf(s, i...)
+	return true
+}
+
+// TestFailerFromT creates a TestFailer from the given testing.T.
+func TestFailerFromT(t *testing.T) TestFailer {
+	return &tfailer{t: t}
 }
 
 // NewTimeout wraps timeout-detection-functionality. It creates a

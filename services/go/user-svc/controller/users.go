@@ -23,7 +23,7 @@ func (c *Controller) CreateUser(ctx context.Context, user store.UserWithPass) (s
 		}
 		// Notify.
 		user.User = createdUser
-		err = c.Notifier.NotifyUserCreated(user)
+		err = c.Notifier.NotifyUserCreated(ctx, tx, user)
 		if err != nil {
 			return meh.Wrap(err, "notify user created", nil)
 		}
@@ -65,7 +65,7 @@ func (c *Controller) UpdateUser(ctx context.Context, user store.User, allowAdmin
 			return meh.Wrap(err, "update user in store", meh.Details{"user": user})
 		}
 		// Notify.
-		err = c.Notifier.NotifyUserUpdated(user)
+		err = c.Notifier.NotifyUserUpdated(ctx, tx, user)
 		if err != nil {
 			return meh.Wrap(err, "notify user updated", meh.Details{"user": user})
 		}
@@ -87,7 +87,7 @@ func (c *Controller) UpdateUserPassByUserID(ctx context.Context, userID uuid.UUI
 			return meh.Wrap(err, "update user pass by user id in store", meh.Details{"user_id": userID})
 		}
 		// Notify.
-		err = c.Notifier.NotifyUserPassUpdated(userID, newPass)
+		err = c.Notifier.NotifyUserPassUpdated(ctx, tx, userID, newPass)
 		if err != nil {
 			return meh.Wrap(err, "notify user pass updated", meh.Details{"user_id": userID})
 		}
@@ -117,7 +117,7 @@ func (c *Controller) DeleteUserByID(ctx context.Context, userID uuid.UUID) error
 			return meh.Wrap(err, "delete user by id in store", meh.Details{"user_id": userID})
 		}
 		// Notify.
-		err = c.Notifier.NotifyUserDeleted(userID)
+		err = c.Notifier.NotifyUserDeleted(ctx, tx, userID)
 		if err != nil {
 			return meh.Wrap(err, "notify user deleted", meh.Details{"user_id": userID})
 		}

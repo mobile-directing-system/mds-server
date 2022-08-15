@@ -55,11 +55,11 @@ func (c *Controller) CreateOperation(ctx context.Context, operation store.Operat
 			return meh.Wrap(err, "create operation in store", meh.Details{"operation": operation})
 		}
 		// Notify.
-		err = c.Notifier.NotifyOperationCreated(created)
+		err = c.Notifier.NotifyOperationCreated(ctx, tx, created)
 		if err != nil {
 			return meh.Wrap(err, "notify operation updated", meh.Details{"created": created})
 		}
-		err = c.Notifier.NotifyOperationMembersUpdated(created.ID, []uuid.UUID{})
+		err = c.Notifier.NotifyOperationMembersUpdated(ctx, tx, created.ID, []uuid.UUID{})
 		if err != nil {
 			return meh.Wrap(err, "ntoify operation members updated", meh.Details{"created_id": created.ID})
 		}
@@ -81,7 +81,7 @@ func (c *Controller) UpdateOperation(ctx context.Context, operation store.Operat
 			return meh.Wrap(err, "update in store", meh.Details{"operation": operation})
 		}
 		// Notify.
-		err = c.Notifier.NotifyOperationUpdated(operation)
+		err = c.Notifier.NotifyOperationUpdated(ctx, tx, operation)
 		if err != nil {
 			return meh.Wrap(err, "notify", meh.Details{"operation": operation})
 		}

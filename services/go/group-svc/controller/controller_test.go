@@ -99,14 +99,14 @@ type NotifierMock struct {
 	mock.Mock
 }
 
-func (m *NotifierMock) NotifyGroupCreated(group store.Group) error {
-	return m.Called(group).Error(0)
+func (m *NotifierMock) NotifyGroupCreated(ctx context.Context, tx pgx.Tx, group store.Group) error {
+	return m.Called(ctx, tx, group).Error(0)
 }
 
-func (m *NotifierMock) NotifyGroupUpdated(group store.Group) error {
-	return m.Called(group).Error(0)
+func (m *NotifierMock) NotifyGroupUpdated(ctx context.Context, tx pgx.Tx, group store.Group) error {
+	return m.Called(ctx, tx, group).Error(0)
 }
 
-func (m *NotifierMock) NotifyGroupDeleted(groupID uuid.UUID) error {
-	return m.Called(groupID).Error(0)
+func (m *NotifierMock) NotifyGroupDeleted(ctx context.Context, tx pgx.Tx, groupID uuid.UUID) error {
+	return m.Called(ctx, tx, groupID).Error(0)
 }
