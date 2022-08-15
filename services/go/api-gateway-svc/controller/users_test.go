@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"context"
 	"errors"
 	"github.com/gofrs/uuid"
 	"github.com/mobile-directing-system/mds-server/services/go/api-gateway-svc/store"
@@ -29,56 +28,37 @@ func (suite *ControllerCreateUserSuite) SetupTest() {
 	}
 }
 
-func (suite *ControllerCreateUserSuite) TestTxFail() {
-	timeout, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	suite.ctrl.DB.BeginFail = true
-
-	go func() {
-		defer cancel()
-		err := suite.ctrl.Ctrl.CreateUser(timeout, suite.createUser)
-		suite.Error(err, "should fail")
-	}()
-
-	<-timeout.Done()
-	suite.NotEqual(context.DeadlineExceeded, timeout.Err(), "should not time out")
-}
-
 func (suite *ControllerCreateUserSuite) TestStoreCreateFail() {
-	timeout, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("CreateUser", timeout, suite.ctrl.DB.Tx[0], suite.createUser).
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("CreateUser", timeout, tx, suite.createUser).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.CreateUser(timeout, suite.createUser)
+		err := suite.ctrl.Ctrl.CreateUser(timeout, tx, suite.createUser)
 		suite.Error(err, "should fail")
 	}()
 
-	<-timeout.Done()
-	suite.NotEqual(context.DeadlineExceeded, timeout.Err(), "should not time out")
+	wait()
 }
 
 func (suite *ControllerCreateUserSuite) TestOK() {
-	timeout, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
 	created := suite.createUser
 	created.ID = testutil.NewUUIDV4()
-	suite.ctrl.Store.On("CreateUser", timeout, suite.ctrl.DB.Tx[0], suite.createUser).Return(nil)
+	suite.ctrl.Store.On("CreateUser", timeout, tx, suite.createUser).Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.CreateUser(timeout, suite.createUser)
+		err := suite.ctrl.Ctrl.CreateUser(timeout, tx, suite.createUser)
 		suite.NoError(err, "should fail")
 	}()
 
-	<-timeout.Done()
-	suite.NotEqual(context.DeadlineExceeded, timeout.Err(), "should not time out")
+	wait()
 }
 
 func TestController_CreateUser(t *testing.T) {
@@ -101,59 +81,38 @@ func (suite *ControllerUpdateUserSuite) SetupTest() {
 	}
 }
 
-func (suite *ControllerUpdateUserSuite) TestTxFail() {
-	timeout, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	suite.ctrl.DB.BeginFail = true
-
-	go func() {
-		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser)
-		suite.Error(err, "should fail")
-	}()
-
-	<-timeout.Done()
-	suite.NotEqual(context.DeadlineExceeded, timeout.Err(), "should not time out")
-}
-
 func (suite *ControllerUpdateUserSuite) TestStoreUpdateFail() {
-	timeout, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
 	originalUser := suite.updateUser
 	originalUser.Username = "force"
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("UpdateUser", timeout, suite.ctrl.DB.Tx[0], suite.updateUser).Return(errors.New("sad life"))
+	suite.ctrl.Store.On("UpdateUser", timeout, tx, suite.updateUser).Return(errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser)
+		err := suite.ctrl.Ctrl.UpdateUser(timeout, tx, suite.updateUser)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not have committed tx")
 	}()
 
-	<-timeout.Done()
-	suite.NotEqual(context.DeadlineExceeded, timeout.Err(), "should not time out")
+	wait()
 }
 
 func (suite *ControllerUpdateUserSuite) TestOK() {
-	timeout, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
 	originalUser := suite.updateUser
 	originalUser.Username = "faith"
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("UpdateUser", timeout, suite.ctrl.DB.Tx[0], suite.updateUser).Return(nil)
+	suite.ctrl.Store.On("UpdateUser", timeout, tx, suite.updateUser).Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser)
+		err := suite.ctrl.Ctrl.UpdateUser(timeout, tx, suite.updateUser)
 		suite.NoError(err, "should not fail")
-		suite.True(suite.ctrl.DB.Tx[0].IsCommitted, "should have committed tx")
 	}()
 
-	<-timeout.Done()
-	suite.NotEqual(context.DeadlineExceeded, timeout.Err(), "should not fail")
+	wait()
 }
 
 func TestController_UpdateUser(t *testing.T) {
@@ -175,77 +134,53 @@ func (suite *ControllerUpdateUserPassByUserIDSuite) SetupTest() {
 	suite.newPass = []byte("meow")
 }
 
-func (suite *ControllerUpdateUserPassByUserIDSuite) TestTxFail() {
-	timeout, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	suite.ctrl.DB.BeginFail = true
-
-	go func() {
-		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateUserPassByUserID(timeout, suite.userID, suite.newPass)
-		suite.Error(err, "should fail")
-	}()
-
-	<-timeout.Done()
-	suite.NotEqual(context.DeadlineExceeded, timeout.Err(), "should not time out")
-}
-
 func (suite *ControllerUpdateUserPassByUserIDSuite) TestSessionTokenDeleteFail() {
-	timeout, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("DeleteSessionTokensByUser", timeout, suite.ctrl.DB.Tx[0], suite.userID).
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("DeleteSessionTokensByUser", timeout, tx, suite.userID).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateUserPassByUserID(timeout, suite.userID, suite.newPass)
+		err := suite.ctrl.Ctrl.UpdateUserPassByUserID(timeout, tx, suite.userID, suite.newPass)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not have committed tx")
 	}()
 
-	<-timeout.Done()
-	suite.NotEqual(context.DeadlineExceeded, timeout.Err(), "should not time out")
+	wait()
 }
 
 func (suite *ControllerUpdateUserPassByUserIDSuite) TestStoreUpdateFail() {
-	timeout, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("DeleteSessionTokensByUser", timeout, suite.ctrl.DB.Tx[0], suite.userID).Return(nil)
-	suite.ctrl.Store.On("UpdateUserPassByUserID", timeout, suite.ctrl.DB.Tx[0], suite.userID, suite.newPass).
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("DeleteSessionTokensByUser", timeout, tx, suite.userID).Return(nil)
+	suite.ctrl.Store.On("UpdateUserPassByUserID", timeout, tx, suite.userID, suite.newPass).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateUserPassByUserID(timeout, suite.userID, suite.newPass)
+		err := suite.ctrl.Ctrl.UpdateUserPassByUserID(timeout, tx, suite.userID, suite.newPass)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not have committed tx")
 	}()
 
-	<-timeout.Done()
-	suite.NotEqual(context.DeadlineExceeded, timeout.Err(), "should not time out")
+	wait()
 }
 
 func (suite *ControllerUpdateUserPassByUserIDSuite) TestOK() {
-	timeout, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("DeleteSessionTokensByUser", timeout, suite.ctrl.DB.Tx[0], suite.userID).Return(nil)
-	suite.ctrl.Store.On("UpdateUserPassByUserID", timeout, suite.ctrl.DB.Tx[0], suite.userID, suite.newPass).Return(nil)
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("DeleteSessionTokensByUser", timeout, tx, suite.userID).Return(nil)
+	suite.ctrl.Store.On("UpdateUserPassByUserID", timeout, tx, suite.userID, suite.newPass).Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateUserPassByUserID(timeout, suite.userID, suite.newPass)
+		err := suite.ctrl.Ctrl.UpdateUserPassByUserID(timeout, tx, suite.userID, suite.newPass)
 		suite.NoError(err, "should fail")
-		suite.True(suite.ctrl.DB.Tx[0].IsCommitted, "should have committed tx")
 	}()
 
-	<-timeout.Done()
-	suite.NotEqual(context.DeadlineExceeded, timeout.Err(), "should not time out")
+	wait()
 }
 
 func TestController_UpdateUserPassByUserID(t *testing.T) {
@@ -264,77 +199,53 @@ func (suite *ControllerDeleteUserByIDSuite) SetupTest() {
 	suite.userID = testutil.NewUUIDV4()
 }
 
-func (suite *ControllerDeleteUserByIDSuite) TestTxFail() {
-	timeout, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	suite.ctrl.DB.BeginFail = true
-
-	go func() {
-		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, suite.userID)
-		suite.Error(err, "should fail")
-	}()
-
-	<-timeout.Done()
-	suite.NotEqual(context.DeadlineExceeded, timeout.Err(), "should not time out")
-}
-
 func (suite *ControllerDeleteUserByIDSuite) TestSessionTokenDeleteFail() {
-	timeout, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("DeleteSessionTokensByUser", timeout, suite.ctrl.DB.Tx[0], suite.userID).
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("DeleteSessionTokensByUser", timeout, tx, suite.userID).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, suite.userID)
+		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, tx, suite.userID)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not have committed tx")
 	}()
 
-	<-timeout.Done()
-	suite.NotEqual(context.DeadlineExceeded, timeout.Err(), "should not time out")
+	wait()
 }
 
 func (suite *ControllerDeleteUserByIDSuite) TestStoreDeleteFail() {
-	timeout, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("DeleteSessionTokensByUser", timeout, suite.ctrl.DB.Tx[0], suite.userID).Return(nil)
-	suite.ctrl.Store.On("DeleteUserByID", timeout, suite.ctrl.DB.Tx[0], suite.userID).
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("DeleteSessionTokensByUser", timeout, tx, suite.userID).Return(nil)
+	suite.ctrl.Store.On("DeleteUserByID", timeout, tx, suite.userID).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, suite.userID)
+		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, tx, suite.userID)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not have committed tx")
 	}()
 
-	<-timeout.Done()
-	suite.NotEqual(context.DeadlineExceeded, timeout.Err(), "should not time out")
+	wait()
 }
 
 func (suite *ControllerDeleteUserByIDSuite) TestOK() {
-	timeout, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("DeleteSessionTokensByUser", timeout, suite.ctrl.DB.Tx[0], suite.userID).Return(nil)
-	suite.ctrl.Store.On("DeleteUserByID", timeout, suite.ctrl.DB.Tx[0], suite.userID).Return(nil)
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("DeleteSessionTokensByUser", timeout, tx, suite.userID).Return(nil)
+	suite.ctrl.Store.On("DeleteUserByID", timeout, tx, suite.userID).Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, suite.userID)
+		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, tx, suite.userID)
 		suite.NoError(err, "should not fail")
-		suite.True(suite.ctrl.DB.Tx[0].IsCommitted, "should have committed tx")
 	}()
 
-	<-timeout.Done()
-	suite.NotEqual(context.DeadlineExceeded, timeout.Err(), "should not time out")
+	wait()
 }
 
 func TestController_DeleteUserByID(t *testing.T) {

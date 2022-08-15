@@ -44,12 +44,14 @@ type migrator struct {
 	migrations []Migration
 	// migrationLogTable is the name of the table the migration log is kept in.
 	migrationLogTable string
+	// scope for versioning to use.
+	scope string
 }
 
 // NewMigrator creates a new Migrator using the given Migration list with all
 // available migrations as well as the name of the table, the migration log is
 // kept in.
-func NewMigrator(migrations []Migration, migrationLogTable string) (Migrator, error) {
+func NewMigrator(migrations []Migration, migrationLogTable string, scope string) (Migrator, error) {
 	// Assure no duplicate target versions.
 	migrationVersions := make(map[int]struct{})
 	for _, migration := range migrations {
@@ -64,6 +66,7 @@ func NewMigrator(migrations []Migration, migrationLogTable string) (Migrator, er
 	return &migrator{
 		migrations:        migrations,
 		migrationLogTable: migrationLogTable,
+		scope:             scope,
 	}, nil
 }
 
@@ -76,7 +79,7 @@ func (m *migrator) Up(ctx context.Context, logger *zap.Logger, db *pgx.Conn) err
 		return meh.Wrap(err, "assure migrations log table", meh.Details{"migration_log_table": m.migrationLogTable})
 	}
 	// Load migration log.
-	logEntries, err := getMigrationLog(ctx, db, m.migrationLogTable)
+	logEntries, err := getMigrationLog(ctx, db, m.migrationLogTable, m.scope)
 	if err != nil {
 		return meh.Wrap(err, "get migration log", meh.Details{"migration_log_table": m.migrationLogTable})
 	}
@@ -94,6 +97,7 @@ func (m *migrator) Up(ctx context.Context, logger *zap.Logger, db *pgx.Conn) err
 		err = m.runMigration(ctx, db, migration)
 		if err != nil {
 			return meh.Wrap(err, "run migration", meh.Details{
+				"scope":                    m.scope,
 				"migration_name":           migration.Name,
 				"migration_target_version": migration.TargetVersion,
 			})
@@ -140,6 +144,7 @@ func (m *migrator) logMigrationResult(ctx context.Context, db *pgx.Conn, migrati
 	// Build query.
 	q, _, err := goqu.Insert(goqu.T(m.migrationLogTable)).Rows(goqu.Record{
 		"ts":             time.Now(),
+		"scope":          m.scope,
 		"name":           migration.Name,
 		"target_version": migration.TargetVersion,
 		"success":        e == nil,
@@ -183,6 +188,7 @@ func assureMigrationsLogTable(ctx context.Context, db *pgx.Conn, migrationLogTab
     id             serial
         constraint table_name_pk
             primary key,
+    scope          varchar not null,
     ts             timestamp not null,
     name           varchar not null,
     target_version int     not null,
@@ -202,6 +208,8 @@ type MigrationLogEntry struct {
 	ID int
 	// Timestamp is when the migration had finished.
 	Timestamp time.Time
+	// Scope for versioning.
+	Scope string
 	// Name is a human-readable name of the migration that was performed.
 	Name string
 	// TargetVersion is the version, the migration attempted to migrate to.
@@ -229,15 +237,17 @@ func currentVersion(logEntries []MigrationLogEntry) int {
 
 // getMigrationLog retrieves all available migrations in the migration log table
 // with the given name.
-func getMigrationLog(ctx context.Context, db *pgx.Conn, migrationLogTable string) ([]MigrationLogEntry, error) {
+func getMigrationLog(ctx context.Context, db *pgx.Conn, migrationLogTable string, scope string) ([]MigrationLogEntry, error) {
 	// Build query.
 	q, _, err := goqu.From(goqu.T(migrationLogTable)).
 		Select(goqu.C("id"),
 			goqu.C("ts"),
+			goqu.C("scope"),
 			goqu.C("name"),
 			goqu.C("target_version"),
 			goqu.C("success"),
-			goqu.C("err_message")).ToSQL()
+			goqu.C("err_message")).
+		Where(goqu.C("scope").Eq(scope)).ToSQL()
 	if err != nil {
 		return nil, meh.NewInternalErrFromErr(err, "query to sql", nil)
 	}
@@ -253,6 +263,7 @@ func getMigrationLog(ctx context.Context, db *pgx.Conn, migrationLogTable string
 		var logEntry MigrationLogEntry
 		err = rows.Scan(&logEntry.ID,
 			&logEntry.Timestamp,
+			&logEntry.Scope,
 			&logEntry.Name,
 			&logEntry.TargetVersion,
 			&logEntry.Success,

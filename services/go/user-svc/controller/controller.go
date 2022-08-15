@@ -58,12 +58,12 @@ type Store interface {
 type Notifier interface {
 	// NotifyUserCreated notifies, that the given store.UserWithPass has been
 	// created.
-	NotifyUserCreated(user store.UserWithPass) error
+	NotifyUserCreated(ctx context.Context, tx pgx.Tx, user store.UserWithPass) error
 	// NotifyUserUpdated notifies, that the given store.User was updated.
-	NotifyUserUpdated(user store.User) error
+	NotifyUserUpdated(ctx context.Context, tx pgx.Tx, user store.User) error
 	// NotifyUserPassUpdated notifies, that the the user with the given id has
 	// updated its password.
-	NotifyUserPassUpdated(userID uuid.UUID, newPass []byte) error
+	NotifyUserPassUpdated(ctx context.Context, tx pgx.Tx, userID uuid.UUID, newPass []byte) error
 	// NotifyUserDeleted notifies, that the user with the given id was deleted.
-	NotifyUserDeleted(userID uuid.UUID) error
+	NotifyUserDeleted(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error
 }

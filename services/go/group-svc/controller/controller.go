@@ -50,9 +50,9 @@ type Store interface {
 // Notifier sends event messages.
 type Notifier interface {
 	// NotifyGroupCreated creates an event.TypeGroupCreated event.
-	NotifyGroupCreated(group store.Group) error
+	NotifyGroupCreated(ctx context.Context, tx pgx.Tx, group store.Group) error
 	// NotifyGroupUpdated creates an event.TypeGroupUpdated event.
-	NotifyGroupUpdated(group store.Group) error
+	NotifyGroupUpdated(ctx context.Context, tx pgx.Tx, group store.Group) error
 	// NotifyGroupDeleted creates an event.TypeGroupDeleted event.
-	NotifyGroupDeleted(groupID uuid.UUID) error
+	NotifyGroupDeleted(ctx context.Context, tx pgx.Tx, groupID uuid.UUID) error
 }

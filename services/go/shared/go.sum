@@ -120,6 +120,7 @@ github.com/lefinal/meh v1.5.2/go.mod h1:0KvRjRaTBPwL9TaDyo9+0HkAaNR/SKA/mLtC8Gha
 github.com/lefinal/nulls v1.2.3 h1:AqhmhwzVYv70v8Xz+xmQqt2YyeT1jEcftfLpqh3l8uw=
 github.com/lefinal/nulls v1.2.3/go.mod h1:LNnGWWS+wQo379ro1lHs2lTX9fW0D4q5iq9hFcOXvU4=
 github.com/lefinal/zaprec v1.0.0 h1:/UAvGJJ6hq9377G4K5G09XUT9gInIAD8nWXFNnC+4FY=
+github.com/lefinal/zaprec v1.0.0/go.mod h1:4/M3Vy22Af55SiUnoJqepWRfbMkO+PRqUfKQ/C18XGE=
 github.com/leodido/go-urn v1.2.1 h1:BqpAaACuzVSgi/VLzGZIobT2z4v53pjosyNd9Yv6n/w=
 github.com/leodido/go-urn v1.2.1/go.mod h1:zt4jvISO2HfUBqxjfIshjdMTYS56ZS/qv49ictyFfxY=
 github.com/lib/pq v1.0.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=

@@ -24,31 +24,17 @@ func (suite *ControllerCreateOperationSuite) SetupTest() {
 	suite.sampleOperation = testutil.NewUUIDV4()
 }
 
-func (suite *ControllerCreateOperationSuite) TestTxFail() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.BeginFail = true
-
-	go func() {
-		defer cancel()
-		err := suite.ctrl.Ctrl.CreateOperation(timeout, suite.sampleOperation)
-		suite.Error(err, "should fail")
-	}()
-
-	wait()
-}
-
 func (suite *ControllerCreateOperationSuite) TestCreateFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("CreateOperation", timeout, suite.ctrl.DB.Tx[0], suite.sampleOperation).
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("CreateOperation", timeout, tx, suite.sampleOperation).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.CreateOperation(timeout, suite.sampleOperation)
+		err := suite.ctrl.Ctrl.CreateOperation(timeout, tx, suite.sampleOperation)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
 	}()
 
 	wait()
@@ -56,15 +42,14 @@ func (suite *ControllerCreateOperationSuite) TestCreateFail() {
 
 func (suite *ControllerCreateOperationSuite) TestOK() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("CreateOperation", timeout, suite.ctrl.DB.Tx[0], suite.sampleOperation).Return(nil)
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("CreateOperation", timeout, tx, suite.sampleOperation).Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.CreateOperation(timeout, suite.sampleOperation)
+		err := suite.ctrl.Ctrl.CreateOperation(timeout, tx, suite.sampleOperation)
 		suite.NoError(err, "should not fail")
-		suite.True(suite.ctrl.DB.Tx[0].IsCommitted, "should commit tx")
 	}()
 
 	wait()
@@ -130,31 +115,17 @@ func (suite *ControllerUpdateOperationMembersByOperationSuite) SetupTest() {
 	suite.sampleOperationGroups = pagination.NewPaginated(pagination.Params{}, groups, len(groups))
 }
 
-func (suite *ControllerUpdateOperationMembersByOperationSuite) TestTxFail() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.BeginFail = true
-
-	go func() {
-		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateOperationMembersByOperation(timeout, suite.sampleOperation, suite.sampleMembers)
-		suite.Error(err, "should fail")
-	}()
-
-	wait()
-}
-
 func (suite *ControllerUpdateOperationMembersByOperationSuite) TestRetrieveOperationMembersFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("OperationMembersByOperation", timeout, suite.ctrl.DB.Tx[0], suite.sampleOperation).
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("OperationMembersByOperation", timeout, tx, suite.sampleOperation).
 		Return(nil, errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateOperationMembersByOperation(timeout, suite.sampleOperation, suite.sampleMembers)
+		err := suite.ctrl.Ctrl.UpdateOperationMembersByOperation(timeout, tx, suite.sampleOperation, suite.sampleMembers)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit")
 	}()
 
 	wait()
@@ -162,18 +133,17 @@ func (suite *ControllerUpdateOperationMembersByOperationSuite) TestRetrieveOpera
 
 func (suite *ControllerUpdateOperationMembersByOperationSuite) TestRetrieveGroupsFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("OperationMembersByOperation", timeout, suite.ctrl.DB.Tx[0], suite.sampleOperation).
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("OperationMembersByOperation", timeout, tx, suite.sampleOperation).
 		Return(suite.sampleOldMembersWithMore, nil)
-	suite.ctrl.Store.On("Groups", timeout, suite.ctrl.DB.Tx[0], mock.Anything, mock.Anything).
+	suite.ctrl.Store.On("Groups", timeout, tx, mock.Anything, mock.Anything).
 		Return(pagination.Paginated[store.Group]{}, errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateOperationMembersByOperation(timeout, suite.sampleOperation, suite.sampleMembers)
+		err := suite.ctrl.Ctrl.UpdateOperationMembersByOperation(timeout, tx, suite.sampleOperation, suite.sampleMembers)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit")
 	}()
 
 	wait()
@@ -181,20 +151,19 @@ func (suite *ControllerUpdateOperationMembersByOperationSuite) TestRetrieveGroup
 
 func (suite *ControllerUpdateOperationMembersByOperationSuite) TestUpdateGroupFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("OperationMembersByOperation", timeout, suite.ctrl.DB.Tx[0], suite.sampleOperation).
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("OperationMembersByOperation", timeout, tx, suite.sampleOperation).
 		Return(suite.sampleOldMembersWithMore, nil)
-	suite.ctrl.Store.On("Groups", timeout, suite.ctrl.DB.Tx[0], mock.Anything, mock.Anything).
+	suite.ctrl.Store.On("Groups", timeout, tx, mock.Anything, mock.Anything).
 		Return(suite.sampleOperationGroups, nil)
-	suite.ctrl.Store.On("UpdateGroup", timeout, suite.ctrl.DB.Tx[0], mock.Anything).
+	suite.ctrl.Store.On("UpdateGroup", timeout, tx, mock.Anything).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateOperationMembersByOperation(timeout, suite.sampleOperation, suite.sampleMembers)
+		err := suite.ctrl.Ctrl.UpdateOperationMembersByOperation(timeout, tx, suite.sampleOperation, suite.sampleMembers)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit")
 	}()
 
 	wait()
@@ -202,18 +171,17 @@ func (suite *ControllerUpdateOperationMembersByOperationSuite) TestUpdateGroupFa
 
 func (suite *ControllerUpdateOperationMembersByOperationSuite) TestUpdateFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("OperationMembersByOperation", timeout, suite.ctrl.DB.Tx[0], suite.sampleOperation).
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("OperationMembersByOperation", timeout, tx, suite.sampleOperation).
 		Return(suite.sampleMembers, nil)
-	suite.ctrl.Store.On("UpdateOperationMembersByOperation", timeout, suite.ctrl.DB.Tx[0], suite.sampleOperation, suite.sampleMembers).
+	suite.ctrl.Store.On("UpdateOperationMembersByOperation", timeout, tx, suite.sampleOperation, suite.sampleMembers).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateOperationMembersByOperation(timeout, suite.sampleOperation, suite.sampleMembers)
+		err := suite.ctrl.Ctrl.UpdateOperationMembersByOperation(timeout, tx, suite.sampleOperation, suite.sampleMembers)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
 	}()
 
 	wait()
@@ -221,24 +189,23 @@ func (suite *ControllerUpdateOperationMembersByOperationSuite) TestUpdateFail() 
 
 func (suite *ControllerUpdateOperationMembersByOperationSuite) TestNotifyUpdatedGroupFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("OperationMembersByOperation", timeout, suite.ctrl.DB.Tx[0], suite.sampleOperation).
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("OperationMembersByOperation", timeout, tx, suite.sampleOperation).
 		Return(suite.sampleOldMembersWithMore, nil)
-	suite.ctrl.Store.On("Groups", timeout, suite.ctrl.DB.Tx[0], mock.Anything, mock.Anything).
+	suite.ctrl.Store.On("Groups", timeout, tx, mock.Anything, mock.Anything).
 		Return(suite.sampleOperationGroups, nil)
-	suite.ctrl.Store.On("UpdateGroup", timeout, suite.ctrl.DB.Tx[0], mock.Anything).
+	suite.ctrl.Store.On("UpdateGroup", timeout, tx, mock.Anything).
 		Return(nil)
-	suite.ctrl.Store.On("UpdateOperationMembersByOperation", timeout, suite.ctrl.DB.Tx[0], suite.sampleOperation, suite.sampleMembers).
+	suite.ctrl.Store.On("UpdateOperationMembersByOperation", timeout, tx, suite.sampleOperation, suite.sampleMembers).
 		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyGroupUpdated", mock.Anything).Return(errors.New("sad life"))
+	suite.ctrl.Notifier.On("NotifyGroupUpdated", timeout, tx, mock.Anything).Return(errors.New("sad life"))
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateOperationMembersByOperation(timeout, suite.sampleOperation, suite.sampleMembers)
+		err := suite.ctrl.Ctrl.UpdateOperationMembersByOperation(timeout, tx, suite.sampleOperation, suite.sampleMembers)
 		suite.Error(err, "should fail")
-		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit")
 	}()
 
 	wait()
@@ -246,18 +213,17 @@ func (suite *ControllerUpdateOperationMembersByOperationSuite) TestNotifyUpdated
 
 func (suite *ControllerUpdateOperationMembersByOperationSuite) TestOKNoRemovedMembers() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("OperationMembersByOperation", timeout, suite.ctrl.DB.Tx[0], suite.sampleOperation).
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("OperationMembersByOperation", timeout, tx, suite.sampleOperation).
 		Return(suite.sampleMembers, nil)
-	suite.ctrl.Store.On("UpdateOperationMembersByOperation", timeout, suite.ctrl.DB.Tx[0], suite.sampleOperation, suite.sampleMembers).
+	suite.ctrl.Store.On("UpdateOperationMembersByOperation", timeout, tx, suite.sampleOperation, suite.sampleMembers).
 		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateOperationMembersByOperation(timeout, suite.sampleOperation, suite.sampleMembers)
+		err := suite.ctrl.Ctrl.UpdateOperationMembersByOperation(timeout, tx, suite.sampleOperation, suite.sampleMembers)
 		suite.NoError(err, "should not fail")
-		suite.True(suite.ctrl.DB.Tx[0].IsCommitted, "should commit tx")
 	}()
 
 	wait()
@@ -265,10 +231,10 @@ func (suite *ControllerUpdateOperationMembersByOperationSuite) TestOKNoRemovedMe
 
 func (suite *ControllerUpdateOperationMembersByOperationSuite) TestOKWithRemovedMembers() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("OperationMembersByOperation", timeout, suite.ctrl.DB.Tx[0], suite.sampleOperation).
+	tx := &testutil.DBTx{}
+	suite.ctrl.Store.On("OperationMembersByOperation", timeout, tx, suite.sampleOperation).
 		Return(suite.sampleOldMembersWithMore, nil)
-	suite.ctrl.Store.On("Groups", timeout, suite.ctrl.DB.Tx[0], mock.Anything, mock.Anything).
+	suite.ctrl.Store.On("Groups", timeout, tx, mock.Anything, mock.Anything).
 		Return(suite.sampleOperationGroups, nil)
 	updatedGroups := make([]store.Group, 0)
 	for _, group := range suite.sampleOperationGroups.Entries {
@@ -291,24 +257,23 @@ func (suite *ControllerUpdateOperationMembersByOperationSuite) TestOKWithRemoved
 		}
 		updatedGroup := group
 		updatedGroup.Members = membersWithoutRemoved
-		suite.ctrl.Store.On("UpdateGroup", timeout, suite.ctrl.DB.Tx[0], updatedGroup).
+		suite.ctrl.Store.On("UpdateGroup", timeout, tx, updatedGroup).
 			Return(nil).Once()
 		updatedGroups = append(updatedGroups, updatedGroup)
 	}
-	suite.ctrl.Store.On("UpdateOperationMembersByOperation", timeout, suite.ctrl.DB.Tx[0], suite.sampleOperation, suite.sampleMembers).
+	suite.ctrl.Store.On("UpdateOperationMembersByOperation", timeout, tx, suite.sampleOperation, suite.sampleMembers).
 		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 	for _, group := range updatedGroups {
-		suite.ctrl.Notifier.On("NotifyGroupUpdated", group).Return(nil).Once()
+		suite.ctrl.Notifier.On("NotifyGroupUpdated", timeout, tx, group).Return(nil).Once()
 	}
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 	suite.Require().NotEmpty(updatedGroups, "invalid test")
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateOperationMembersByOperation(timeout, suite.sampleOperation, suite.sampleMembers)
+		err := suite.ctrl.Ctrl.UpdateOperationMembersByOperation(timeout, tx, suite.sampleOperation, suite.sampleMembers)
 		suite.NoError(err, "should fail")
-		suite.True(suite.ctrl.DB.Tx[0].IsCommitted, "should commit")
 	}()
 
 	wait()

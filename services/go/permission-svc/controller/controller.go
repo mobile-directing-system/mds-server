@@ -39,5 +39,5 @@ type Store interface {
 type Notifier interface {
 	// NotifyPermissionsUpdated notifies that permissions for the user with the
 	// given id have been updated.
-	NotifyPermissionsUpdated(userID uuid.UUID, permissions []store.Permission) error
+	NotifyPermissionsUpdated(ctx context.Context, tx pgx.Tx, userID uuid.UUID, permissions []store.Permission) error
 }

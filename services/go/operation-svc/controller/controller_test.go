@@ -96,14 +96,14 @@ type NotifierMock struct {
 	mock.Mock
 }
 
-func (m *NotifierMock) NotifyOperationCreated(operation store.Operation) error {
-	return m.Called(operation).Error(0)
+func (m *NotifierMock) NotifyOperationCreated(ctx context.Context, tx pgx.Tx, operation store.Operation) error {
+	return m.Called(ctx, tx, operation).Error(0)
 }
 
-func (m *NotifierMock) NotifyOperationUpdated(operation store.Operation) error {
-	return m.Called(operation).Error(0)
+func (m *NotifierMock) NotifyOperationUpdated(ctx context.Context, tx pgx.Tx, operation store.Operation) error {
+	return m.Called(ctx, tx, operation).Error(0)
 }
 
-func (m *NotifierMock) NotifyOperationMembersUpdated(operationID uuid.UUID, members []uuid.UUID) error {
-	return m.Called(operationID, members).Error(0)
+func (m *NotifierMock) NotifyOperationMembersUpdated(ctx context.Context, tx pgx.Tx, operationID uuid.UUID, members []uuid.UUID) error {
+	return m.Called(ctx, tx, operationID, members).Error(0)
 }

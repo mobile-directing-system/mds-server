@@ -146,18 +146,18 @@ type NotifierMock struct {
 	mock.Mock
 }
 
-func (m *NotifierMock) NotifyAddressBookEntryCreated(entry store.AddressBookEntry) error {
-	return m.Called(entry).Error(0)
+func (m *NotifierMock) NotifyAddressBookEntryCreated(ctx context.Context, tx pgx.Tx, entry store.AddressBookEntry) error {
+	return m.Called(ctx, tx, entry).Error(0)
 }
 
-func (m *NotifierMock) NotifyAddressBookEntryUpdated(entry store.AddressBookEntry) error {
-	return m.Called(entry).Error(0)
+func (m *NotifierMock) NotifyAddressBookEntryUpdated(ctx context.Context, tx pgx.Tx, entry store.AddressBookEntry) error {
+	return m.Called(ctx, tx, entry).Error(0)
 }
 
-func (m *NotifierMock) NotifyAddressBookEntryDeleted(entryID uuid.UUID) error {
-	return m.Called(entryID).Error(0)
+func (m *NotifierMock) NotifyAddressBookEntryDeleted(ctx context.Context, tx pgx.Tx, entryID uuid.UUID) error {
+	return m.Called(ctx, tx, entryID).Error(0)
 }
 
-func (m *NotifierMock) NotifyAddressBookEntryChannelsUpdated(entryID uuid.UUID, channels []store.Channel) error {
-	return m.Called(entryID, channels).Error(0)
+func (m *NotifierMock) NotifyAddressBookEntryChannelsUpdated(ctx context.Context, tx pgx.Tx, entryID uuid.UUID, channels []store.Channel) error {
+	return m.Called(ctx, tx, entryID, channels).Error(0)
 }

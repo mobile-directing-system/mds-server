@@ -1,7 +1,9 @@
 package eventport
 
 import (
+	"context"
 	"github.com/gofrs/uuid"
+	"github.com/jackc/pgx/v4"
 	"github.com/lefinal/meh"
 	"github.com/mobile-directing-system/mds-server/services/go/group-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
@@ -9,8 +11,8 @@ import (
 )
 
 // NotifyGroupCreated creates an event.TypeGroupCreated event.
-func (p *Port) NotifyGroupCreated(group store.Group) error {
-	err := kafkautil.WriteMessages(p.writer, kafkautil.Message{
+func (p *Port) NotifyGroupCreated(ctx context.Context, tx pgx.Tx, group store.Group) error {
+	err := p.writer.AddOutboxMessages(ctx, tx, kafkautil.OutboundMessage{
 		Topic:     event.GroupsTopic,
 		Key:       group.ID.String(),
 		EventType: event.TypeGroupCreated,
@@ -29,8 +31,8 @@ func (p *Port) NotifyGroupCreated(group store.Group) error {
 }
 
 // NotifyGroupUpdated creates an event.TypeGroupUpdated event.
-func (p *Port) NotifyGroupUpdated(group store.Group) error {
-	err := kafkautil.WriteMessages(p.writer, kafkautil.Message{
+func (p *Port) NotifyGroupUpdated(ctx context.Context, tx pgx.Tx, group store.Group) error {
+	err := p.writer.AddOutboxMessages(ctx, tx, kafkautil.OutboundMessage{
 		Topic:     event.GroupsTopic,
 		Key:       group.ID.String(),
 		EventType: event.TypeGroupUpdated,
@@ -49,8 +51,8 @@ func (p *Port) NotifyGroupUpdated(group store.Group) error {
 }
 
 // NotifyGroupDeleted creates an event.TypeGroupDeleted event.
-func (p *Port) NotifyGroupDeleted(groupID uuid.UUID) error {
-	err := kafkautil.WriteMessages(p.writer, kafkautil.Message{
+func (p *Port) NotifyGroupDeleted(ctx context.Context, tx pgx.Tx, groupID uuid.UUID) error {
+	err := p.writer.AddOutboxMessages(ctx, tx, kafkautil.OutboundMessage{
 		Topic:     event.GroupsTopic,
 		Key:       groupID.String(),
 		EventType: event.TypeGroupDeleted,

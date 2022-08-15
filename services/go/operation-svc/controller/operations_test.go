@@ -222,7 +222,7 @@ func (suite *ControllerCreateOperationSuite) TestNotifyOperationUpdatedFail() {
 	suite.ctrl.Store.On("CreateOperation", timeout, suite.ctrl.DB.Tx[0], suite.create).
 		Return(suite.create, nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyOperationCreated", suite.create).
+	suite.ctrl.Notifier.On("NotifyOperationCreated", timeout, suite.ctrl.DB.Tx[0], suite.create).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
@@ -242,9 +242,9 @@ func (suite *ControllerCreateOperationSuite) TestNotifyOperationMembersUpdatedFa
 	suite.ctrl.Store.On("CreateOperation", timeout, suite.ctrl.DB.Tx[0], suite.create).
 		Return(suite.create, nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyOperationCreated", suite.create).
+	suite.ctrl.Notifier.On("NotifyOperationCreated", timeout, suite.ctrl.DB.Tx[0], suite.create).
 		Return(nil)
-	suite.ctrl.Notifier.On("NotifyOperationMembersUpdated", suite.create.ID, []uuid.UUID{}).
+	suite.ctrl.Notifier.On("NotifyOperationMembersUpdated", timeout, suite.ctrl.DB.Tx[0], suite.create.ID, []uuid.UUID{}).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
@@ -264,9 +264,9 @@ func (suite *ControllerCreateOperationSuite) TestOK() {
 	suite.ctrl.Store.On("CreateOperation", timeout, suite.ctrl.DB.Tx[0], suite.create).
 		Return(suite.create, nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyOperationCreated", suite.create).
+	suite.ctrl.Notifier.On("NotifyOperationCreated", timeout, suite.ctrl.DB.Tx[0], suite.create).
 		Return(nil)
-	suite.ctrl.Notifier.On("NotifyOperationMembersUpdated", suite.create.ID, []uuid.UUID{}).
+	suite.ctrl.Notifier.On("NotifyOperationMembersUpdated", timeout, suite.ctrl.DB.Tx[0], suite.create.ID, []uuid.UUID{}).
 		Return(nil)
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
@@ -340,7 +340,7 @@ func (suite *ControllerUpdateOperationSuite) TestNotifyFail() {
 	suite.ctrl.Store.On("UpdateOperation", timeout, suite.ctrl.DB.Tx[0], suite.update).
 		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyOperationUpdated", suite.update).
+	suite.ctrl.Notifier.On("NotifyOperationUpdated", timeout, suite.ctrl.DB.Tx[0], suite.update).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
@@ -360,7 +360,7 @@ func (suite *ControllerUpdateOperationSuite) TestOK() {
 	suite.ctrl.Store.On("UpdateOperation", timeout, suite.ctrl.DB.Tx[0], suite.update).
 		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyOperationUpdated", suite.update).
+	suite.ctrl.Notifier.On("NotifyOperationUpdated", timeout, suite.ctrl.DB.Tx[0], suite.update).
 		Return(nil)
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 

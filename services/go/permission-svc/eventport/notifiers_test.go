@@ -9,7 +9,6 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/shared/kafkautil"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/permission"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
-	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
@@ -20,7 +19,7 @@ type PortNotifyPermissionsUpdatedSuite struct {
 	port              *PortMock
 	sampleUserID      uuid.UUID
 	samplePermissions []store.Permission
-	expectedMessage   kafka.Message
+	expectedMessage   kafkautil.OutboundMessage
 }
 
 func (suite *PortNotifyPermissionsUpdatedSuite) SetupTest() {
@@ -39,8 +38,7 @@ func (suite *PortNotifyPermissionsUpdatedSuite) SetupTest() {
 	for _, p := range suite.samplePermissions {
 		permissions = append(permissions, permission.Permission(p))
 	}
-	var err error
-	suite.expectedMessage, err = kafkautil.KafkaMessageFromMessage(kafkautil.Message{
+	suite.expectedMessage = kafkautil.OutboundMessage{
 		Topic:     event.PermissionsTopic,
 		Key:       suite.sampleUserID.String(),
 		EventType: event.TypePermissionsUpdated,
@@ -48,22 +46,33 @@ func (suite *PortNotifyPermissionsUpdatedSuite) SetupTest() {
 			User:        suite.sampleUserID,
 			Permissions: permissions,
 		},
-	})
-	if err != nil {
-		panic(err)
 	}
 }
 
 func (suite *PortNotifyPermissionsUpdatedSuite) TestWriteFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.port.recorder.WriteFail = true
-	err := suite.port.Port.NotifyPermissionsUpdated(suite.sampleUserID, suite.samplePermissions)
-	suite.Error(err, "should fail")
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyPermissionsUpdated(timeout, &testutil.DBTx{}, suite.sampleUserID, suite.samplePermissions)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
 }
 
 func (suite *PortNotifyPermissionsUpdatedSuite) TestOK() {
-	err := suite.port.Port.NotifyPermissionsUpdated(suite.sampleUserID, suite.samplePermissions)
-	suite.Require().NoError(err, "should not fail")
-	suite.Equal([]kafka.Message{suite.expectedMessage}, suite.port.recorder.Recorded, "should have written correct message")
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyPermissionsUpdated(timeout, &testutil.DBTx{}, suite.sampleUserID, suite.samplePermissions)
+		suite.Require().NoError(err, "should not fail")
+		suite.Equal([]kafkautil.OutboundMessage{suite.expectedMessage}, suite.port.recorder.Recorded, "should have written correct message")
+	}()
+
+	wait()
 }
 
 func TestPort_NotifyPermissionsUpdated(t *testing.T) {

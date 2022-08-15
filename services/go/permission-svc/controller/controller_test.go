@@ -72,6 +72,6 @@ type NotifierMock struct {
 	mock.Mock
 }
 
-func (m *NotifierMock) NotifyPermissionsUpdated(userID uuid.UUID, permissions []store.Permission) error {
-	return m.Called(userID, permissions).Error(0)
+func (m *NotifierMock) NotifyPermissionsUpdated(ctx context.Context, tx pgx.Tx, userID uuid.UUID, permissions []store.Permission) error {
+	return m.Called(ctx, tx, userID, permissions).Error(0)
 }

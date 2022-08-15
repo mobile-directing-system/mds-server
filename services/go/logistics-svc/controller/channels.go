@@ -118,7 +118,7 @@ func (c *Controller) UpdateChannelsByAddressBookEntry(ctx context.Context, entry
 		if err != nil {
 			return meh.Wrap(err, "final channels by entry from store", meh.Details{"entry_id": entryID})
 		}
-		err = c.Notifier.NotifyAddressBookEntryChannelsUpdated(entryID, finalUpdatedChannels)
+		err = c.Notifier.NotifyAddressBookEntryChannelsUpdated(ctx, tx, entryID, finalUpdatedChannels)
 		if err != nil {
 			return meh.Wrap(err, "notify", meh.Details{
 				"entry_id": entryID,

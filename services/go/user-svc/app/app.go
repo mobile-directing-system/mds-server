@@ -23,6 +23,8 @@ var dbMigrationsEmbedded embed.FS
 
 var dbMigrations fs.FS
 
+const dbScope = "app"
+
 func init() {
 	var err error
 	dbMigrations, err = fs.Sub(dbMigrationsEmbedded, "db-migrations")
@@ -50,7 +52,7 @@ func Run(ctx context.Context) error {
 		return meh.NilOrWrap(err, "serve ready-probe-server", meh.Details{"addr": c.ReadyProbeServeAddr})
 	})
 	// Connect to database.
-	sqlDB, err := pgconnect.ConnectAndRunMigrations(ctx, logger, c.DBConnString, dbMigrations)
+	sqlDB, err := pgconnect.ConnectAndRunMigrations(ctx, logger, c.DBConnString, dbScope, dbMigrations)
 	if err != nil {
 		return meh.Wrap(err, "connect db and run migrations", meh.Details{"db_conn_string": c.DBConnString})
 	}
@@ -79,7 +81,11 @@ func Run(ctx context.Context) error {
 		return meh.Wrap(err, "await ready", nil)
 	}
 	// Setup.
-	eventPort := eventport.NewPort(kafkautil.NewWriter(logger.Named("kafka"), c.KafkaAddr))
+	kafkaConnector, err := kafkautil.InitNewConnector(ctx, logger.Named("kafka-connector"), sqlDB)
+	if err != nil {
+		return meh.Wrap(err, "init new kafka connector", nil)
+	}
+	eventPort := eventport.NewPort(kafkaConnector)
 	mall := store.NewMall(logger.Named("mall"), c.searchConfig.Host, c.searchConfig.MasterKey)
 	err = mall.Open(ctx)
 	if err != nil {
@@ -104,6 +110,16 @@ func Run(ctx context.Context) error {
 		err = endpoints.Serve(egCtx, logger.Named("endpoints"), c.ServeAddr, c.AuthTokenSecret, ctrl)
 		if err != nil {
 			return meh.Wrap(err, "serve endpoints", meh.Details{"serve_addr": c.ServeAddr})
+		}
+		return nil
+	})
+	// Run Kafka connector.
+	eg.Go(func() error {
+		logger := logger.Named("kafka-reader")
+		kafkaWriter := kafkautil.NewWriter(logger.Named("kafka"), c.KafkaAddr)
+		err := kafkaConnector.PumpOutgoing(egCtx, sqlDB, kafkaWriter)
+		if err != nil {
+			return meh.Wrap(err, "pump outgoing", nil)
 		}
 		return nil
 	})

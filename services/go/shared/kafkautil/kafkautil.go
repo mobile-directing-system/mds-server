@@ -4,13 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/jackc/pgx/v4"
 	"github.com/lefinal/meh"
-	"github.com/lefinal/meh/mehlog"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
 	"github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
 	"time"
 )
+
+// writerBatchSize is the size for event batches to use for writing. We set this
+// to a low value because of the outbox-pattern and concurrent message sending,
+// leading to multiple open connections for pumps. This means, writerBatchSize
+// is also used in Connector.PumpOutgoing.
+const writerBatchSize = 4
 
 // Writer is an abstraction for kafka.Writer for writing messages.
 type Writer interface {
@@ -26,8 +32,35 @@ const writeMessagesTimeout = 10 * time.Second
 // stored in.
 const kafkaMessageEventTypeHeader = "event-type"
 
-// Message acts as a replacement of kafka.Message for easier usage.
-type Message struct {
+// InboundMessage acts as a replacement of kafka.Message for easier usage with
+// received messages.
+type InboundMessage struct {
+	id int
+	// Topic indicates the topic the message was consumed from or should be written
+	// to if not specified otherwise.
+	Topic event.Topic
+	// The partition from Kafka.
+	Partition int
+	// Offset is the message offset from Kafka.
+	Offset int
+	// HighWaterMark from Kafka.
+	HighWaterMark int
+	// TS is the timestamp from Kafka.
+	TS time.Time
+	// Key is message key (translated to and from byte slice).
+	Key string
+	// EventType is the type of event, taken from/put into Headers.
+	EventType event.Type
+	// RawValue is the marshalled Value.
+	RawValue json.RawMessage
+	// Headers for the message (translated to and from kafka.Header).
+	Headers []MessageHeader
+}
+
+// OutboundMessage acts as a replacement of kafka.Message for easier usage with
+// outbound messages.
+type OutboundMessage struct {
+	id int
 	// Topic indicates the topic the message was consumed from or should be written
 	// to if not specified otherwise.
 	Topic event.Topic
@@ -35,11 +68,8 @@ type Message struct {
 	Key string
 	// EventType is the type of event, taken from/put into Headers.
 	EventType event.Type
-	// Value will be marshalled as JSON when used with WriteMessages. When
-	// processing a received message, this will be the same as RawValue.
+	// Value will be marshalled as JSON when used with WriteMessages.
 	Value any
-	// RawValue is the marshalled Value.
-	RawValue json.RawMessage
 	// Headers for the message (translated to and from kafka.Header).
 	Headers []MessageHeader
 }
@@ -51,16 +81,19 @@ type MessageHeader struct {
 	Value string
 }
 
-// messageFromKafkaMessage converts a kafka.Message to Message.
-func messageFromKafkaMessage(kafkaMessage kafka.Message) Message {
+// inboundMessageFromKafkaMessage converts a kafka.Message to OutboundMessage.
+func inboundMessageFromKafkaMessage(kafkaMessage kafka.Message) InboundMessage {
 	headers, eventType := headersFromKafkaHeaders(kafkaMessage.Headers)
-	return Message{
-		Topic:     event.Topic(kafkaMessage.Topic),
-		Key:       string(kafkaMessage.Key),
-		EventType: eventType,
-		Value:     kafkaMessage.Value,
-		RawValue:  kafkaMessage.Value,
-		Headers:   headers,
+	return InboundMessage{
+		Topic:         event.Topic(kafkaMessage.Topic),
+		Partition:     kafkaMessage.Partition,
+		Offset:        int(kafkaMessage.Offset),
+		HighWaterMark: int(kafkaMessage.HighWaterMark),
+		TS:            kafkaMessage.Time,
+		Key:           string(kafkaMessage.Key),
+		EventType:     eventType,
+		RawValue:      kafkaMessage.Value,
+		Headers:       headers,
 	}
 }
 
@@ -98,12 +131,13 @@ func kafkaHeadersFromHeaders(headers []MessageHeader, eventType event.Type) []ka
 	return kafkaHeaders
 }
 
-// KafkaMessageFromMessage converts a Message to kafka.Message and marshals the
-// Message.Value as JSON if not nil.
-func KafkaMessageFromMessage(message Message) (kafka.Message, error) {
+// KafkaMessageFromOutboundMessage converts an OutboundMessage to kafka.Message
+// and marshals the OutboundMessage.Value as JSON if not nil.
+func KafkaMessageFromOutboundMessage(message OutboundMessage) (kafka.Message, error) {
+	var rawMessageValue json.RawMessage
 	if message.Value != nil {
 		var err error
-		message.RawValue, err = json.Marshal(message.Value)
+		rawMessageValue, err = json.Marshal(message.Value)
 		if err != nil {
 			return kafka.Message{}, meh.NewInternalErrFromErr(err, "marshal message value", nil)
 		}
@@ -111,18 +145,18 @@ func KafkaMessageFromMessage(message Message) (kafka.Message, error) {
 	return kafka.Message{
 		Topic:   string(message.Topic),
 		Key:     []byte(message.Key),
-		Value:   message.RawValue,
+		Value:   rawMessageValue,
 		Headers: kafkaHeadersFromHeaders(message.Headers, message.EventType),
 	}, nil
 }
 
 // WriteMessages writes the given kafka.Message list to the kafka.Writer with a
 // predefined timeout.
-func WriteMessages(w Writer, messages ...Message) error {
+func WriteMessages(w Writer, messages ...OutboundMessage) error {
 	// Convert all messages.
 	kafkaMessages := make([]kafka.Message, 0, len(messages))
 	for _, message := range messages {
-		kafkaMessage, err := KafkaMessageFromMessage(message)
+		kafkaMessage, err := KafkaMessageFromOutboundMessage(message)
 		if err != nil {
 			return meh.Wrap(err, "convert message to kafka message", meh.Details{"message": message})
 		}
@@ -145,6 +179,7 @@ func NewWriter(logger *zap.Logger, addr string) Writer {
 		ErrorLogger:  kafkaErrorLogger(logger),
 		MaxAttempts:  16,
 		BatchTimeout: 50 * time.Millisecond,
+		BatchSize:    writerBatchSize,
 	}
 }
 
@@ -171,28 +206,4 @@ func NewReader(logger *zap.Logger, addr string, groupID string, groupTopics []ev
 }
 
 // HandlerFunc is a handler function for usage in Read.
-type HandlerFunc func(ctx context.Context, message Message) error
-
-// Read from the given kafka.Reader until the given context is done. For each
-// read message, the given HandlerFunc will be called. It blocks until the
-// handler has finished running. If reading fails, we try again until the
-// context is done. This also applies to failing handlers.
-func Read(ctx context.Context, logger *zap.Logger, reader *kafka.Reader, handlerFn HandlerFunc) error {
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-		}
-		kafkaMessage, err := reader.ReadMessage(ctx)
-		if err != nil {
-			return meh.NewInternalErrFromErr(err, "read message", nil)
-		}
-		convertedMessage := messageFromKafkaMessage(kafkaMessage)
-		err = handlerFn(ctx, convertedMessage)
-		if err != nil {
-			mehlog.Log(logger, meh.Wrap(err, "handle message", meh.Details{"message": convertedMessage}))
-			continue
-		}
-	}
-}
+type HandlerFunc func(ctx context.Context, tx pgx.Tx, message InboundMessage) error

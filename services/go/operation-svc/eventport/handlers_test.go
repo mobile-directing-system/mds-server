@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/gofrs/uuid"
+	"github.com/jackc/pgx/v4"
 	"github.com/mobile-directing-system/mds-server/services/go/operation-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/kafkautil"
@@ -19,16 +20,16 @@ type HandlerMock struct {
 	mock.Mock
 }
 
-func (m *HandlerMock) CreateUser(ctx context.Context, user store.User) error {
-	return m.Called(ctx, user).Error(0)
+func (m *HandlerMock) CreateUser(ctx context.Context, tx pgx.Tx, user store.User) error {
+	return m.Called(ctx, tx, user).Error(0)
 }
 
-func (m *HandlerMock) UpdateUser(ctx context.Context, user store.User) error {
-	return m.Called(ctx, user).Error(0)
+func (m *HandlerMock) UpdateUser(ctx context.Context, tx pgx.Tx, user store.User) error {
+	return m.Called(ctx, tx, user).Error(0)
 }
 
-func (m *HandlerMock) DeleteUserByID(ctx context.Context, userID uuid.UUID) error {
-	return m.Called(ctx, userID).Error(0)
+func (m *HandlerMock) DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error {
+	return m.Called(ctx, tx, userID).Error(0)
 }
 
 // portHandleUserCreatedSuite tests Port.handleUserCreated.
@@ -59,8 +60,8 @@ func (suite *portHandleUserCreatedSuite) SetupTest() {
 	}
 }
 
-func (suite *portHandleUserCreatedSuite) handle(ctx context.Context, rawValue json.RawMessage) error {
-	return suite.port.Port.HandlerFn(suite.handler)(ctx, kafkautil.Message{
+func (suite *portHandleUserCreatedSuite) handle(ctx context.Context, tx pgx.Tx, rawValue json.RawMessage) error {
+	return suite.port.Port.HandlerFn(suite.handler)(ctx, tx, kafkautil.InboundMessage{
 		Topic:     event.UsersTopic,
 		EventType: event.TypeUserCreated,
 		RawValue:  rawValue,
@@ -69,11 +70,11 @@ func (suite *portHandleUserCreatedSuite) handle(ctx context.Context, rawValue js
 
 func (suite *portHandleUserCreatedSuite) TestBadEventValue() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	defer cancel()
+	tx := &testutil.DBTx{}
 
 	go func() {
 		defer cancel()
-		err := suite.handle(timeout, json.RawMessage(`{invalid`))
+		err := suite.handle(timeout, tx, json.RawMessage(`{invalid`))
 		suite.Error(err, "should fail")
 	}()
 
@@ -82,14 +83,14 @@ func (suite *portHandleUserCreatedSuite) TestBadEventValue() {
 
 func (suite *portHandleUserCreatedSuite) TestCreateFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	defer cancel()
-	suite.handler.On("CreateUser", timeout, suite.sampleCreate).
+	tx := &testutil.DBTx{}
+	suite.handler.On("CreateUser", timeout, tx, suite.sampleCreate).
 		Return(errors.New("sad life"))
 	defer suite.handler.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.handle(timeout, testutil.MarshalJSONMust(suite.sampleEvent))
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
 		suite.Error(err, "should fail")
 	}()
 
@@ -98,13 +99,13 @@ func (suite *portHandleUserCreatedSuite) TestCreateFail() {
 
 func (suite *portHandleUserCreatedSuite) TestOK() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	defer cancel()
-	suite.handler.On("CreateUser", timeout, suite.sampleCreate).Return(nil)
+	tx := &testutil.DBTx{}
+	suite.handler.On("CreateUser", timeout, tx, suite.sampleCreate).Return(nil)
 	defer suite.handler.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.handle(timeout, testutil.MarshalJSONMust(suite.sampleEvent))
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
 		suite.NoError(err, "should not fail")
 	}()
 
@@ -142,8 +143,8 @@ func (suite *portHandleUserUpdatedSuite) SetupTest() {
 	}
 }
 
-func (suite *portHandleUserUpdatedSuite) handle(ctx context.Context, rawValue json.RawMessage) error {
-	return suite.port.Port.HandlerFn(suite.handler)(ctx, kafkautil.Message{
+func (suite *portHandleUserUpdatedSuite) handle(ctx context.Context, tx pgx.Tx, rawValue json.RawMessage) error {
+	return suite.port.Port.HandlerFn(suite.handler)(ctx, tx, kafkautil.InboundMessage{
 		Topic:     event.UsersTopic,
 		EventType: event.TypeUserUpdated,
 		RawValue:  rawValue,
@@ -152,11 +153,11 @@ func (suite *portHandleUserUpdatedSuite) handle(ctx context.Context, rawValue js
 
 func (suite *portHandleUserUpdatedSuite) TestBadEventValue() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	defer cancel()
+	tx := &testutil.DBTx{}
 
 	go func() {
 		defer cancel()
-		err := suite.handle(timeout, json.RawMessage(`{invalid`))
+		err := suite.handle(timeout, tx, json.RawMessage(`{invalid`))
 		suite.Error(err, "should fail")
 	}()
 
@@ -165,14 +166,14 @@ func (suite *portHandleUserUpdatedSuite) TestBadEventValue() {
 
 func (suite *portHandleUserUpdatedSuite) TestUpdateFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	defer cancel()
-	suite.handler.On("UpdateUser", timeout, suite.sampleUpdate).
+	tx := &testutil.DBTx{}
+	suite.handler.On("UpdateUser", timeout, tx, suite.sampleUpdate).
 		Return(errors.New("sad life"))
 	defer suite.handler.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.handle(timeout, testutil.MarshalJSONMust(suite.sampleEvent))
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
 		suite.Error(err, "should fail")
 	}()
 
@@ -181,13 +182,13 @@ func (suite *portHandleUserUpdatedSuite) TestUpdateFail() {
 
 func (suite *portHandleUserUpdatedSuite) TestOK() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	defer cancel()
-	suite.handler.On("UpdateUser", timeout, suite.sampleUpdate).Return(nil)
+	tx := &testutil.DBTx{}
+	suite.handler.On("UpdateUser", timeout, tx, suite.sampleUpdate).Return(nil)
 	defer suite.handler.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.handle(timeout, testutil.MarshalJSONMust(suite.sampleEvent))
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
 		suite.NoError(err, "should not fail")
 	}()
 
@@ -214,8 +215,8 @@ func (suite *portHandleUserDeletedSuite) SetupTest() {
 	}
 }
 
-func (suite *portHandleUserDeletedSuite) handle(ctx context.Context, rawValue json.RawMessage) error {
-	return suite.port.Port.HandlerFn(suite.handler)(ctx, kafkautil.Message{
+func (suite *portHandleUserDeletedSuite) handle(ctx context.Context, tx pgx.Tx, rawValue json.RawMessage) error {
+	return suite.port.Port.HandlerFn(suite.handler)(ctx, tx, kafkautil.InboundMessage{
 		Topic:     event.UsersTopic,
 		EventType: event.TypeUserDeleted,
 		RawValue:  rawValue,
@@ -224,11 +225,11 @@ func (suite *portHandleUserDeletedSuite) handle(ctx context.Context, rawValue js
 
 func (suite *portHandleUserDeletedSuite) TestBadEventValue() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	defer cancel()
+	tx := &testutil.DBTx{}
 
 	go func() {
 		defer cancel()
-		err := suite.handle(timeout, json.RawMessage(`{invalid`))
+		err := suite.handle(timeout, tx, json.RawMessage(`{invalid`))
 		suite.Error(err, "should fail")
 	}()
 
@@ -237,14 +238,14 @@ func (suite *portHandleUserDeletedSuite) TestBadEventValue() {
 
 func (suite *portHandleUserDeletedSuite) TestDeleteFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	defer cancel()
-	suite.handler.On("DeleteUserByID", timeout, suite.sampleEvent.ID).
+	tx := &testutil.DBTx{}
+	suite.handler.On("DeleteUserByID", timeout, tx, suite.sampleEvent.ID).
 		Return(errors.New("sad life"))
 	defer suite.handler.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.handle(timeout, testutil.MarshalJSONMust(suite.sampleEvent))
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
 		suite.Error(err, "should fail")
 	}()
 
@@ -253,13 +254,13 @@ func (suite *portHandleUserDeletedSuite) TestDeleteFail() {
 
 func (suite *portHandleUserDeletedSuite) TestOK() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	defer cancel()
-	suite.handler.On("DeleteUserByID", timeout, suite.sampleEvent.ID).Return(nil)
+	tx := &testutil.DBTx{}
+	suite.handler.On("DeleteUserByID", timeout, tx, suite.sampleEvent.ID).Return(nil)
 	defer suite.handler.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.handle(timeout, testutil.MarshalJSONMust(suite.sampleEvent))
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
 		suite.NoError(err, "should not fail")
 	}()
 

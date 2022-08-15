@@ -1,7 +1,9 @@
 package eventport
 
 import (
+	"context"
 	"github.com/gofrs/uuid"
+	"github.com/jackc/pgx/v4"
 	"github.com/lefinal/meh"
 	"github.com/mobile-directing-system/mds-server/services/go/api-gateway-svc/controller"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
@@ -10,8 +12,9 @@ import (
 
 // NotifyUserLoggedIn notifies that a user has logged in via an
 // event.TypeUserLoggedIn event.
-func (p *Port) NotifyUserLoggedIn(userID uuid.UUID, username string, requestMetadata controller.AuthRequestMetadata) error {
-	err := kafkautil.WriteMessages(p.writer, kafkautil.Message{
+func (p *Port) NotifyUserLoggedIn(ctx context.Context, tx pgx.Tx, userID uuid.UUID, username string,
+	requestMetadata controller.AuthRequestMetadata) error {
+	err := p.writer.AddOutboxMessages(ctx, tx, kafkautil.OutboundMessage{
 		Topic:     event.AuthTopic,
 		Key:       userID.String(),
 		EventType: event.TypeUserLoggedIn,
@@ -31,8 +34,9 @@ func (p *Port) NotifyUserLoggedIn(userID uuid.UUID, username string, requestMeta
 
 // NotifyUserLoggedOut notifies that a user has logged out via an
 // event.TypeUserLoggedOut event.
-func (p *Port) NotifyUserLoggedOut(userID uuid.UUID, username string, requestMetadata controller.AuthRequestMetadata) error {
-	err := kafkautil.WriteMessages(p.writer, kafkautil.Message{
+func (p *Port) NotifyUserLoggedOut(ctx context.Context, tx pgx.Tx, userID uuid.UUID, username string,
+	requestMetadata controller.AuthRequestMetadata) error {
+	err := p.writer.AddOutboxMessages(ctx, tx, kafkautil.OutboundMessage{
 		Topic:     event.AuthTopic,
 		Key:       userID.String(),
 		EventType: event.TypeUserLoggedOut,

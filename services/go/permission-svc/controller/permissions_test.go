@@ -181,7 +181,7 @@ func (suite *ControllerUpdatePermissionsByUserSuite) TestNotifyFail() {
 	suite.ctrl.Store.On("AssureUserExists", timeout, suite.ctrl.DB.Tx[0], suite.sampleUserID).Return(nil)
 	suite.ctrl.Store.On("UpdatePermissionsByUser", timeout, suite.ctrl.DB.Tx[0], suite.sampleUserID, suite.sampleUpdatedPermissions).Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyPermissionsUpdated", suite.sampleUserID, suite.sampleUpdatedPermissions).
+	suite.ctrl.Notifier.On("NotifyPermissionsUpdated", timeout, suite.ctrl.DB.Tx[0], suite.sampleUserID, suite.sampleUpdatedPermissions).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
@@ -203,7 +203,7 @@ func (suite *ControllerUpdatePermissionsByUserSuite) TestOK() {
 	suite.ctrl.Store.On("AssureUserExists", timeout, suite.ctrl.DB.Tx[0], suite.sampleUserID).Return(nil)
 	suite.ctrl.Store.On("UpdatePermissionsByUser", timeout, suite.ctrl.DB.Tx[0], suite.sampleUserID, suite.sampleUpdatedPermissions).Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyPermissionsUpdated", suite.sampleUserID, suite.sampleUpdatedPermissions).Return(nil)
+	suite.ctrl.Notifier.On("NotifyPermissionsUpdated", timeout, suite.ctrl.DB.Tx[0], suite.sampleUserID, suite.sampleUpdatedPermissions).Return(nil)
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
 	go func() {

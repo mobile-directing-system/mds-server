@@ -149,7 +149,7 @@ func (suite *ControllerLoginSuite) TestNotifyFail() {
 	suite.ctrl.Store.On("StoreSessionTokenForUser", timeout, suite.ctrl.DB.Tx[0], mock.Anything, suite.sampleUser.ID).
 		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyUserLoggedIn", suite.sampleUser.ID, suite.sampleUsername, suite.sampleRequestMetadata).
+	suite.ctrl.Notifier.On("NotifyUserLoggedIn", timeout, suite.ctrl.DB.Tx[0], suite.sampleUser.ID, suite.sampleUsername, suite.sampleRequestMetadata).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
@@ -170,7 +170,7 @@ func (suite *ControllerLoginSuite) TestOK() {
 	suite.ctrl.Store.On("StoreSessionTokenForUser", timeout, suite.ctrl.DB.Tx[0], mock.Anything, suite.sampleUser.ID).
 		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyUserLoggedIn", suite.sampleUser.ID, suite.sampleUsername, suite.sampleRequestMetadata).
+	suite.ctrl.Notifier.On("NotifyUserLoggedIn", timeout, suite.ctrl.DB.Tx[0], suite.sampleUser.ID, suite.sampleUsername, suite.sampleRequestMetadata).
 		Return(nil)
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
@@ -274,7 +274,8 @@ func (suite *ControllerLogoutSuite) TestNotifyFail() {
 	suite.ctrl.Store.On("UserWithPassByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleUser.ID).
 		Return(suite.sampleUser, nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyUserLoggedOut", suite.sampleUser.ID, suite.sampleUser.Username, suite.sampleRequestMetadata).
+	suite.ctrl.Notifier.On("NotifyUserLoggedOut", timeout, suite.ctrl.DB.Tx[0], suite.sampleUser.ID,
+		suite.sampleUser.Username, suite.sampleRequestMetadata).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
@@ -296,7 +297,8 @@ func (suite *ControllerLogoutSuite) TestOK() {
 	suite.ctrl.Store.On("UserWithPassByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleUser.ID).
 		Return(suite.sampleUser, nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyUserLoggedOut", suite.sampleUser.ID, suite.sampleUser.Username, suite.sampleRequestMetadata).
+	suite.ctrl.Notifier.On("NotifyUserLoggedOut", timeout, suite.ctrl.DB.Tx[0], suite.sampleUser.ID,
+		suite.sampleUser.Username, suite.sampleRequestMetadata).
 		Return(nil)
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 

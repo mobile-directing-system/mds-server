@@ -66,7 +66,7 @@ func tryConnect(ctx context.Context, logger *zap.Logger, config *pgxpool.Config)
 // ConnectAndRunMigrations runs Connect for the given connection string. It then
 // extracts migrations from the given fs.FS using pgmigrate.MigrationsFromFS and
 // runs them using the pgmigrate.Migrator and DefaultMigrationLogTable.
-func ConnectAndRunMigrations(ctx context.Context, logger *zap.Logger, connString string, migrationsFS fs.FS) (*pgxpool.Pool, error) {
+func ConnectAndRunMigrations(ctx context.Context, logger *zap.Logger, connString string, scope string, migrationsFS fs.FS) (*pgxpool.Pool, error) {
 	// Connect.
 	connPool, err := Connect(ctx, logger, connString)
 	if err != nil {
@@ -78,7 +78,7 @@ func ConnectAndRunMigrations(ctx context.Context, logger *zap.Logger, connString
 		return nil, meh.Wrap(err, "migrations from fs", nil)
 	}
 	// Run migrations.
-	migrator, err := pgmigrate.NewMigrator(migrations, DefaultMigrationLogTable)
+	migrator, err := pgmigrate.NewMigrator(migrations, DefaultMigrationLogTable, scope)
 	if err != nil {
 		return nil, meh.Wrap(err, "new migrator", meh.Details{"migration_log_table": DefaultMigrationLogTable})
 	}

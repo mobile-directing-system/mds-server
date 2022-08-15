@@ -28,7 +28,7 @@ func (c *Controller) UpdateOperationMembersByOperation(ctx context.Context, oper
 			})
 		}
 		// Notify.
-		err = c.Notifier.NotifyOperationMembersUpdated(operationID, members)
+		err = c.Notifier.NotifyOperationMembersUpdated(ctx, tx, operationID, members)
 		if err != nil {
 			return meh.Wrap(err, "notify operation members updated", meh.Details{
 				"operation_id": operationID,

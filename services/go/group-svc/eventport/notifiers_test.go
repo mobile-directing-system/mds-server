@@ -6,7 +6,6 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/kafkautil"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
-	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
@@ -16,7 +15,7 @@ type PortNotifyGroupCreatedSuite struct {
 	suite.Suite
 	port            *PortMock
 	sampleGroup     store.Group
-	expectedMessage kafka.Message
+	expectedMessage kafkautil.OutboundMessage
 }
 
 func (suite *PortNotifyGroupCreatedSuite) SetupTest() {
@@ -35,8 +34,7 @@ func (suite *PortNotifyGroupCreatedSuite) SetupTest() {
 		},
 		Members: nil,
 	}
-	var err error
-	suite.expectedMessage, err = kafkautil.KafkaMessageFromMessage(kafkautil.Message{
+	suite.expectedMessage = kafkautil.OutboundMessage{
 		Topic:     event.GroupsTopic,
 		Key:       suite.sampleGroup.ID.String(),
 		EventType: event.TypeGroupCreated,
@@ -47,22 +45,33 @@ func (suite *PortNotifyGroupCreatedSuite) SetupTest() {
 			Operation:   suite.sampleGroup.Operation,
 			Members:     suite.sampleGroup.Members,
 		},
-	})
-	if err != nil {
-		panic(err)
 	}
 }
 
 func (suite *PortNotifyGroupCreatedSuite) TestWriteFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.port.recorder.WriteFail = true
-	err := suite.port.Port.NotifyGroupCreated(suite.sampleGroup)
-	suite.Error(err, "should fail")
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyGroupCreated(timeout, &testutil.DBTx{}, suite.sampleGroup)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
 }
 
 func (suite *PortNotifyGroupCreatedSuite) TestOK() {
-	err := suite.port.Port.NotifyGroupCreated(suite.sampleGroup)
-	suite.Require().NoError(err, "should not fail")
-	suite.Equal([]kafka.Message{suite.expectedMessage}, suite.port.recorder.Recorded, "should write correct messages")
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyGroupCreated(timeout, &testutil.DBTx{}, suite.sampleGroup)
+		suite.Require().NoError(err, "should not fail")
+		suite.Equal([]kafkautil.OutboundMessage{suite.expectedMessage}, suite.port.recorder.Recorded, "should write correct messages")
+	}()
+
+	wait()
 }
 
 func TestPort_NotifyGroupCreated(t *testing.T) {
@@ -74,7 +83,7 @@ type PortNotifyGroupUpdatedSuite struct {
 	suite.Suite
 	port            *PortMock
 	sampleGroup     store.Group
-	expectedMessage kafka.Message
+	expectedMessage kafkautil.OutboundMessage
 }
 
 func (suite *PortNotifyGroupUpdatedSuite) SetupTest() {
@@ -93,8 +102,7 @@ func (suite *PortNotifyGroupUpdatedSuite) SetupTest() {
 		},
 		Members: nil,
 	}
-	var err error
-	suite.expectedMessage, err = kafkautil.KafkaMessageFromMessage(kafkautil.Message{
+	suite.expectedMessage = kafkautil.OutboundMessage{
 		Topic:     event.GroupsTopic,
 		Key:       suite.sampleGroup.ID.String(),
 		EventType: event.TypeGroupUpdated,
@@ -105,22 +113,33 @@ func (suite *PortNotifyGroupUpdatedSuite) SetupTest() {
 			Operation:   suite.sampleGroup.Operation,
 			Members:     suite.sampleGroup.Members,
 		},
-	})
-	if err != nil {
-		panic(err)
 	}
 }
 
 func (suite *PortNotifyGroupUpdatedSuite) TestWriteFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.port.recorder.WriteFail = true
-	err := suite.port.Port.NotifyGroupUpdated(suite.sampleGroup)
-	suite.Error(err, "should fail")
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyGroupUpdated(timeout, &testutil.DBTx{}, suite.sampleGroup)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
 }
 
 func (suite *PortNotifyGroupUpdatedSuite) TestOK() {
-	err := suite.port.Port.NotifyGroupUpdated(suite.sampleGroup)
-	suite.Require().NoError(err, "should not fail")
-	suite.Equal([]kafka.Message{suite.expectedMessage}, suite.port.recorder.Recorded, "should write correct messages")
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyGroupUpdated(timeout, &testutil.DBTx{}, suite.sampleGroup)
+		suite.Require().NoError(err, "should not fail")
+		suite.Equal([]kafkautil.OutboundMessage{suite.expectedMessage}, suite.port.recorder.Recorded, "should write correct messages")
+	}()
+
+	wait()
 }
 
 func TestPort_NotifyGroupUpdated(t *testing.T) {
@@ -132,36 +151,46 @@ type PortNotifyGroupDeletedSuite struct {
 	suite.Suite
 	port            *PortMock
 	sampleGroupID   uuid.UUID
-	expectedMessage kafka.Message
+	expectedMessage kafkautil.OutboundMessage
 }
 
 func (suite *PortNotifyGroupDeletedSuite) SetupTest() {
 	suite.port = newMockPort()
 	suite.sampleGroupID = testutil.NewUUIDV4()
-	var err error
-	suite.expectedMessage, err = kafkautil.KafkaMessageFromMessage(kafkautil.Message{
+	suite.expectedMessage = kafkautil.OutboundMessage{
 		Topic:     event.GroupsTopic,
 		Key:       suite.sampleGroupID.String(),
 		EventType: event.TypeGroupDeleted,
 		Value: event.GroupDeleted{
 			ID: suite.sampleGroupID,
 		},
-	})
-	if err != nil {
-		panic(err)
 	}
 }
 
 func (suite *PortNotifyGroupDeletedSuite) TestWriteFail() {
-	suite.port.recorder.WriteFail = true
-	err := suite.port.Port.NotifyGroupDeleted(suite.sampleGroupID)
-	suite.Error(err, "should fail")
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+
+	go func() {
+		defer cancel()
+		suite.port.recorder.WriteFail = true
+		err := suite.port.Port.NotifyGroupDeleted(timeout, &testutil.DBTx{}, suite.sampleGroupID)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
 }
 
 func (suite *PortNotifyGroupDeletedSuite) TestOK() {
-	err := suite.port.Port.NotifyGroupDeleted(suite.sampleGroupID)
-	suite.Require().NoError(err, "should not fail")
-	suite.Equal([]kafka.Message{suite.expectedMessage}, suite.port.recorder.Recorded, "should write correct messages")
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyGroupDeleted(timeout, &testutil.DBTx{}, suite.sampleGroupID)
+		suite.Require().NoError(err, "should not fail")
+		suite.Equal([]kafkautil.OutboundMessage{suite.expectedMessage}, suite.port.recorder.Recorded, "should write correct messages")
+	}()
+
+	wait()
 }
 
 func TestPort_NotifyGroupDeleted(t *testing.T) {

@@ -7,7 +7,6 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/kafkautil"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
-	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/suite"
 	"testing"
 	"time"
@@ -18,7 +17,7 @@ type PortNotifyOperationCreatedSuite struct {
 	suite.Suite
 	port            *PortMock
 	sampleOperation store.Operation
-	expectedMessage kafka.Message
+	expectedMessage kafkautil.OutboundMessage
 }
 
 func (suite *PortNotifyOperationCreatedSuite) SetupTest() {
@@ -31,8 +30,7 @@ func (suite *PortNotifyOperationCreatedSuite) SetupTest() {
 		End:         nulls.NewTime(time.UnixMilli(2202)),
 		IsArchived:  true,
 	}
-	var err error
-	suite.expectedMessage, err = kafkautil.KafkaMessageFromMessage(kafkautil.Message{
+	suite.expectedMessage = kafkautil.OutboundMessage{
 		Topic:     event.OperationsTopic,
 		Key:       suite.sampleOperation.ID.String(),
 		EventType: event.TypeOperationCreated,
@@ -44,22 +42,35 @@ func (suite *PortNotifyOperationCreatedSuite) SetupTest() {
 			End:         suite.sampleOperation.End,
 			IsArchived:  suite.sampleOperation.IsArchived,
 		},
-	})
-	if err != nil {
-		panic(err)
 	}
 }
 
 func (suite *PortNotifyOperationCreatedSuite) TestWriteFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
 	suite.port.recorder.WriteFail = true
-	err := suite.port.Port.NotifyOperationCreated(suite.sampleOperation)
-	suite.Error(err, "should fail")
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyOperationCreated(timeout, tx, suite.sampleOperation)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
 }
 
 func (suite *PortNotifyOperationCreatedSuite) TestOK() {
-	err := suite.port.Port.NotifyOperationCreated(suite.sampleOperation)
-	suite.Require().NoError(err, "should not fail")
-	suite.Equal([]kafka.Message{suite.expectedMessage}, suite.port.recorder.Recorded, "should write correct message")
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyOperationCreated(timeout, tx, suite.sampleOperation)
+		suite.Require().NoError(err, "should not fail")
+		suite.Equal([]kafkautil.OutboundMessage{suite.expectedMessage}, suite.port.recorder.Recorded, "should write correct message")
+	}()
+
+	wait()
 }
 
 func TestPort_NotifyOperationCreated(t *testing.T) {
@@ -71,7 +82,7 @@ type PortNotifyOperationUpdatedSuite struct {
 	suite.Suite
 	port            *PortMock
 	sampleOperation store.Operation
-	expectedMessage kafka.Message
+	expectedMessage kafkautil.OutboundMessage
 }
 
 func (suite *PortNotifyOperationUpdatedSuite) SetupTest() {
@@ -84,8 +95,7 @@ func (suite *PortNotifyOperationUpdatedSuite) SetupTest() {
 		End:         nulls.NewTime(time.UnixMilli(2202)),
 		IsArchived:  true,
 	}
-	var err error
-	suite.expectedMessage, err = kafkautil.KafkaMessageFromMessage(kafkautil.Message{
+	suite.expectedMessage = kafkautil.OutboundMessage{
 		Topic:     event.OperationsTopic,
 		Key:       suite.sampleOperation.ID.String(),
 		EventType: event.TypeOperationUpdated,
@@ -97,22 +107,35 @@ func (suite *PortNotifyOperationUpdatedSuite) SetupTest() {
 			End:         suite.sampleOperation.End,
 			IsArchived:  suite.sampleOperation.IsArchived,
 		},
-	})
-	if err != nil {
-		panic(err)
 	}
 }
 
 func (suite *PortNotifyOperationUpdatedSuite) TestWriteFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
 	suite.port.recorder.WriteFail = true
-	err := suite.port.Port.NotifyOperationUpdated(suite.sampleOperation)
-	suite.Error(err, "should fail")
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyOperationUpdated(timeout, tx, suite.sampleOperation)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
 }
 
 func (suite *PortNotifyOperationUpdatedSuite) TestOK() {
-	err := suite.port.Port.NotifyOperationUpdated(suite.sampleOperation)
-	suite.Require().NoError(err, "should not fail")
-	suite.Equal([]kafka.Message{suite.expectedMessage}, suite.port.recorder.Recorded, "should write correct message")
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyOperationUpdated(timeout, tx, suite.sampleOperation)
+		suite.Require().NoError(err, "should not fail")
+		suite.Equal([]kafkautil.OutboundMessage{suite.expectedMessage}, suite.port.recorder.Recorded, "should write correct message")
+	}()
+
+	wait()
 }
 
 func TestPort_NotifyOperationUpdated(t *testing.T) {
@@ -126,7 +149,7 @@ type PortNotifyOperationMembersUpdatedSuite struct {
 	port              *PortMock
 	sampleOperationID uuid.UUID
 	sampleMembers     []uuid.UUID
-	expectedMessage   kafka.Message
+	expectedMessage   kafkautil.OutboundMessage
 }
 
 func (suite *PortNotifyOperationMembersUpdatedSuite) SetupTest() {
@@ -136,8 +159,7 @@ func (suite *PortNotifyOperationMembersUpdatedSuite) SetupTest() {
 	for i := range suite.sampleMembers {
 		suite.sampleMembers[i] = testutil.NewUUIDV4()
 	}
-	var err error
-	suite.expectedMessage, err = kafkautil.KafkaMessageFromMessage(kafkautil.Message{
+	suite.expectedMessage = kafkautil.OutboundMessage{
 		Topic:     event.OperationsTopic,
 		Key:       suite.sampleOperationID.String(),
 		EventType: event.TypeOperationMembersUpdated,
@@ -145,22 +167,35 @@ func (suite *PortNotifyOperationMembersUpdatedSuite) SetupTest() {
 			Operation: suite.sampleOperationID,
 			Members:   suite.sampleMembers,
 		},
-	})
-	if err != nil {
-		panic(err)
 	}
 }
 
 func (suite *PortNotifyOperationMembersUpdatedSuite) TestWriteFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
 	suite.port.recorder.WriteFail = true
-	err := suite.port.Port.NotifyOperationMembersUpdated(suite.sampleOperationID, suite.sampleMembers)
-	suite.Error(err, "should fail")
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyOperationMembersUpdated(timeout, tx, suite.sampleOperationID, suite.sampleMembers)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
 }
 
 func (suite *PortNotifyOperationMembersUpdatedSuite) TestOK() {
-	err := suite.port.Port.NotifyOperationMembersUpdated(suite.sampleOperationID, suite.sampleMembers)
-	suite.Require().NoError(err, "should not fail")
-	suite.Equal([]kafka.Message{suite.expectedMessage}, suite.port.recorder.Recorded, "should write correct message")
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyOperationMembersUpdated(timeout, tx, suite.sampleOperationID, suite.sampleMembers)
+		suite.Require().NoError(err, "should not fail")
+		suite.Equal([]kafkautil.OutboundMessage{suite.expectedMessage}, suite.port.recorder.Recorded, "should write correct message")
+	}()
+
+	wait()
 }
 
 func TestPort_NotifyOperationMembersUpdated(t *testing.T) {

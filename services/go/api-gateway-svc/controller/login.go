@@ -59,7 +59,7 @@ func (c *Controller) Login(ctx context.Context, username string, pass string, re
 			})
 		}
 		// Notify.
-		err = c.Notifier.NotifyUserLoggedIn(user.ID, user.Username, requestMetadata)
+		err = c.Notifier.NotifyUserLoggedIn(ctx, tx, user.ID, user.Username, requestMetadata)
 		if err != nil {
 			return meh.Wrap(err, "notify user logged in", meh.Details{
 				"user_id":          user.ID,
@@ -110,7 +110,7 @@ func (c *Controller) Logout(ctx context.Context, publicToken string, requestMeta
 			return meh.Wrap(err, "user by id", meh.Details{"user_id": userID})
 		}
 		// Notify.
-		err = c.Notifier.NotifyUserLoggedOut(userID, user.Username, requestMetadata)
+		err = c.Notifier.NotifyUserLoggedOut(ctx, tx, userID, user.Username, requestMetadata)
 		if err != nil {
 			return meh.Wrap(err, "notify user logged out", nil)
 		}

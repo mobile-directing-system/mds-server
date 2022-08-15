@@ -32,7 +32,7 @@ func (c *Controller) CreateGroup(ctx context.Context, group store.Group) (store.
 			return meh.Wrap(err, "create group in store", meh.Details{"group": group})
 		}
 		// Notify.
-		err = c.Notifier.NotifyGroupCreated(created)
+		err = c.Notifier.NotifyGroupCreated(ctx, tx, created)
 		if err != nil {
 			return meh.Wrap(err, "notify", meh.Details{"group": created})
 		}
@@ -89,7 +89,7 @@ func (c *Controller) UpdateGroup(ctx context.Context, group store.Group) error {
 			return meh.Wrap(err, "update group in store", meh.Details{"group": group})
 		}
 		// Notify.
-		err = c.Notifier.NotifyGroupUpdated(group)
+		err = c.Notifier.NotifyGroupUpdated(ctx, tx, group)
 		if err != nil {
 			return meh.Wrap(err, "notify", meh.Details{"group": group})
 		}
@@ -110,7 +110,7 @@ func (c *Controller) DeleteGroupByID(ctx context.Context, groupID uuid.UUID) err
 			return meh.Wrap(err, "delete group in store", meh.Details{"group_id": groupID})
 		}
 		// Notify.
-		err = c.Notifier.NotifyGroupDeleted(groupID)
+		err = c.Notifier.NotifyGroupDeleted(ctx, tx, groupID)
 		if err != nil {
 			return meh.Wrap(err, "notify", meh.Details{"group_id": groupID})
 		}

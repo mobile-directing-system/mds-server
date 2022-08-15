@@ -113,7 +113,7 @@ func (suite *ControllerCreateGroupSuite) TestNotifyFail() {
 	suite.ctrl.Store.On("CreateGroup", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroup).
 		Return(created, nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyGroupCreated", created).
+	suite.ctrl.Notifier.On("NotifyGroupCreated", timeout, suite.ctrl.DB.Tx[0], created).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
@@ -137,7 +137,7 @@ func (suite *ControllerCreateGroupSuite) TestOK() {
 	suite.ctrl.Store.On("CreateGroup", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroup).
 		Return(created, nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyGroupCreated", created).
+	suite.ctrl.Notifier.On("NotifyGroupCreated", timeout, suite.ctrl.DB.Tx[0], created).
 		Return(nil)
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
@@ -257,7 +257,7 @@ func (suite *ControllerUpdateGroupSuite) TestNotifyFail() {
 	suite.ctrl.Store.On("UpdateGroup", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroup).
 		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyGroupUpdated", suite.sampleGroup).
+	suite.ctrl.Notifier.On("NotifyGroupUpdated", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroup).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
@@ -279,7 +279,7 @@ func (suite *ControllerUpdateGroupSuite) TestOK() {
 	suite.ctrl.Store.On("UpdateGroup", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroup).
 		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyGroupUpdated", suite.sampleGroup).
+	suite.ctrl.Notifier.On("NotifyGroupUpdated", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroup).
 		Return(nil)
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
@@ -345,7 +345,7 @@ func (suite *ControllerDeleteGroupByIDSuite) TestNotifyFail() {
 	suite.ctrl.Store.On("DeleteGroupByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroup).
 		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyGroupDeleted", suite.sampleGroup).
+	suite.ctrl.Notifier.On("NotifyGroupDeleted", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroup).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
@@ -365,7 +365,7 @@ func (suite *ControllerDeleteGroupByIDSuite) TestOK() {
 	suite.ctrl.Store.On("DeleteGroupByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroup).
 		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyGroupDeleted", suite.sampleGroup).
+	suite.ctrl.Notifier.On("NotifyGroupDeleted", timeout, suite.ctrl.DB.Tx[0], suite.sampleGroup).
 		Return(nil)
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
