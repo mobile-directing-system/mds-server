@@ -43,6 +43,15 @@ func (m *Mall) UpdateOperationMembersByOperation(ctx context.Context, tx pgx.Tx,
 	if err != nil {
 		return mehpg.NewQueryDBErr(err, "exec add-query", addQuery)
 	}
+	// Update in search.
+	op, err := m.OperationByID(ctx, tx, operationID)
+	if err != nil {
+		return meh.Wrap(err, "operation by id", meh.Details{"operation_id": operationID})
+	}
+	err = m.searchClient.SafeAddOrUpdateDocument(ctx, tx, operationSearchIndex, documentFromOperation(op, members))
+	if err != nil {
+		return meh.Wrap(err, "safe add or update document", nil)
+	}
 	return nil
 }
 
@@ -88,6 +97,35 @@ func (m *Mall) OperationMembersByOperation(ctx context.Context, tx pgx.Tx, opera
 		users = append(users, user)
 	}
 	return pagination.NewPaginated(params, users, total), nil
+}
+
+// allOperationMembersByOperation retrieves all members for the operation with
+// the given id.
+func (m *Mall) allOperationMembersByOperation(ctx context.Context, tx pgx.Tx, operationID uuid.UUID) ([]uuid.UUID, error) {
+	// Build query.
+	q, _, err := m.dialect.From(goqu.T("operation_members")).
+		Select(goqu.C("user")).
+		Where(goqu.C("operation").Eq(operationID)).ToSQL()
+	if err != nil {
+		return nil, meh.Wrap(err, "query to sql", nil)
+	}
+	// Query.
+	rows, err := tx.Query(ctx, q)
+	if err != nil {
+		return nil, mehpg.NewQueryDBErr(err, "query db", q)
+	}
+	defer rows.Close()
+	// Scan.
+	members := make([]uuid.UUID, 0)
+	for rows.Next() {
+		var id uuid.UUID
+		err = rows.Scan(&id)
+		if err != nil {
+			return nil, mehpg.NewScanRowsErr(err, "scan row", q)
+		}
+		members = append(members, id)
+	}
+	return members, nil
 }
 
 // OperationsByMember retrieves an Operation list for the member with the given

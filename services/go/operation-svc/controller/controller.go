@@ -7,6 +7,7 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/operation-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pgutil"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/search"
 	"go.uber.org/zap"
 )
 
@@ -23,7 +24,8 @@ type Store interface {
 	// OperationByID retrieves an store.Operation by its id.
 	OperationByID(ctx context.Context, tx pgx.Tx, operationID uuid.UUID) (store.Operation, error)
 	// Operations retrieves an store.Operation list.
-	Operations(ctx context.Context, tx pgx.Tx, params pagination.Params) (pagination.Paginated[store.Operation], error)
+	Operations(ctx context.Context, tx pgx.Tx, operationFilters store.OperationRetrievalFilters,
+		paginationParams pagination.Params) (pagination.Paginated[store.Operation], error)
 	// CreateOperation creates the given store.Operation and returns it with its
 	// assigned id.
 	CreateOperation(ctx context.Context, tx pgx.Tx, operation store.Operation) (store.Operation, error)
@@ -45,6 +47,11 @@ type Store interface {
 	// OperationsByMember retrieves an Operation list for the member with the given
 	// id.
 	OperationsByMember(ctx context.Context, tx pgx.Tx, userID uuid.UUID) ([]store.Operation, error)
+	// SearchOperations searches for operations with the given search.Params.
+	SearchOperations(ctx context.Context, tx pgx.Tx, operationFilters store.OperationRetrievalFilters,
+		searchParams search.Params) (search.Result[store.Operation], error)
+	// RebuildOperationSearch rebuilds the operation-search.
+	RebuildOperationSearch(ctx context.Context, tx pgx.Tx) error
 }
 
 // Notifier sends event messages.

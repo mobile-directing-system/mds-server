@@ -125,6 +125,12 @@ Entry payload:
         "is_admin": false
     }
 
+Available query parameters:
+
+- ``only_ongoing``: Limit only to operations, currently running (default is ``false``).
+- ``include_archived``: Include archived operations in results (default is ``false``).
+- ``for_user``: Only show operations, the given user is member of.
+
 The following fields can be used for ordering:
 
 - ``username``

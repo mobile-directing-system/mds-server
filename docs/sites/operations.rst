@@ -81,7 +81,8 @@ Response (200):
         "is_archived": false
     }
 
-Retrieving a :ref:`paginated <http-api.pagination>` operation list requires the :ref:`permission.operation.view.any` permission:
+Retrieving a :ref:`paginated <http-api.pagination>` operation list requires the :ref:`permission.operation.view.any` permission, if all operations should be retrieved.
+Otherwise, only operations are returned that the requesting client is member of.
 
 `GET /operations`
 
@@ -105,6 +106,27 @@ The following fields can be used for ordering:
 - ``start``
 - ``end``
 - ``is_archived``
+
+:ref:`Search <http-api.search>` is available via:
+
+`GET /operations/search`
+
+Entry payload:
+
+.. code-block:: json
+
+    {
+        "id": "<operation_id",
+        "title": "<operation_title>",
+        "description": "<description>"
+        "start": "2006-01-02T15:04:05Z07:00",
+        "end": "2006-01-02T15:04:05Z07:00",
+        "is_archived": false
+    }
+
+The search index can be rebuilt via:
+
+`POST /operations/search/rebuild`
 
 Update operation members
 ========================

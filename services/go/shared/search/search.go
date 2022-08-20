@@ -3,15 +3,38 @@ package search
 
 import (
 	"context"
+	"embed"
+	"github.com/doug-martin/goqu/v9"
 	"github.com/gofrs/uuid"
+	"github.com/jackc/pgx/v4"
 	"github.com/lefinal/meh"
 	"github.com/meilisearch/meilisearch-go"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/pgconnect"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/pgmigrate"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/pgutil"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
+	"io/fs"
 	"net/http"
 	"reflect"
 	"time"
 )
+
+//go:embed db-migrations/*.sql
+var dbMigrationsEmbedded embed.FS
+
+var dbMigrations fs.FS
+
+// dbScope is the scope for pgmigrate.Migrator.
+const dbScope = "__search"
+
+func init() {
+	var err error
+	dbMigrations, err = fs.Sub(dbMigrationsEmbedded, "db-migrations")
+	if err != nil {
+		panic("create sub fs for database migration")
+	}
+}
 
 const awaitTaskCooldown = 400 * time.Millisecond
 
@@ -47,11 +70,12 @@ type IndexConfig struct {
 // ClientConfig is used for Launch of a new Client.
 type ClientConfig struct {
 	// Host under which Meilisearch is accessible.
-	Host         string
-	MasterKey    string
-	IndexConfigs map[Index]IndexConfig
-	Logger       *zap.Logger
-	Timeout      time.Duration
+	Host           string
+	MasterKey      string
+	IndexConfigs   map[Index]IndexConfig
+	Logger         *zap.Logger
+	Timeout        time.Duration
+	RebuildIndexFn RebuildIndexFn
 }
 
 // Client allows searching and setting up/manipulating indices.
@@ -65,12 +89,37 @@ type Client interface {
 	Logger() *zap.Logger
 }
 
+// SafeClient extends Client with methods, allowing safe execution of
+// operations. This means that by using the given pgx.Tx, actions are added to a
+// queue in the database and handled asynchronously. If the pgx.Tx gets rolled
+// back, the action also will not be performed.
+type SafeClient interface {
+	Client
+	// Run the action processor for handling scheduled actions via safe-methods.
+	Run(ctx context.Context) error
+	// SafeAddOrUpdateDocument adds/updates the given Document for the Index
+	// asynchronously.
+	SafeAddOrUpdateDocument(ctx context.Context, tx pgx.Tx, index Index, document Document) error
+	// SafeDeleteDocumentByUUID deletes the document with the given id.
+	SafeDeleteDocumentByUUID(ctx context.Context, tx pgx.Tx, index Index, id uuid.UUID) error
+	// SafeDeleteDocumentByID deletes the document with the given id.
+	SafeDeleteDocumentByID(ctx context.Context, tx pgx.Tx, index Index, id string) error
+	// SafeRebuildIndex deletes all documents for the given index, waits for task
+	// completion, and then adds documents by reading from the passed channel. If
+	// all documents were passed, the channel must be closed from the document
+	// retriever. The document retrieves is called as soon as all documents have
+	// been deleted.
+	SafeRebuildIndex(ctx context.Context, tx pgx.Tx, index Index) error
+}
+
 // client is the actual implemenation of Client.
 type client struct {
 	// msClient is the meilisearch.Client to use and should never be nil.
-	msClient     *meilisearch.Client
-	logger       *zap.Logger
-	indexConfigs map[Index]IndexConfig
+	msClient        *meilisearch.Client
+	logger          *zap.Logger
+	indexConfigs    map[Index]IndexConfig
+	txSupplier      pgutil.DBTxSupplier
+	actionProcessor *actionProcessor
 }
 
 func (c *client) Index(index Index) meilisearch.IndexInterface {
@@ -104,9 +153,16 @@ func (c *client) GetIndex(uid string) (resp *meilisearch.Index, err error) {
 	return c.msClient.GetIndex(uid)
 }
 
-// Launch creates and prepares a nwe Client with the given ClientConfig. This
-// may be a long-running operation because we wait for index updates.
-func Launch(ctx context.Context, clientConfig ClientConfig) (Client, error) {
+// LaunchSafe creates and prepares a new SafeClient with the given ClientConfig.
+// This may be a long-running operation because we wait for index updates. Do
+// not forget to call SafeClient.Run in order to process scheduled events!
+func LaunchSafe(ctx context.Context, logger *zap.Logger, txSupplier pgutil.DBTxSupplier, clientConfig ClientConfig) (SafeClient, error) {
+	// Run database migrations.
+	err := runDBMigrations(ctx, logger.Named("db-migrations"), txSupplier, dbMigrations)
+	if err != nil {
+		return nil, meh.Wrap(err, "run db migrations", nil)
+	}
+	// Prepare Meilisearch.
 	if clientConfig.Timeout == 0 {
 		clientConfig.Timeout = DefaultClientTimeout
 	}
@@ -119,12 +175,46 @@ func Launch(ctx context.Context, clientConfig ClientConfig) (Client, error) {
 		msClient:     msClient,
 		logger:       clientConfig.Logger,
 		indexConfigs: clientConfig.IndexConfigs,
+		txSupplier:   txSupplier,
+		actionProcessor: &actionProcessor{
+			logger: clientConfig.Logger.Named("action-processor"),
+			store: &dbActionStore{
+				txSupplier: txSupplier,
+				dialect:    goqu.Dialect("postgres"),
+			},
+			rebuildIndex: clientConfig.RebuildIndexFn,
+		},
 	}
-	err := launchClient(ctx, c, clientConfig)
+	c.actionProcessor.searchClient = c
+	err = launchClient(ctx, c, clientConfig)
 	if err != nil {
 		return nil, meh.Wrap(err, "launch client", nil)
 	}
 	return c, nil
+}
+
+func runDBMigrations(ctx context.Context, logger *zap.Logger, txSupplier pgutil.DBTxSupplier, migrationsFS fs.FS) error {
+	// Extract migrations.
+	migrations, err := pgmigrate.MigrationsFromFS(migrationsFS)
+	if err != nil {
+		return meh.Wrap(err, "migrations from fs", nil)
+	}
+	// Run migrations.
+	migrator, err := pgmigrate.NewMigrator(migrations, pgconnect.DefaultMigrationLogTable, dbScope)
+	if err != nil {
+		return meh.Wrap(err, "new migrator", meh.Details{"migration_log_table": pgconnect.DefaultMigrationLogTable})
+	}
+	err = pgutil.RunInTx(ctx, txSupplier, func(ctx context.Context, tx pgx.Tx) error {
+		err = migrator.Up(ctx, logger, tx.Conn())
+		if err != nil {
+			return meh.Wrap(err, "migrator up", nil)
+		}
+		return nil
+	})
+	if err != nil {
+		return meh.Wrap(err, "run in tx", nil)
+	}
+	return nil
 }
 
 func launchIndex(ctx context.Context, c Client, index Index, indexConfig IndexConfig) error {
@@ -408,13 +498,34 @@ func MapResult[From any, To any](from Result[From], mapFn func(From) To) Result[
 	}
 }
 
+// Request for usage in search-functions like UUIDSearch.
+type Request struct {
+	Filter            interface{}
+	Facets            []string
+	PlaceholderSearch bool
+	Sort              []string
+}
+
 // UUIDSearch searches the given Index with Params and parses the returned ID
 // based on the IndexConfig.PrimaryKey for the given Index.
-func UUIDSearch(c Client, index Index, searchParams Params) (Result[uuid.UUID], error) {
-	msResult, err := c.Index(index).Search(searchParams.Query, &meilisearch.SearchRequest{
-		Offset: int64(searchParams.Offset),
-		Limit:  int64(searchParams.Limit),
-	})
+func UUIDSearch(c Client, index Index, searchParams Params, request Request) (Result[uuid.UUID], error) {
+	meiliRequest := &meilisearch.SearchRequest{
+		Offset:                int64(searchParams.Offset),
+		Limit:                 int64(searchParams.Limit),
+		AttributesToRetrieve:  nil,
+		AttributesToCrop:      nil,
+		CropLength:            0,
+		CropMarker:            "",
+		AttributesToHighlight: nil,
+		HighlightPreTag:       "",
+		HighlightPostTag:      "",
+		Filter:                request.Filter,
+		ShowMatchesPosition:   false,
+		Facets:                request.Facets,
+		PlaceholderSearch:     request.PlaceholderSearch,
+		Sort:                  request.Sort,
+	}
+	msResult, err := c.Index(index).Search(searchParams.Query, meiliRequest)
 	if err != nil {
 		return Result[uuid.UUID]{}, meh.NewInternalErrFromErr(err, "search", meh.Details{
 			"query":  searchParams.Query,

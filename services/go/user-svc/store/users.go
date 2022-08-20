@@ -23,10 +23,10 @@ const userSearchAttrLastName search.Attribute = "last_name"
 var userSearchIndexConfig = search.IndexConfig{
 	PrimaryKey: userSearchAttrID,
 	Searchable: []search.Attribute{
-		userSearchAttrID,
 		userSearchAttrUsername,
 		userSearchAttrFirstName,
 		userSearchAttrLastName,
+		userSearchAttrID,
 	},
 	Filterable: nil,
 	Sortable:   nil,
@@ -234,10 +234,11 @@ func (m *Mall) CreateUser(ctx context.Context, tx pgx.Tx, user UserWithPass) (Us
 	if err != nil {
 		return User{}, mehpg.NewScanRowsErr(err, "scan row", q)
 	}
+	rows.Close()
 	// Add to search.
-	err = search.AddOrUpdateDocuments(m.searchClient, userSearchIndex, documentFromUser(user.User))
+	err = m.searchClient.SafeAddOrUpdateDocument(ctx, tx, userSearchIndex, documentFromUser(user.User))
 	if err != nil {
-		return User{}, meh.Wrap(err, "add or update in search", nil)
+		return User{}, meh.Wrap(err, "safe add or update in search", nil)
 	}
 	return user.User, nil
 }
@@ -264,9 +265,9 @@ func (m *Mall) UpdateUser(ctx context.Context, tx pgx.Tx, user User) error {
 		return meh.NewNotFoundErr("user not found", nil)
 	}
 	// Update in search.
-	err = search.AddOrUpdateDocuments(m.searchClient, userSearchIndex, documentFromUser(user))
+	err = m.searchClient.SafeAddOrUpdateDocument(ctx, tx, userSearchIndex, documentFromUser(user))
 	if err != nil {
-		return meh.Wrap(err, "add or update in search", nil)
+		return meh.Wrap(err, "safe add or update in search", nil)
 	}
 	return nil
 }
@@ -288,9 +289,9 @@ func (m *Mall) DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) 
 		return meh.NewNotFoundErr("user not found", nil)
 	}
 	// Delete from search.
-	err = search.DeleteDocumentsByUUID(m.searchClient, userSearchIndex, userID)
+	err = m.searchClient.SafeDeleteDocumentByUUID(ctx, tx, userSearchIndex, userID)
 	if err != nil {
-		return meh.Wrap(err, "delete in search", nil)
+		return meh.Wrap(err, "safe delete in search", nil)
 	}
 	return nil
 }
@@ -319,7 +320,7 @@ func (m *Mall) UpdateUserPassByUserID(ctx context.Context, tx pgx.Tx, userID uui
 // SearchUsers searches for users with the given search.Params.
 func (m *Mall) SearchUsers(ctx context.Context, tx pgx.Tx, searchParams search.Params) (search.Result[User], error) {
 	// Search.
-	resultUUIDs, err := search.UUIDSearch(m.searchClient, userSearchIndex, searchParams)
+	resultUUIDs, err := search.UUIDSearch(m.searchClient, userSearchIndex, searchParams, search.Request{})
 	if err != nil {
 		return search.Result[User]{}, meh.Wrap(err, "search uuids", meh.Details{
 			"index":  userSearchIndex,
@@ -361,46 +362,9 @@ func (m *Mall) SearchUsers(ctx context.Context, tx pgx.Tx, searchParams search.P
 
 // RebuildUserSearch rebuilds the user search.
 func (m *Mall) RebuildUserSearch(ctx context.Context, tx pgx.Tx) error {
-	err := search.Rebuild(ctx, m.searchClient, userSearchIndex, search.DefaultBatchSize,
-		func(ctx context.Context, next chan<- search.Document) error {
-			defer close(next)
-			// Build query.
-			q, _, err := m.dialect.From(goqu.T("users")).
-				Select(goqu.C("id"),
-					goqu.C("username"),
-					goqu.C("first_name"),
-					goqu.C("last_name"),
-					goqu.C("is_admin")).ToSQL()
-			if err != nil {
-				return meh.Wrap(err, "query to sql", nil)
-			}
-			// Query.
-			rows, err := tx.Query(ctx, q)
-			if err != nil {
-				return mehpg.NewQueryDBErr(err, "query db", q)
-			}
-			defer rows.Close()
-			// Scan.
-			for rows.Next() {
-				var user User
-				err = rows.Scan(&user.ID,
-					&user.Username,
-					&user.FirstName,
-					&user.LastName,
-					&user.IsAdmin)
-				if err != nil {
-					return mehpg.NewScanRowsErr(err, "scan row", q)
-				}
-				select {
-				case <-ctx.Done():
-					return ctx.Err()
-				case next <- documentFromUser(user):
-				}
-			}
-			return nil
-		})
+	err := m.searchClient.SafeRebuildIndex(ctx, tx, userSearchIndex)
 	if err != nil {
-		return meh.Wrap(err, "rebuild search", nil)
+		return meh.Wrap(err, "safe rebuild index", nil)
 	}
 	return nil
 }
