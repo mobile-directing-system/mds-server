@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/mobile-directing-system/mds-server/services/go/operation-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/search"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
 	"github.com/stretchr/testify/mock"
 	"go.uber.org/zap"
@@ -48,11 +49,6 @@ func (m *StoreMock) OperationByID(ctx context.Context, tx pgx.Tx, operationID uu
 	return args.Get(0).(store.Operation), args.Error(1)
 }
 
-func (m *StoreMock) Operations(ctx context.Context, tx pgx.Tx, params pagination.Params) (pagination.Paginated[store.Operation], error) {
-	args := m.Called(ctx, tx, params)
-	return args.Get(0).(pagination.Paginated[store.Operation]), args.Error(1)
-}
-
 func (m *StoreMock) CreateOperation(ctx context.Context, tx pgx.Tx, operation store.Operation) (store.Operation, error) {
 	args := m.Called(ctx, tx, operation)
 	return args.Get(0).(store.Operation), args.Error(1)
@@ -60,6 +56,22 @@ func (m *StoreMock) CreateOperation(ctx context.Context, tx pgx.Tx, operation st
 
 func (m *StoreMock) UpdateOperation(ctx context.Context, tx pgx.Tx, operation store.Operation) error {
 	return m.Called(ctx, tx, operation).Error(0)
+}
+
+func (m *StoreMock) Operations(ctx context.Context, tx pgx.Tx, operationFilters store.OperationRetrievalFilters,
+	paginationParams pagination.Params) (pagination.Paginated[store.Operation], error) {
+	args := m.Called(ctx, tx, operationFilters, paginationParams)
+	return args.Get(0).(pagination.Paginated[store.Operation]), args.Error(1)
+}
+
+func (m *StoreMock) SearchOperations(ctx context.Context, tx pgx.Tx, operationFilters store.OperationRetrievalFilters,
+	searchParams search.Params) (search.Result[store.Operation], error) {
+	args := m.Called(ctx, tx, operationFilters, searchParams)
+	return args.Get(0).(search.Result[store.Operation]), args.Error(1)
+}
+
+func (m *StoreMock) RebuildOperationSearch(ctx context.Context, tx pgx.Tx) error {
+	return m.Called(ctx, tx).Error(0)
 }
 
 func (m *StoreMock) CreateUser(ctx context.Context, tx pgx.Tx, create store.User) error {

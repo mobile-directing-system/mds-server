@@ -71,6 +71,110 @@ spec:
           persistentVolumeClaim:
             claimName: mds-operation-svc-postgres-pvc
 ---
+# Meilisearch (based on https://github.com/meilisearch/meilisearch-kubernetes/blob/main/manifests/meilisearch.yaml).
+
+# Meilisearch config map.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mds-operation-svc-meilisearch-config
+  labels:
+    app.kubernetes.io/name: mds-operation-svc-meilisearch
+    app.kubernetes.io/instance: mds-operation-svc-meilisearch
+data:
+  MEILI_ENV: "production"
+  MEILI_NO_ANALYTICS: "true"
+  MEILI_MASTER_KEY: "mds"
+---
+# Meilisearch pvc.
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: mds-operation-svc-meilisearch-pvc
+  labels:
+    app.kubernetes.io/name: mds-operation-svc-meilisearch
+    app.kubernetes.io/instance: mds-operation-svc-meilisearch
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10G
+---
+# Meilisearch service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mds-operation-svc-meilisearch-service
+  labels:
+    app.kubernetes.io/name: mds-operation-svc-meilisearch
+    app.kubernetes.io/instance: mds-operation-svc-meilisearch
+spec:
+  type: ClusterIP
+  ports:
+    - port: 7700
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: mds-operation-svc-meilisearch
+    app.kubernetes.io/instance: mds-operation-svc-meilisearch
+---
+# Meilisearch stateful set.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mds-operation-svc-meilisearch
+  labels:
+    app.kubernetes.io/name: mds-operation-svc-meilisearch
+    app.kubernetes.io/instance: mds-operation-svc-meilisearch
+spec:
+  replicas: 1
+  serviceName: mds-operation-svc-meilisearch-service
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mds-operation-svc-meilisearch
+      app.kubernetes.io/instance: mds-operation-svc-meilisearch
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mds-operation-svc-meilisearch
+        app.kubernetes.io/instance: mds-operation-svc-meilisearch
+    spec:
+      serviceAccountName: meilisearch
+      volumes:
+        - name: mds-operation-svc-meilisearch-v-data
+          persistentVolumeClaim:
+            claimName: mds-operation-svc-meilisearch-pvc
+      containers:
+        - name: meilisearch
+          image: getmeili/meilisearch:v0.28.0
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: mds-operation-svc-meilisearch-v-data
+              mountPath: /meili_data
+          envFrom:
+            - configMapRef:
+                name: mds-operation-svc-meilisearch-config
+          ports:
+            - name: http
+              containerPort: 7700
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 60
+            initialDelaySeconds: 60
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 60
+            initialDelaySeconds: 60
+          resources:
+            { }
+---
 # Operation svc config.
 apiVersion: v1
 kind: ConfigMap
@@ -83,6 +187,8 @@ data:
   MDS_KAFKA_ADDR: kafka-cluster-kafka-bootstrap.kafka:9092
   MDS_SERVE_ADDR: :8080
   MDS_LOG_LEVEL: debug
+  MDS_SEARCH_HOST: http://mds-operation-svc-meilisearch-service:7700
+  MDS_SEARCH_MASTER_KEY: mds
 ---
 # Operation svc service.
 apiVersion: v1

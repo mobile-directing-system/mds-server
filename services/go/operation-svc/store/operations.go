@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"fmt"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v4"
@@ -10,8 +11,58 @@ import (
 	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/entityvalidation"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/pgutil"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/search"
 	"time"
 )
+
+// Operation search.
+const (
+	operationSearchIndex           search.Index     = "operations"
+	operationSearchAttrID          search.Attribute = "id"
+	operationSearchAttrTitle       search.Attribute = "title"
+	operationSearchAttrDescription search.Attribute = "description"
+	operationSearchAttrStartTS     search.Attribute = "start_ts"
+	operationSearchAttrEndTS       search.Attribute = "end_ts"
+	operationSearchAttrIsArchived  search.Attribute = "is_archived"
+	operationSearchAttrMembers     search.Attribute = "members"
+)
+
+var operationSearchIndexConfig = search.IndexConfig{
+	PrimaryKey: operationSearchAttrID,
+	Searchable: []search.Attribute{
+		operationSearchAttrTitle,
+		operationSearchAttrDescription,
+		operationSearchAttrID,
+	},
+	Filterable: []search.Attribute{
+		operationSearchAttrStartTS,
+		operationSearchAttrEndTS,
+		operationSearchAttrIsArchived,
+		operationSearchAttrMembers,
+	},
+	Sortable: nil,
+}
+
+func documentFromOperation(o Operation, members []uuid.UUID) search.Document {
+	membersMapped := make([]string, 0, len(members))
+	for _, member := range members {
+		membersMapped = append(membersMapped, member.String())
+	}
+	var endTS nulls.Int64
+	if o.End.Valid {
+		endTS = nulls.NewInt64(o.End.Time.UTC().UnixNano())
+	}
+	return search.Document{
+		operationSearchAttrID:          o.ID,
+		operationSearchAttrTitle:       o.Title,
+		operationSearchAttrDescription: o.Description,
+		operationSearchAttrStartTS:     o.Start.UTC().UnixNano(),
+		operationSearchAttrEndTS:       endTS,
+		operationSearchAttrIsArchived:  o.IsArchived,
+		operationSearchAttrMembers:     membersMapped,
+	}
+}
 
 // Operation is the store representation of an operation.
 type Operation struct {
@@ -80,22 +131,45 @@ func (m *Mall) OperationByID(ctx context.Context, tx pgx.Tx, operationID uuid.UU
 	return operation, nil
 }
 
+// OperationRetrievalFilters for retrieval.
+type OperationRetrievalFilters struct {
+	// OnlyOngoing only includes ongoing operations that have not ended, yet.
+	OnlyOngoing bool
+	// IncludeArchived includes operations being marked as archived.
+	IncludeArchived bool
+	// ForUser only includes operations, the user with the given id is member of.
+	ForUser uuid.NullUUID
+}
+
 // Operations retrieves an Operation list.
-func (m *Mall) Operations(ctx context.Context, tx pgx.Tx, params pagination.Params) (pagination.Paginated[Operation], error) {
+func (m *Mall) Operations(ctx context.Context, tx pgx.Tx, operationFilters OperationRetrievalFilters,
+	paginationParams pagination.Params) (pagination.Paginated[Operation], error) {
 	// Build query.
-	q, _, err := pagination.QueryToSQLWithPagination(m.dialect.From(goqu.T("operations")).
-		Select(goqu.C("id"),
-			goqu.C("title"),
-			goqu.C("description"),
-			goqu.C("start_ts"),
-			goqu.C("end_ts"),
-			goqu.C("is_archived")).
-		Order(goqu.C("end_ts").Desc()), params, pagination.FieldMap{
-		"title":       goqu.C("title"),
-		"description": goqu.C("description"),
-		"start":       goqu.C("start_ts"),
-		"end":         goqu.C("end_ts"),
-		"is_archived": goqu.C("is_archived"),
+	qb := m.dialect.From(goqu.T("operations")).
+		Select(goqu.I("operations.id"),
+			goqu.I("operations.title"),
+			goqu.I("operations.description"),
+			goqu.I("operations.start_ts"),
+			goqu.I("operations.end_ts"),
+			goqu.I("operations.is_archived")).
+		Order(goqu.I("operations.end_ts").Desc())
+	if operationFilters.OnlyOngoing {
+		qb = qb.Where(goqu.Or(goqu.I("operations.end_ts").IsNull(),
+			goqu.I("operations.end_ts").Gt(goqu.L("now()"))))
+	}
+	if !operationFilters.IncludeArchived {
+		qb = qb.Where(goqu.I("operations.is_archived").IsFalse())
+	}
+	if operationFilters.ForUser.Valid {
+		qb = qb.Where(goqu.I("operations.id").In(m.dialect.From(goqu.T("operation_members")).
+			Select(goqu.I("operation_members.operation")).Where(goqu.I("operation_members.user").Eq(operationFilters.ForUser.UUID))))
+	}
+	q, _, err := pagination.QueryToSQLWithPagination(qb, paginationParams, pagination.FieldMap{
+		"title":       goqu.I("operations.title"),
+		"description": goqu.I("operations.description"),
+		"start":       goqu.I("operations.start_ts"),
+		"end":         goqu.I("operations.end_ts"),
+		"is_archived": goqu.I("operations.is_archived"),
 	})
 	if err != nil {
 		return pagination.Paginated[Operation]{}, meh.Wrap(err, "query to sql with pagination", nil)
@@ -123,7 +197,7 @@ func (m *Mall) Operations(ctx context.Context, tx pgx.Tx, params pagination.Para
 		}
 		operations = append(operations, operation)
 	}
-	return pagination.NewPaginated(params, operations, total), nil
+	return pagination.NewPaginated(paginationParams, operations, total), nil
 }
 
 // CreateOperation creates the given Operation and returns it with its assigned
@@ -156,6 +230,16 @@ func (m *Mall) CreateOperation(ctx context.Context, tx pgx.Tx, operation Operati
 	if err != nil {
 		return Operation{}, mehpg.NewScanRowsErr(err, "scan row", q)
 	}
+	rows.Close()
+	// Add to search.
+	members, err := m.allOperationMembersByOperation(ctx, tx, operation.ID)
+	if err != nil {
+		return Operation{}, meh.Wrap(err, "all operation members by operation", nil)
+	}
+	err = m.searchClient.SafeAddOrUpdateDocument(ctx, tx, operationSearchIndex, documentFromOperation(operation, members))
+	if err != nil {
+		return Operation{}, meh.Wrap(err, "safe add or update in search", nil)
+	}
 	return operation, nil
 }
 
@@ -179,6 +263,95 @@ func (m *Mall) UpdateOperation(ctx context.Context, tx pgx.Tx, operation Operati
 	}
 	if result.RowsAffected() == 0 {
 		return meh.NewNotFoundErr("operation not found", nil)
+	}
+	// Update in search.
+	members, err := m.allOperationMembersByOperation(ctx, tx, operation.ID)
+	if err != nil {
+		return meh.Wrap(err, "all operation members by operation", nil)
+	}
+	err = m.searchClient.SafeAddOrUpdateDocument(ctx, tx, operationSearchIndex, documentFromOperation(operation, members))
+	if err != nil {
+		return meh.Wrap(err, "safe add or update in search", nil)
+	}
+	return nil
+}
+
+// SearchOperations searches for operations with the given search.Params.
+func (m *Mall) SearchOperations(ctx context.Context, tx pgx.Tx, operationFilters OperationRetrievalFilters,
+	searchParams search.Params) (search.Result[Operation], error) {
+	// Search.
+	var filters [][]string
+	if operationFilters.OnlyOngoing {
+		filters = append(filters, []string{
+			fmt.Sprintf("start_ts <= %d", time.Now().UTC().UnixNano()),
+			fmt.Sprintf("end_ts >= %d", time.Now().UTC().UnixNano()),
+		})
+	}
+	if !operationFilters.IncludeArchived {
+		filters = append(filters, []string{
+			"is_archived = false",
+		})
+	}
+	if operationFilters.ForUser.Valid {
+		filters = append(filters, []string{
+			fmt.Sprintf("%s = '%s'", operationSearchAttrMembers, operationFilters.ForUser.UUID.String()),
+		})
+	}
+	resultUUIDs, err := search.UUIDSearch(m.searchClient, operationSearchIndex, searchParams, search.Request{
+		Filter: filters,
+	})
+	if err != nil {
+		return search.Result[Operation]{}, meh.Wrap(err, "search uuids", meh.Details{
+			"index":  operationSearchIndex,
+			"params": searchParams,
+		})
+	}
+	// Query.
+	qb := m.dialect.From(goqu.T("operations")).
+		Select(goqu.I("operations.id"),
+			goqu.I("operations.title"),
+			goqu.I("operations.description"),
+			goqu.I("operations.start_ts"),
+			goqu.I("operations.end_ts"),
+			goqu.I("operations.is_archived"))
+	if operationFilters.ForUser.Valid { // Safety.
+		qb = qb.Where(goqu.I("operations.id").In(m.dialect.From(goqu.T("operation_members")).
+			Select(goqu.I("operation_members.operation")).
+			Where(goqu.I("operation_members.user").Eq(operationFilters.ForUser.UUID))))
+	}
+	q, _, err := pgutil.QueryWithOrdinalityUUID(qb, goqu.I("operations.id"), resultUUIDs.Hits).ToSQL()
+	if err != nil {
+		return search.Result[Operation]{}, meh.NewInternalErrFromErr(err, "query to sql", nil)
+	}
+	// Query.
+	rows, err := tx.Query(ctx, q)
+	if err != nil {
+		return search.Result[Operation]{}, mehpg.NewQueryDBErr(err, "query db", q)
+	}
+	defer rows.Close()
+	// Scan.
+	operations := make([]Operation, 0, len(resultUUIDs.Hits))
+	for rows.Next() {
+		var operation Operation
+		err = rows.Scan(&operation.ID,
+			&operation.Title,
+			&operation.Description,
+			&operation.Start,
+			&operation.End,
+			&operation.IsArchived)
+		if err != nil {
+			return search.Result[Operation]{}, mehpg.NewScanRowsErr(err, "scan row", q)
+		}
+		operations = append(operations, operation)
+	}
+	return search.ResultFromResult(resultUUIDs, operations), nil
+}
+
+// RebuildOperationSearch rebuilds the operation-search.
+func (m *Mall) RebuildOperationSearch(ctx context.Context, tx pgx.Tx) error {
+	err := m.searchClient.SafeRebuildIndex(ctx, tx, operationSearchIndex)
+	if err != nil {
+		return meh.Wrap(err, "safe rebuild index", nil)
 	}
 	return nil
 }

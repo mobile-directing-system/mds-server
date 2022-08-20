@@ -13,9 +13,51 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/shared/httpendpoints"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/permission"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/search"
 	"net/http"
+	"strconv"
 	"time"
 )
+
+// operationFiltersFromRequest parses store.OperationRetrievalFilters from the
+// given gin.Context.
+func operationFiltersFromRequest(c *gin.Context) (store.OperationRetrievalFilters, error) {
+	var err error
+	op := store.OperationRetrievalFilters{}
+	// Parse only-ongoing.
+	onlyOngoingStr := c.Query("only_ongoing")
+	if onlyOngoingStr == "" {
+		op.OnlyOngoing = false
+	} else {
+		op.OnlyOngoing, err = strconv.ParseBool(onlyOngoingStr)
+		if err != nil {
+			return store.OperationRetrievalFilters{}, meh.NewBadInputErrFromErr(err, "parse only-ongoing",
+				meh.Details{"was": onlyOngoingStr})
+		}
+	}
+	// Parse include-archived.
+	includeArchivedStr := c.Query("include_archived")
+	if includeArchivedStr == "" {
+		op.IncludeArchived = false
+	} else {
+		op.IncludeArchived, err = strconv.ParseBool(includeArchivedStr)
+		if err != nil {
+			return store.OperationRetrievalFilters{}, meh.NewBadInputErrFromErr(err, "parse include-archived",
+				meh.Details{"was": includeArchivedStr})
+		}
+	}
+	// Parse for-user.
+	forUserStr := c.Query("for_user")
+	if forUserStr != "" {
+		forUserID, err := uuid.FromString(forUserStr)
+		if err != nil {
+			return store.OperationRetrievalFilters{}, meh.NewBadInputErrFromErr(err, "parse for-user uuid",
+				meh.Details{"was": forUserStr})
+		}
+		op.ForUser = nulls.NewUUID(forUserID)
+	}
+	return op, nil
+}
 
 // publicOperation is the public representation of store.Operation.
 type publicOperation struct {
@@ -83,32 +125,39 @@ func publicUserFromStore(s store.User) publicUser {
 
 // handleGetOperationsStore are the dependencies needed for handleGetOperations.
 type handleGetOperationsStore interface {
-	Operations(ctx context.Context, params pagination.Params) (pagination.Paginated[store.Operation], error)
+	Operations(ctx context.Context, operationFilters store.OperationRetrievalFilters,
+		searchParams pagination.Params) (pagination.Paginated[store.Operation], error)
 }
 
 // handleGetOperations retrieves a list of registered operations.
 func handleGetOperations(s handleGetOperationsStore) httpendpoints.HandlerFunc {
 	return func(c *gin.Context, token auth.Token) error {
-		// Check permissions.
 		if !token.IsAuthenticated {
 			return meh.NewUnauthorizedErr("not authenticated", nil)
 		}
+		// Extract filters.
+		operationFilters, err := operationFiltersFromRequest(c)
+		if err != nil {
+			return meh.Wrap(err, "operation filters from request", nil)
+		}
+		// Check permissions.
 		ok, err := auth.HasPermission(token, permission.ViewAnyOperation())
 		if err != nil {
 			return meh.Wrap(err, "check permission", nil)
 		}
 		if !ok {
-			return meh.NewForbiddenErr("no permission to view all operations", nil)
+			// Overwrite for-user filter.
+			operationFilters.ForUser = nulls.NewUUID(token.UserID)
 		}
 		// Params.
-		params, err := pagination.ParamsFromRequest(c)
+		paginationParams, err := pagination.ParamsFromRequest(c)
 		if err != nil {
 			return meh.Wrap(err, "params from request", nil)
 		}
 		// Retrieve.
-		operations, err := s.Operations(c.Request.Context(), params)
+		operations, err := s.Operations(c.Request.Context(), operationFilters, paginationParams)
 		if err != nil {
-			return meh.Wrap(err, "retrieve operations from store", meh.Details{"params": params})
+			return meh.Wrap(err, "retrieve operations from store", meh.Details{"params": paginationParams})
 		}
 		public := pagination.MapPaginated(operations, publicOperationFromStore)
 		c.JSON(http.StatusOK, public)
@@ -306,6 +355,67 @@ func handleUpdateOperationMembersByOperation(s handleUpdateOperationMembersByOpe
 				"members":      members,
 			})
 		}
+		c.Status(http.StatusOK)
+		return nil
+	}
+}
+
+// handleSearchOperationsStore are the dependencies needed for
+// handleSearchOperations.
+type handleSearchOperationsStore interface {
+	SearchOperations(ctx context.Context, operationFilters store.OperationRetrievalFilters,
+		searchParams search.Params) (search.Result[store.Operation], error)
+}
+
+// handleSearchOperations searches for operations.
+func handleSearchOperations(s handleSearchOperationsStore) httpendpoints.HandlerFunc {
+	return func(c *gin.Context, token auth.Token) error {
+		if !token.IsAuthenticated {
+			return meh.NewUnauthorizedErr("not authorized", nil)
+		}
+		// Extract filters.
+		operationFilters, err := operationFiltersFromRequest(c)
+		if err != nil {
+			return meh.Wrap(err, "operation filters from request", nil)
+		}
+		// Check permissions.
+		ok, err := auth.HasPermission(token, permission.ViewAnyOperation())
+		if err != nil {
+			return meh.Wrap(err, "check permission", nil)
+		}
+		if !ok {
+			// Overwrite for-user filter.
+			operationFilters.ForUser = nulls.NewUUID(token.UserID)
+		}
+		// Extract params.
+		searchParams, err := search.ParamsFromRequest(c)
+		if err != nil {
+			return meh.Wrap(err, "search params from request", nil)
+		}
+		// Search.
+		result, err := s.SearchOperations(c.Request.Context(), operationFilters, searchParams)
+		if err != nil {
+			return meh.Wrap(err, "search operations", meh.Details{"search_params": searchParams})
+		}
+		c.JSON(http.StatusOK, search.MapResult(result, publicOperationFromStore))
+		return nil
+	}
+}
+
+// handleRebuildOperationSearchStore are the dependencies needed for
+// handleRebuildOperationSearch.
+type handleRebuildOperationSearchStore interface {
+	RebuildOperationSearch(ctx context.Context)
+}
+
+// handleRebuildOperationSearch rebuilds the operation search.
+func handleRebuildOperationSearch(s handleRebuildOperationSearchStore) httpendpoints.HandlerFunc {
+	return func(c *gin.Context, token auth.Token) error {
+		err := auth.AssurePermission(token, permission.RebuildSearchIndex())
+		if err != nil {
+			return meh.Wrap(err, "check permissions", nil)
+		}
+		go s.RebuildOperationSearch(context.Background())
 		c.Status(http.StatusOK)
 		return nil
 	}
