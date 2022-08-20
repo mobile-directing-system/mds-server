@@ -23,10 +23,10 @@ const userSearchAttrLastName search.Attribute = "last_name"
 var userSearchIndexConfig = search.IndexConfig{
 	PrimaryKey: userSearchAttrID,
 	Searchable: []search.Attribute{
-		userSearchAttrID,
 		userSearchAttrUsername,
 		userSearchAttrFirstName,
 		userSearchAttrLastName,
+		userSearchAttrID,
 	},
 	Filterable: nil,
 	Sortable:   nil,
