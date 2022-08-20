@@ -262,7 +262,8 @@ If provided, updating is done via:</p>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-<p>Retrieving a <a class="reference internal" href="general-http-api.html#http-api-pagination"><span class="std std-ref">paginated</span></a> operation list requires the <a class="reference internal" href="permissions.html#permission-operation-view-any"><span class="std std-ref">operation.view.any</span></a> permission:</p>
+<p>Retrieving a <a class="reference internal" href="general-http-api.html#http-api-pagination"><span class="std std-ref">paginated</span></a> operation list requires the <a class="reference internal" href="permissions.html#permission-operation-view-any"><span class="std std-ref">operation.view.any</span></a> permission, if all operations should be retrieved.
+Otherwise, only operations are returned that the requesting client is member of.</p>
 <p><cite>GET /operations</cite></p>
 <p>Entry payload:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
@@ -283,6 +284,21 @@ If provided, updating is done via:</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">end</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">is_archived</span></code></p></li>
 </ul>
+<p><a class="reference internal" href="general-http-api.html#http-api-search"><span class="std std-ref">Search</span></a> is available via:</p>
+<p><cite>GET /operations/search</cite></p>
+<p>Entry payload:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_id&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_title&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="nt">&quot;&lt;description&gt;&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;start&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;end&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;is_archived&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+<p>The search index can be rebuilt via:</p>
+<p><cite>POST /operations/search/rebuild</cite></p>
 </section>
 <section id="update-operation-members">
 <h2>Update operation members<a class="headerlink" href="#update-operation-members" title="Permalink to this headline">#</a></h2>
