@@ -86,10 +86,9 @@ func Run(ctx context.Context) error {
 		return meh.Wrap(err, "init new kafka connector", nil)
 	}
 	eventPort := eventport.NewPort(kafkaConnector)
-	mall := store.NewMall(logger.Named("mall"), c.searchConfig.Host, c.searchConfig.MasterKey)
-	err = mall.Open(ctx)
+	mall, err := store.InitNewMall(ctx, logger.Named("mall"), sqlDB, c.searchConfig.Host, c.searchConfig.MasterKey)
 	if err != nil {
-		return meh.Wrap(err, "open mall", nil)
+		return meh.Wrap(err, "init new mall", nil)
 	}
 	ctrl := &controller.Controller{
 		Logger:   logger.Named("controller"),
@@ -97,6 +96,14 @@ func Run(ctx context.Context) error {
 		Store:    mall,
 		Notifier: eventPort,
 	}
+	// Open mall.
+	eg.Go(func() error {
+		err := mall.Open(egCtx)
+		if err != nil {
+			return meh.Wrap(err, "open mall", nil)
+		}
+		return nil
+	})
 	// Run controller.
 	eg.Go(func() error {
 		err := ctrl.Run(egCtx)

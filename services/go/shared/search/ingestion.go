@@ -2,7 +2,6 @@ package search
 
 import (
 	"context"
-	"github.com/gofrs/uuid"
 	"github.com/lefinal/meh"
 	"golang.org/x/sync/errgroup"
 )
@@ -24,15 +23,11 @@ func AddOrUpdateDocuments(c Client, index Index, doc ...Document) error {
 	return nil
 }
 
-// DeleteDocumentsByUUID deletes the documents with the given ids.
-func DeleteDocumentsByUUID(c Client, index Index, ids ...uuid.UUID) error {
-	mapped := make([]string, 0, len(ids))
-	for _, id := range ids {
-		mapped = append(mapped, id.String())
-	}
-	_, err := c.Index(index).DeleteDocuments(mapped)
+// DeleteDocumentsByID deletes the documents with the given ids.
+func DeleteDocumentsByID(c Client, index Index, ids ...string) error {
+	_, err := c.Index(index).DeleteDocuments(ids)
 	if err != nil {
-		return meh.NewInternalErrFromErr(err, "delete documents", meh.Details{"ids": mapped})
+		return meh.NewInternalErrFromErr(err, "delete documents", meh.Details{"ids": ids})
 	}
 	return nil
 }
