@@ -9,7 +9,7 @@ require (
 	github.com/gin-gonic/gin v1.8.1
 	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/jackc/pgx/v4 v4.16.1
-	github.com/lefinal/meh v1.5.2
+	github.com/lefinal/meh v1.6.0
 	github.com/lefinal/nulls v1.2.3
 	github.com/lefinal/zaprec v1.0.0
 	github.com/mobile-directing-system/mds-server/services/go/shared v0.0.0-20220608131122-5219f744f834
