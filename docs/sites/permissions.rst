@@ -212,12 +212,12 @@ Allows creating users.
 
 Options: `none`
 
-.. _permission.user.delete:
+.. _permission.user.set-active-state:
 
-user.delete
-^^^^^^^^^^^
+user.set-active-state
+^^^^^^^^^^^^^^^^^^^^^
 
-Allows deleting users.
+Allows setting the active-state for users.
 
 Options: `none`
 

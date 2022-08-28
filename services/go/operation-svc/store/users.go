@@ -19,6 +19,8 @@ type User struct {
 	FirstName string
 	// LastName of the user.
 	LastName string
+	// IsActive describes whether the user is active (not disabled).
+	IsActive bool
 }
 
 // CreateUser adds the given User to the store.
@@ -28,6 +30,7 @@ func (m *Mall) CreateUser(ctx context.Context, tx pgx.Tx, create User) error {
 		"username":   create.Username,
 		"first_name": create.FirstName,
 		"last_name":  create.LastName,
+		"is_active":  create.IsActive,
 	}).ToSQL()
 	if err != nil {
 		return meh.NewInternalErrFromErr(err, "query to sql", nil)
@@ -45,24 +48,8 @@ func (m *Mall) UpdateUser(ctx context.Context, tx pgx.Tx, update User) error {
 		"username":   update.Username,
 		"first_name": update.FirstName,
 		"last_name":  update.LastName,
+		"is_active":  update.IsActive,
 	}).Where(goqu.C("id").Eq(update.ID)).ToSQL()
-	if err != nil {
-		return meh.NewInternalErrFromErr(err, "query to sql", nil)
-	}
-	result, err := tx.Exec(ctx, q)
-	if err != nil {
-		return mehpg.NewQueryDBErr(err, "exec query", q)
-	}
-	if result.RowsAffected() == 0 {
-		return meh.NewNotFoundErr("not found", nil)
-	}
-	return nil
-}
-
-// DeleteUserByID deletes the user with the given id.
-func (m *Mall) DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error {
-	q, _, err := goqu.Delete(goqu.T("users")).
-		Where(goqu.C("id").Eq(userID)).ToSQL()
 	if err != nil {
 		return meh.NewInternalErrFromErr(err, "query to sql", nil)
 	}

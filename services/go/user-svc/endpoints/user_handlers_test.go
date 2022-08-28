@@ -173,6 +173,7 @@ func (suite *handleCreateUserSuite) TestOKNoAdmin() {
 			FirstName: suite.createUser.FirstName,
 			LastName:  suite.createUser.LastName,
 			IsAdmin:   suite.createUser.IsAdmin,
+			IsActive:  true,
 		},
 		Pass: hashedPass,
 	}
@@ -203,6 +204,7 @@ func (suite *handleCreateUserSuite) TestOKNoAdmin() {
 		FirstName: created.FirstName,
 		LastName:  created.LastName,
 		IsAdmin:   created.IsAdmin,
+		IsActive:  created.IsActive,
 	}, got, "response body should be correct")
 }
 
@@ -239,8 +241,8 @@ type handleUpdateUserByIDStoreMock struct {
 	mock.Mock
 }
 
-func (m *handleUpdateUserByIDStoreMock) UpdateUser(ctx context.Context, user store.User, allowAdminChange bool) error {
-	return m.Called(ctx, user, allowAdminChange).Error(0)
+func (m *handleUpdateUserByIDStoreMock) UpdateUser(ctx context.Context, user store.User, allowAdminChange bool, allowActiveStateChange bool) error {
+	return m.Called(ctx, user, allowAdminChange, allowActiveStateChange).Error(0)
 }
 
 // handleUpdateUserByIDSuite tests handleUpdateUserByID.
@@ -261,6 +263,7 @@ func (suite *handleUpdateUserByIDSuite) SetupTest() {
 		FirstName: "stay",
 		LastName:  "smile",
 		IsAdmin:   false,
+		IsActive:  true,
 	}
 }
 
@@ -360,7 +363,8 @@ func (suite *handleUpdateUserByIDSuite) TestUpdateUserFail() {
 		FirstName: suite.updateUser.FirstName,
 		LastName:  suite.updateUser.LastName,
 		IsAdmin:   suite.updateUser.IsAdmin,
-	}, false).Return(errors.New("sad life"))
+		IsActive:  suite.updateUser.IsActive,
+	}, false, false).Return(errors.New("sad life"))
 	defer suite.s.AssertExpectations(suite.T())
 
 	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
@@ -385,7 +389,8 @@ func (suite *handleUpdateUserByIDSuite) TestOKWithSelf() {
 		FirstName: suite.updateUser.FirstName,
 		LastName:  suite.updateUser.LastName,
 		IsAdmin:   suite.updateUser.IsAdmin,
-	}, false).Return(nil)
+		IsActive:  suite.updateUser.IsActive,
+	}, false, false).Return(nil)
 	defer suite.s.AssertExpectations(suite.T())
 
 	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
@@ -403,6 +408,35 @@ func (suite *handleUpdateUserByIDSuite) TestOKWithSelf() {
 	suite.Equal(http.StatusOK, rr.Code, "should return correct code")
 }
 
+func (suite *handleUpdateUserByIDSuite) TestOKWithActiveStateChange() {
+	suite.s.On("UpdateUser", mock.Anything, store.User{
+		ID:        suite.updateUser.ID,
+		Username:  suite.updateUser.Username,
+		FirstName: suite.updateUser.FirstName,
+		LastName:  suite.updateUser.LastName,
+		IsAdmin:   suite.updateUser.IsAdmin,
+		IsActive:  suite.updateUser.IsActive,
+	}, false, true).Return(nil)
+	defer suite.s.AssertExpectations(suite.T())
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPut,
+		URL:    fmt.Sprintf("/%s", suite.updateUser.ID.String()),
+		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.updateUser)),
+		Token: auth.Token{
+			UserID:          suite.updateUser.ID,
+			IsAuthenticated: true,
+			Permissions: []permission.Permission{
+				{Name: permission.SetUserActiveStatePermission},
+			},
+		},
+		Secret: "",
+	})
+
+	suite.Equal(http.StatusOK, rr.Code, "should return correct code")
+}
+
 func (suite *handleUpdateUserByIDSuite) TestOKWithSelfAdminChange() {
 	suite.s.On("UpdateUser", mock.Anything, store.User{
 		ID:        suite.updateUser.ID,
@@ -410,7 +444,8 @@ func (suite *handleUpdateUserByIDSuite) TestOKWithSelfAdminChange() {
 		FirstName: suite.updateUser.FirstName,
 		LastName:  suite.updateUser.LastName,
 		IsAdmin:   suite.updateUser.IsAdmin,
-	}, true).Return(nil)
+		IsActive:  suite.updateUser.IsActive,
+	}, true, false).Return(nil)
 	defer suite.s.AssertExpectations(suite.T())
 
 	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
@@ -436,7 +471,8 @@ func (suite *handleUpdateUserByIDSuite) TestOKWithForeign() {
 		FirstName: suite.updateUser.FirstName,
 		LastName:  suite.updateUser.LastName,
 		IsAdmin:   suite.updateUser.IsAdmin,
-	}, false).Return(nil)
+		IsActive:  suite.updateUser.IsActive,
+	}, false, false).Return(nil)
 	defer suite.s.AssertExpectations(suite.T())
 
 	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
@@ -462,7 +498,8 @@ func (suite *handleUpdateUserByIDSuite) TestOKWithForeignAdminChange() {
 		FirstName: suite.updateUser.FirstName,
 		LastName:  suite.updateUser.LastName,
 		IsAdmin:   suite.updateUser.IsAdmin,
-	}, true).Return(nil)
+		IsActive:  suite.updateUser.IsActive,
+	}, true, false).Return(nil)
 	defer suite.s.AssertExpectations(suite.T())
 
 	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
@@ -657,7 +694,7 @@ type handleDeleteUserByIDStoreMock struct {
 	mock.Mock
 }
 
-func (m *handleDeleteUserByIDStoreMock) DeleteUserByID(ctx context.Context, userID uuid.UUID) error {
+func (m *handleDeleteUserByIDStoreMock) SetUserInactiveByID(ctx context.Context, userID uuid.UUID) error {
 	return m.Called(ctx, userID).Error(0)
 }
 
@@ -685,7 +722,7 @@ func (suite *handleDeleteUserByIDSuite) TestSecretMismatch() {
 		Token: auth.Token{
 			UserID:          suite.userID,
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{{Name: permission.DeleteUserPermissionName}},
+			Permissions:     []permission.Permission{{Name: permission.SetUserActiveStatePermission}},
 		},
 		Secret: "woof",
 	})
@@ -715,7 +752,7 @@ func (suite *handleDeleteUserByIDSuite) TestInvalidID() {
 		Token: auth.Token{
 			UserID:          suite.userID,
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{{Name: permission.DeleteUserPermissionName}},
+			Permissions:     []permission.Permission{{Name: permission.SetUserActiveStatePermission}},
 		},
 		Secret: "",
 	})
@@ -738,7 +775,7 @@ func (suite *handleDeleteUserByIDSuite) TestMissingPermission() {
 }
 
 func (suite *handleDeleteUserByIDSuite) TestDeleteFail() {
-	suite.s.On("DeleteUserByID", mock.Anything, suite.userID).Return(errors.New("sad life"))
+	suite.s.On("SetUserInactiveByID", mock.Anything, suite.userID).Return(errors.New("sad life"))
 	defer suite.s.AssertExpectations(suite.T())
 
 	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
@@ -749,7 +786,7 @@ func (suite *handleDeleteUserByIDSuite) TestDeleteFail() {
 		Token: auth.Token{
 			UserID:          suite.userID,
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{{Name: permission.DeleteUserPermissionName}},
+			Permissions:     []permission.Permission{{Name: permission.SetUserActiveStatePermission}},
 		},
 		Secret: "",
 	})
@@ -758,7 +795,7 @@ func (suite *handleDeleteUserByIDSuite) TestDeleteFail() {
 }
 
 func (suite *handleDeleteUserByIDSuite) TestOK() {
-	suite.s.On("DeleteUserByID", mock.Anything, suite.userID).Return(nil)
+	suite.s.On("SetUserInactiveByID", mock.Anything, suite.userID).Return(nil)
 	defer suite.s.AssertExpectations(suite.T())
 
 	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
@@ -769,7 +806,7 @@ func (suite *handleDeleteUserByIDSuite) TestOK() {
 		Token: auth.Token{
 			UserID:          suite.userID,
 			IsAuthenticated: true,
-			Permissions:     []permission.Permission{{Name: permission.DeleteUserPermissionName}},
+			Permissions:     []permission.Permission{{Name: permission.SetUserActiveStatePermission}},
 		},
 		Secret: "",
 	})
@@ -951,8 +988,9 @@ type handleGetUsersStoreMock struct {
 	mock.Mock
 }
 
-func (m *handleGetUsersStoreMock) Users(ctx context.Context, params pagination.Params) (pagination.Paginated[store.User], error) {
-	args := m.Called(ctx, params)
+func (m *handleGetUsersStoreMock) Users(ctx context.Context, filters store.UserFilters,
+	params pagination.Params) (pagination.Paginated[store.User], error) {
+	args := m.Called(ctx, filters, params)
 	return args.Get(0).(pagination.Paginated[store.User]), args.Error(1)
 }
 
@@ -1026,8 +1064,23 @@ func (suite *handleGetUsersSuite) TestInvalidPagination() {
 	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
 }
 
+func (suite *handleGetUsersSuite) TestInvalidFilterParams() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    "/?include_inactive=abc",
+		Body:   nil,
+		Token: auth.Token{
+			IsAuthenticated: true,
+			Permissions:     []permission.Permission{{Name: permission.ViewUserPermissionName}},
+		},
+		Secret: "",
+	})
+	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
+}
+
 func (suite *handleGetUsersSuite) TestStoreRetrievalFail() {
-	suite.s.On("Users", mock.Anything, mock.Anything).
+	suite.s.On("Users", mock.Anything, mock.Anything, mock.Anything).
 		Return(pagination.Paginated[store.User]{}, errors.New("sad life"))
 	defer suite.s.AssertExpectations(suite.T())
 
@@ -1064,14 +1117,16 @@ func (suite *handleGetUsersSuite) TestOK() {
 			IsAdmin:   true,
 		},
 	}, 28)
-	suite.s.On("Users", mock.Anything, pagination.Params{Limit: 7, OrderDirection: "asc"}).
+	suite.s.On("Users", mock.Anything, store.UserFilters{
+		IncludeInactive: true,
+	}, pagination.Params{Limit: 7, OrderDirection: "asc"}).
 		Return(paginated, nil)
 	defer suite.s.AssertExpectations(suite.T())
 
 	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
 		Server: suite.r,
 		Method: http.MethodGet,
-		URL:    fmt.Sprintf("/?%s=7", pagination.LimitQueryParam),
+		URL:    fmt.Sprintf("/?%s=7&include_inactive=true", pagination.LimitQueryParam),
 		Body:   nil,
 		Token: auth.Token{
 			UserID:          testutil.NewUUIDV4(),
@@ -1104,8 +1159,8 @@ type handleSearchUsersStoreMock struct {
 	mock.Mock
 }
 
-func (m *handleSearchUsersStoreMock) SearchUsers(ctx context.Context, searchParams search.Params) (search.Result[store.User], error) {
-	args := m.Called(ctx, searchParams)
+func (m *handleSearchUsersStoreMock) SearchUsers(ctx context.Context, filters store.UserFilters, searchParams search.Params) (search.Result[store.User], error) {
+	args := m.Called(ctx, filters, searchParams)
 	return args.Get(0).(search.Result[store.User]), args.Error(1)
 }
 
@@ -1225,8 +1280,18 @@ func (suite *handleSearchUsersSuite) TestInvalidSearchParams() {
 	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
 }
 
+func (suite *handleSearchUsersSuite) TestInvalidFilterParams() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    "/search?include_inactive=abc",
+		Token:  suite.tokenOK,
+	})
+	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
+}
+
 func (suite *handleSearchUsersSuite) TestStoreRetrievalFail() {
-	suite.s.On("SearchUsers", mock.Anything, suite.sampleParams).
+	suite.s.On("SearchUsers", mock.Anything, mock.Anything, suite.sampleParams).
 		Return(search.Result[store.User]{}, errors.New("sad life"))
 	defer suite.s.AssertExpectations(suite.T())
 
@@ -1241,14 +1306,15 @@ func (suite *handleSearchUsersSuite) TestStoreRetrievalFail() {
 }
 
 func (suite *handleSearchUsersSuite) TestOK() {
-	suite.s.On("SearchUsers", mock.Anything, suite.sampleParams).
+	suite.s.On("SearchUsers", mock.Anything, store.UserFilters{IncludeInactive: true},
+		suite.sampleParams).
 		Return(suite.sampleResult, nil)
 	defer suite.s.AssertExpectations(suite.T())
 
 	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
 		Server: suite.r,
 		Method: http.MethodGet,
-		URL:    fmt.Sprintf("/search?%s", search.ParamsToQueryString(suite.sampleParams)),
+		URL:    fmt.Sprintf("/search?%s&include_inactive=true", search.ParamsToQueryString(suite.sampleParams)),
 		Token:  suite.tokenOK,
 	})
 

@@ -71,7 +71,8 @@ func rebuildUserSearchIndex(ctx context.Context, dialect goqu.DialectWrapper, tx
 					goqu.C("username"),
 					goqu.C("first_name"),
 					goqu.C("last_name"),
-					goqu.C("is_admin")).ToSQL()
+					goqu.C("is_admin"),
+					goqu.C("is_active")).ToSQL()
 			if err != nil {
 				return meh.Wrap(err, "query to sql", nil)
 			}
@@ -88,7 +89,8 @@ func rebuildUserSearchIndex(ctx context.Context, dialect goqu.DialectWrapper, tx
 					&user.Username,
 					&user.FirstName,
 					&user.LastName,
-					&user.IsAdmin)
+					&user.IsAdmin,
+					&user.IsActive)
 				if err != nil {
 					return mehpg.NewScanRowsErr(err, "scan row", q)
 				}

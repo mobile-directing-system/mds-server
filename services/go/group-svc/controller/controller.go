@@ -22,8 +22,6 @@ type Controller struct {
 type Store interface {
 	// CreateUser creates a user with the given id.
 	CreateUser(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error
-	// DeleteUserByID deletes the user with the given id.
-	DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error
 	// CreateOperation creates the operation with the given id.
 	CreateOperation(ctx context.Context, tx pgx.Tx, operationID uuid.UUID) error
 	// CreateGroup creates the given group and returns the one with assigned id.

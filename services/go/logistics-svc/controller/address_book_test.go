@@ -569,6 +569,7 @@ func (suite *ControllerAddressBookEntriesSuite) SetupTest() {
 				Username:  "around",
 				FirstName: "other",
 				LastName:  "purple",
+				IsActive:  true,
 			}),
 		},
 	}, 9313)

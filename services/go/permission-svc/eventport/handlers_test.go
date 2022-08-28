@@ -24,86 +24,8 @@ func (m *HandlerMock) CreateUser(ctx context.Context, tx pgx.Tx, userID uuid.UUI
 	return m.Called(ctx, tx, userID).Error(0)
 }
 
-func (m *HandlerMock) DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error {
-	return m.Called(ctx, tx, userID).Error(0)
-}
-
 func (m *HandlerMock) UpdatePermissionsByUser(ctx context.Context, tx pgx.Tx, userID uuid.UUID, permissions []store.Permission) error {
 	return m.Called(ctx, tx, userID, permissions).Error(0)
-}
-
-// PortHandleUserDeletedSuite tests Port.handleUserDeleted.
-type PortHandleUserDeletedSuite struct {
-	suite.Suite
-	handler      *HandlerMock
-	port         *PortMock
-	sampleUserID uuid.UUID
-}
-
-func (suite *PortHandleUserDeletedSuite) SetupTest() {
-	suite.handler = &HandlerMock{}
-	suite.port = newMockPort()
-	suite.sampleUserID = testutil.NewUUIDV4()
-}
-
-func (suite *PortHandleUserDeletedSuite) handle(ctx context.Context, tx pgx.Tx, rawValue json.RawMessage) error {
-	return suite.port.Port.HandlerFn(suite.handler)(ctx, tx, kafkautil.InboundMessage{
-		Topic:     event.UsersTopic,
-		EventType: event.TypeUserDeleted,
-		RawValue:  rawValue,
-	})
-}
-
-func (suite *PortHandleUserDeletedSuite) TestBadEventValue() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	tx := &testutil.DBTx{}
-
-	go func() {
-		defer cancel()
-		err := suite.handle(timeout, tx, json.RawMessage(`{invalid`))
-		suite.Error(err, "should fail")
-	}()
-
-	wait()
-}
-
-func (suite *PortHandleUserDeletedSuite) TestUpdateFail() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	tx := &testutil.DBTx{}
-	suite.handler.On("DeleteUserByID", timeout, tx, suite.sampleUserID).
-		Return(errors.New("sad life"))
-	defer suite.handler.AssertExpectations(suite.T())
-
-	go func() {
-		defer cancel()
-		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(event.UserDeleted{
-			ID: suite.sampleUserID,
-		}))
-		suite.Error(err, "should fail")
-	}()
-
-	wait()
-}
-
-func (suite *PortHandleUserDeletedSuite) TestOK() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	tx := &testutil.DBTx{}
-	suite.handler.On("DeleteUserByID", timeout, tx, suite.sampleUserID).Return(nil)
-	defer suite.handler.AssertExpectations(suite.T())
-
-	go func() {
-		defer cancel()
-		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(event.UserDeleted{
-			ID: suite.sampleUserID,
-		}))
-		suite.NoError(err, "should not fail")
-	}()
-
-	wait()
-}
-
-func TestPort_handlerUserDeleted(t *testing.T) {
-	suite.Run(t, new(PortHandleUserDeletedSuite))
 }
 
 // PortHandleUserCreatedSuite tests Port.handleUserCreated.

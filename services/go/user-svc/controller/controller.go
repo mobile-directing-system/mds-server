@@ -37,19 +37,17 @@ type Store interface {
 	// UserByUsername retrieves a store.User by its username.
 	UserByUsername(ctx context.Context, tx pgx.Tx, username string) (store.User, error)
 	// Users retrieves all known users.
-	Users(ctx context.Context, tx pgx.Tx, params pagination.Params) (pagination.Paginated[store.User], error)
+	Users(ctx context.Context, tx pgx.Tx, filters store.UserFilters, params pagination.Params) (pagination.Paginated[store.User], error)
 	// CreateUser creates the given store.User.
 	CreateUser(ctx context.Context, tx pgx.Tx, user store.UserWithPass) (store.User, error)
 	// UpdateUser updates the given store.User, identifies by its user id. This will
 	// not change the password!
 	UpdateUser(ctx context.Context, tx pgx.Tx, user store.User) error
-	// DeleteUserByID deletes the user with the given id.
-	DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error
 	// UpdateUserPassByUserID updates the hashed password of the user with the given
 	// id.
 	UpdateUserPassByUserID(ctx context.Context, tx pgx.Tx, userID uuid.UUID, pass []byte) error
 	// SearchUsers searches for users with the given search.Params.
-	SearchUsers(ctx context.Context, tx pgx.Tx, searchParams search.Params) (search.Result[store.User], error)
+	SearchUsers(ctx context.Context, tx pgx.Tx, filters store.UserFilters, searchParams search.Params) (search.Result[store.User], error)
 	// RebuildUserSearch rebuilds the user search.
 	RebuildUserSearch(ctx context.Context, tx pgx.Tx) error
 }
@@ -64,6 +62,4 @@ type Notifier interface {
 	// NotifyUserPassUpdated notifies, that the the user with the given id has
 	// updated its password.
 	NotifyUserPassUpdated(ctx context.Context, tx pgx.Tx, userID uuid.UUID, newPass []byte) error
-	// NotifyUserDeleted notifies, that the user with the given id was deleted.
-	NotifyUserDeleted(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error
 }

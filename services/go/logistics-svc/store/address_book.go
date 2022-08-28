@@ -61,6 +61,8 @@ type AddressBookEntryFilters struct {
 	// this id. This means, that if entries have an associated user and this user is
 	// not part of any operation, this client is part of, it will be hidden.
 	VisibleBy uuid.NullUUID
+	// IncludeForInactiveUsers includes entries, associated with inactive users.
+	IncludeForInactiveUsers bool
 }
 
 // AddressBookEntries retrieves a paginated AddressBookEntryDetailed list using
@@ -70,6 +72,7 @@ func (m *Mall) AddressBookEntries(ctx context.Context, tx pgx.Tx, filters Addres
 	entries := make([]AddressBookEntryDetailed, 0)
 	// Retrieve entries.
 	qb := m.dialect.From(goqu.T("address_book_entries")).
+		LeftJoin(goqu.T("users"), goqu.On(goqu.I("users.id").Eq(goqu.I("address_book_entries.user")))).
 		Select(goqu.I("address_book_entries.id"),
 			goqu.I("address_book_entries.label"),
 			goqu.I("address_book_entries.description"),
@@ -95,6 +98,10 @@ func (m *Mall) AddressBookEntries(ctx context.Context, tx pgx.Tx, filters Addres
 					In(m.dialect.From(goqu.T("operation_members")).As("visible_by_op_members_c_opm").
 						Select(goqu.I("visible_by_op_members_c_opm.operation")).
 						Where(goqu.I("visible_by_op_members_c_opm.user").Eq(filters.VisibleBy.UUID)))))))
+	}
+	if !filters.IncludeForInactiveUsers {
+		whereAnd = append(whereAnd, goqu.Or(goqu.I("address_book_entries.user").IsNull(),
+			goqu.I("users.is_active").IsTrue()))
 	}
 	if len(whereAnd) > 0 {
 		qb = qb.Where(goqu.And(whereAnd...))
@@ -286,6 +293,7 @@ func (m *Mall) CreateAddressBookEntry(ctx context.Context, tx pgx.Tx, entry Addr
 	created := AddressBookEntryDetailed{
 		AddressBookEntry: entry,
 	}
+	rows.Close()
 	// Retrieve user details.
 	if entry.User.Valid {
 		userDetails, err := m.UserByID(ctx, tx, entry.User.UUID)

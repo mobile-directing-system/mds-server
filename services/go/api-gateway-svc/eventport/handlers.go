@@ -21,9 +21,6 @@ type Handler interface {
 	// UpdateUserPassByUserID updates the password for the user with the given id in
 	// the store and notifies via Notifier.NotifyUserPassUpdated.
 	UpdateUserPassByUserID(ctx context.Context, tx pgx.Tx, userID uuid.UUID, newPass []byte) error
-	// DeleteUserByID deletes the user with the given id in the store and notifies
-	// via Notifier.NotifyUserDeleted.
-	DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error
 	// UpdatePermissionsByUser updates the permissions for the given user.
 	UpdatePermissionsByUser(ctx context.Context, tx pgx.Tx, userID uuid.UUID, updatedPermissions []permission.Permission) error
 }
@@ -76,8 +73,6 @@ func (p *Port) handleUsersTopic(ctx context.Context, tx pgx.Tx, handler Handler,
 		return meh.NilOrWrap(p.handleUserUpdated(ctx, tx, handler, message), "handle user updated", nil)
 	case event.TypeUserPassUpdated:
 		return meh.NilOrWrap(p.handleUserPassUpdated(ctx, tx, handler, message), "handle user pass updated", nil)
-	case event.TypeUserDeleted:
-		return meh.NilOrWrap(p.handleUserDeleted(ctx, tx, handler, message), "handle user deleted", nil)
 	}
 	return nil
 }
@@ -94,6 +89,7 @@ func (p *Port) handleUserCreated(ctx context.Context, tx pgx.Tx, handler Handler
 			ID:       userCreatedEvent.ID,
 			Username: userCreatedEvent.Username,
 			IsAdmin:  userCreatedEvent.IsAdmin,
+			IsActive: userCreatedEvent.IsActive,
 		},
 		Pass: userCreatedEvent.Pass,
 	})
@@ -114,6 +110,7 @@ func (p *Port) handleUserUpdated(ctx context.Context, tx pgx.Tx, handler Handler
 		ID:       userUpdatedEvent.ID,
 		Username: userUpdatedEvent.Username,
 		IsAdmin:  userUpdatedEvent.IsAdmin,
+		IsActive: userUpdatedEvent.IsActive,
 	})
 	if err != nil {
 		return meh.Wrap(err, "update user", nil)
@@ -131,20 +128,6 @@ func (p *Port) handleUserPassUpdated(ctx context.Context, tx pgx.Tx, handler Han
 	err = handler.UpdateUserPassByUserID(ctx, tx, userPassUpdatedEvent.User, userPassUpdatedEvent.NewPass)
 	if err != nil {
 		return meh.Wrap(err, "update user pass", nil)
-	}
-	return nil
-}
-
-// handleUserDeleted handles an event.UserDeleted.
-func (p *Port) handleUserDeleted(ctx context.Context, tx pgx.Tx, handler Handler, message kafkautil.InboundMessage) error {
-	var userDeletedEvent event.UserDeleted
-	err := json.Unmarshal(message.RawValue, &userDeletedEvent)
-	if err != nil {
-		return meh.NewInternalErrFromErr(err, "unmarshal event", nil)
-	}
-	err = handler.DeleteUserByID(ctx, tx, userDeletedEvent.ID)
-	if err != nil {
-		return meh.Wrap(err, "delete user", nil)
 	}
 	return nil
 }

@@ -19,6 +19,8 @@ type User struct {
 	FirstName string
 	// LastName of the user.
 	LastName string
+	// IsActive describes whether the user is active (not deleted).
+	IsActive bool
 }
 
 // TODO: For controller: on user update: Update labels of associated entries.
@@ -31,7 +33,8 @@ func (m *Mall) UserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) (User,
 		Select(goqu.C("id"),
 			goqu.C("username"),
 			goqu.C("first_name"),
-			goqu.C("last_name")).
+			goqu.C("last_name"),
+			goqu.C("is_active")).
 		Where(goqu.C("id").Eq(userID)).ToSQL()
 	if err != nil {
 		return User{}, meh.NewInternalErrFromErr(err, "query to sql", nil)
@@ -48,7 +51,8 @@ func (m *Mall) UserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) (User,
 	err = rows.Scan(&user.ID,
 		&user.Username,
 		&user.FirstName,
-		&user.LastName)
+		&user.LastName,
+		&user.IsActive)
 	if err != nil {
 		return User{}, mehpg.NewScanRowsErr(err, "scan row", q)
 	}
@@ -65,7 +69,8 @@ func (m *Mall) usersByIDs(ctx context.Context, tx pgx.Tx, userIDs []uuid.UUID) (
 		Select(goqu.C("id"),
 			goqu.C("username"),
 			goqu.C("first_name"),
-			goqu.C("last_name")).
+			goqu.C("last_name"),
+			goqu.C("is_active")).
 		Where(goqu.C("id").In(userIDs)).ToSQL()
 	if err != nil {
 		return nil, meh.NewInternalErrFromErr(err, "query to sql", nil)
@@ -80,7 +85,8 @@ func (m *Mall) usersByIDs(ctx context.Context, tx pgx.Tx, userIDs []uuid.UUID) (
 		err = rows.Scan(&user.ID,
 			&user.Username,
 			&user.FirstName,
-			&user.LastName)
+			&user.LastName,
+			&user.IsActive)
 		if err != nil {
 			return nil, mehpg.NewScanRowsErr(err, "scan row", q)
 		}
@@ -96,6 +102,7 @@ func (m *Mall) CreateUser(ctx context.Context, tx pgx.Tx, user User) error {
 		"username":   user.Username,
 		"first_name": user.FirstName,
 		"last_name":  user.LastName,
+		"is_active":  user.IsActive,
 	}).ToSQL()
 	if err != nil {
 		return meh.NewInternalErrFromErr(err, "query to sql", nil)
@@ -114,24 +121,8 @@ func (m *Mall) UpdateUser(ctx context.Context, tx pgx.Tx, user User) error {
 		"username":   user.Username,
 		"first_name": user.FirstName,
 		"last_name":  user.LastName,
+		"is_active":  user.IsActive,
 	}).Where(goqu.C("id").Eq(user.ID)).ToSQL()
-	if err != nil {
-		return meh.NewInternalErrFromErr(err, "query to sql", nil)
-	}
-	result, err := tx.Exec(ctx, q)
-	if err != nil {
-		return mehpg.NewQueryDBErr(err, "exec query", q)
-	}
-	if result.RowsAffected() == 0 {
-		return meh.NewNotFoundErr("not found", nil)
-	}
-	return nil
-}
-
-// DeleteUserByID deletes the user with the given id.
-func (m *Mall) DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error {
-	q, _, err := m.dialect.Delete(goqu.T("users")).
-		Where(goqu.C("id").Eq(userID)).ToSQL()
 	if err != nil {
 		return meh.NewInternalErrFromErr(err, "query to sql", nil)
 	}

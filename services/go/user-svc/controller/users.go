@@ -37,8 +37,9 @@ func (c *Controller) CreateUser(ctx context.Context, user store.UserWithPass) (s
 
 // UpdateUser updates the given store.User in the Store and notifies via
 // Notifier.NotifyUserUpdated. If admin changing is not allowed, any changes to
-// the is-admin-field result in an meh.ErrUnauthorized error.
-func (c *Controller) UpdateUser(ctx context.Context, user store.User, allowAdminChange bool) error {
+// the is-admin-field result in an meh.ErrForbidden error. This also applies to
+// active-state changes without being allowed.
+func (c *Controller) UpdateUser(ctx context.Context, user store.User, allowAdminChange bool, allowActiveStateChange bool) error {
 	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
 		// Retrieve user for checks regarding admins.
 		was, err := c.Store.UserByID(ctx, tx, user.ID)
@@ -54,10 +55,16 @@ func (c *Controller) UpdateUser(ctx context.Context, user store.User, allowAdmin
 				// Assure the admin username not being changed.
 				return meh.NewBadInputErr("admin username cannot be changed", nil)
 			}
+			if user.IsActive == false {
+				return meh.NewBadInputErr("admin cannot be set to inactive", nil)
+			}
 			// Assure the admin user not being set to non-admin.
 			if !user.IsAdmin {
 				return meh.NewBadInputErr("admin user cannot be set to non-admin", nil)
 			}
+		}
+		if was.IsActive != user.IsActive && !allowActiveStateChange {
+			return meh.NewForbiddenErr("active-state change not allowed", nil)
 		}
 		// Update in store.
 		err = c.Store.UpdateUser(ctx, tx, user)
@@ -99,27 +106,28 @@ func (c *Controller) UpdateUserPassByUserID(ctx context.Context, userID uuid.UUI
 	return nil
 }
 
-// DeleteUserByID deletes the user with the given id in the store and notifies
-// via Notifier.NotifyUserDeleted.
-func (c *Controller) DeleteUserByID(ctx context.Context, userID uuid.UUID) error {
+// SetUserInactiveByID sets the user with the given id to inactive in the store
+// and notifies via Notifier.NotifyUserUpdated.
+func (c *Controller) SetUserInactiveByID(ctx context.Context, userID uuid.UUID) error {
 	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
 		// Retrieve user in order to deny deleting the admin user.
-		was, err := c.Store.UserByID(ctx, tx, userID)
+		user, err := c.Store.UserByID(ctx, tx, userID)
 		if err != nil {
 			return meh.Wrap(err, "user by id", meh.Details{"user_id": userID})
 		}
-		if was.Username == adminUsername {
-			return meh.NewBadInputErr("admin user cannot be deleted", nil)
+		if user.Username == adminUsername {
+			return meh.NewBadInputErr("admin user cannot be set inactive", nil)
 		}
-		// Delete in store.
-		err = c.Store.DeleteUserByID(ctx, tx, userID)
+		// Update in store.
+		user.IsActive = false
+		err = c.Store.UpdateUser(ctx, tx, user)
 		if err != nil {
-			return meh.Wrap(err, "delete user by id in store", meh.Details{"user_id": userID})
+			return meh.Wrap(err, "update user by id in store", meh.Details{"update": user})
 		}
 		// Notify.
-		err = c.Notifier.NotifyUserDeleted(ctx, tx, userID)
+		err = c.Notifier.NotifyUserUpdated(ctx, tx, user)
 		if err != nil {
-			return meh.Wrap(err, "notify user deleted", meh.Details{"user_id": userID})
+			return meh.Wrap(err, "notify user updated", meh.Details{"updated": user})
 		}
 		return nil
 	})
@@ -147,11 +155,11 @@ func (c *Controller) UserByID(ctx context.Context, userID uuid.UUID) (store.User
 }
 
 // Users retrieves a paginated store.User list.
-func (c *Controller) Users(ctx context.Context, params pagination.Params) (pagination.Paginated[store.User], error) {
+func (c *Controller) Users(ctx context.Context, filters store.UserFilters, params pagination.Params) (pagination.Paginated[store.User], error) {
 	var users pagination.Paginated[store.User]
 	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
 		var err error
-		users, err = c.Store.Users(ctx, tx, params)
+		users, err = c.Store.Users(ctx, tx, filters, params)
 		if err != nil {
 			return meh.Wrap(err, "users from store", meh.Details{"params": params})
 		}
@@ -164,11 +172,11 @@ func (c *Controller) Users(ctx context.Context, params pagination.Params) (pagin
 }
 
 // SearchUsers searches for users with the given search.Params.
-func (c *Controller) SearchUsers(ctx context.Context, searchParams search.Params) (search.Result[store.User], error) {
+func (c *Controller) SearchUsers(ctx context.Context, filters store.UserFilters, searchParams search.Params) (search.Result[store.User], error) {
 	var result search.Result[store.User]
 	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
 		var err error
-		result, err = c.Store.SearchUsers(ctx, tx, searchParams)
+		result, err = c.Store.SearchUsers(ctx, tx, filters, searchParams)
 		if err != nil {
 			return meh.Wrap(err, "search users", meh.Details{"params": searchParams})
 		}

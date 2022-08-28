@@ -17,9 +17,6 @@ type Handler interface {
 	CreateUser(ctx context.Context, tx pgx.Tx, userID store.User) error
 	// UpdateUser updates the given store.user, identified by its id.
 	UpdateUser(ctx context.Context, tx pgx.Tx, user store.User) error
-	// DeleteUserByID deletes the user with the given id and notfies of updated
-	// groups.
-	DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error
 	// CreateGroup creates the given store.Group.
 	CreateGroup(ctx context.Context, tx pgx.Tx, create store.Group) error
 	// UpdateGroup updates the given store.Group, identified by its id.
@@ -124,8 +121,6 @@ func (p *Port) handleUsersTopic(ctx context.Context, tx pgx.Tx, handler Handler,
 	switch message.EventType {
 	case event.TypeUserCreated:
 		return meh.NilOrWrap(p.handleUserCreated(ctx, tx, handler, message), "handle user created", nil)
-	case event.TypeUserDeleted:
-		return meh.NilOrWrap(p.handleUserDeleted(ctx, tx, handler, message), "handle user deleted", nil)
 	case event.TypeUserUpdated:
 		return meh.NilOrWrap(p.handleUserUpdated(ctx, tx, handler, message), "handle user updated", nil)
 	}
@@ -144,6 +139,7 @@ func (p *Port) handleUserCreated(ctx context.Context, tx pgx.Tx, handler Handler
 		Username:  userCreatedEvent.Username,
 		FirstName: userCreatedEvent.FirstName,
 		LastName:  userCreatedEvent.LastName,
+		IsActive:  userCreatedEvent.IsActive,
 	}
 	err = handler.CreateUser(ctx, tx, create)
 	if err != nil {
@@ -164,24 +160,11 @@ func (p *Port) handleUserUpdated(ctx context.Context, tx pgx.Tx, handler Handler
 		Username:  userUpdatedEvent.Username,
 		FirstName: userUpdatedEvent.FirstName,
 		LastName:  userUpdatedEvent.LastName,
+		IsActive:  userUpdatedEvent.IsActive,
 	}
 	err = handler.UpdateUser(ctx, tx, update)
 	if err != nil {
 		return meh.Wrap(err, "update user", meh.Details{"user": update})
-	}
-	return nil
-}
-
-// handleUserDeleted handles an event.TypeUserDeleted event.
-func (p *Port) handleUserDeleted(ctx context.Context, tx pgx.Tx, handler Handler, message kafkautil.InboundMessage) error {
-	var userDeletedEvent event.UserDeleted
-	err := json.Unmarshal(message.RawValue, &userDeletedEvent)
-	if err != nil {
-		return meh.NewInternalErrFromErr(err, "unmarshal event", meh.Details{"raw": string(message.RawValue)})
-	}
-	err = handler.DeleteUserByID(ctx, tx, userDeletedEvent.ID)
-	if err != nil {
-		return meh.Wrap(err, "delete user", meh.Details{"user_id": userDeletedEvent.ID})
 	}
 	return nil
 }

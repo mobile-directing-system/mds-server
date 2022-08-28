@@ -21,7 +21,8 @@ type AuthRequestMetadata struct {
 
 // Login tries to log in the user with the given username and password. If login
 // fails, false is returned as second value. Otherwise, the first return value
-// will be the user id and the second one the assigned JWT-token.
+// will be the user id and the second one the assigned JWT-token. If the user is
+// inactive, a meh.ErrNotFound is returned.
 func (c *Controller) Login(ctx context.Context, username string, pass string, requestMetadata AuthRequestMetadata) (uuid.UUID, string, bool, error) {
 	var ok bool
 	var userID uuid.UUID
@@ -32,6 +33,9 @@ func (c *Controller) Login(ctx context.Context, username string, pass string, re
 		user, err := c.Store.UserWithPassByUsername(ctx, tx, username)
 		if err != nil {
 			return meh.Wrap(err, "user by username", meh.Details{"username": username})
+		}
+		if !user.IsActive {
+			return meh.NewNotFoundErr("user inactive", nil)
 		}
 		userID = user.ID
 		// Check password.

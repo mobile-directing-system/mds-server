@@ -13,6 +13,9 @@ The HTTP request is forwarded with the generated "internal" token to the interna
 Each service can then parse and validate the token, containing all relevant user information like username, permissions, etc.
 Therefore, each service can check permissions, if needed, but session management only needs to be handled by the API Gateway.
 
+Keep in mind, that only active users can sign in.
+When a user's active-state is set to invalid, all session tokens will be invalidated.
+
 Logging in
 ==========
 

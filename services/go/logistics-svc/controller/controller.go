@@ -65,8 +65,6 @@ type Store interface {
 	CreateUser(ctx context.Context, tx pgx.Tx, create store.User) error
 	// UpdateUser updates the given store.User, identified by its id.
 	UpdateUser(ctx context.Context, tx pgx.Tx, update store.User) error
-	// DeleteUserByID deletes the user with the given id.
-	DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error
 	// CreateOperation creates the given store.Operation.
 	CreateOperation(ctx context.Context, tx pgx.Tx, create store.Operation) error
 	// UpdateOperation updates the given store.Operation.

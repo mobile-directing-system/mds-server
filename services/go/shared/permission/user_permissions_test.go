@@ -14,7 +14,7 @@ func TestCreateUser(t *testing.T) {
 			UpdateGroupPermissionName,
 			CreateOperationPermissionName,
 			UpdateOperationPermissionName,
-			DeleteUserPermissionName,
+			SetUserActiveStatePermission,
 			UpdateUserPermissionName,
 			SetAdminUserPermissionName,
 			ViewUserPermissionName,
@@ -23,11 +23,11 @@ func TestCreateUser(t *testing.T) {
 	})
 }
 
-func TestDeleteUser(t *testing.T) {
+func TestSetUserActiveState(t *testing.T) {
 	suite.Run(t, &NameMatcherSuite{
-		MatcherName: "delete-user",
-		Matcher:     DeleteUser(),
-		Granted:     DeleteUserPermissionName,
+		MatcherName: "set-user-active-state",
+		Matcher:     SetUserActiveState(),
+		Granted:     SetUserActiveStatePermission,
 		Others: []Name{
 			UpdateGroupPermissionName,
 			CreateOperationPermissionName,
@@ -50,7 +50,7 @@ func TestUpdateUser(t *testing.T) {
 			UpdateGroupPermissionName,
 			CreateOperationPermissionName,
 			UpdateOperationPermissionName,
-			DeleteUserPermissionName,
+			SetUserActiveStatePermission,
 			CreateUserPermissionName,
 			SetAdminUserPermissionName,
 			ViewUserPermissionName,
@@ -68,7 +68,7 @@ func TestSetAdminUser(t *testing.T) {
 			UpdateGroupPermissionName,
 			CreateOperationPermissionName,
 			UpdateOperationPermissionName,
-			DeleteUserPermissionName,
+			SetUserActiveStatePermission,
 			CreateUserPermissionName,
 			UpdateUserPermissionName,
 			ViewUserPermissionName,
@@ -86,7 +86,7 @@ func TestUpdateUserPass(t *testing.T) {
 			UpdateGroupPermissionName,
 			CreateOperationPermissionName,
 			UpdateOperationPermissionName,
-			DeleteUserPermissionName,
+			SetUserActiveStatePermission,
 			CreateUserPermissionName,
 			UpdateUserPermissionName,
 			ViewUserPermissionName,
@@ -104,7 +104,7 @@ func TestViewUser(t *testing.T) {
 			UpdateGroupPermissionName,
 			CreateOperationPermissionName,
 			UpdateOperationPermissionName,
-			DeleteUserPermissionName,
+			SetUserActiveStatePermission,
 			CreateUserPermissionName,
 			UpdateUserPermissionName,
 			UpdateUserPassPermissionName,

@@ -126,3 +126,4 @@ Misc
 ====
 
 - Durations are always represented in nanoseconds.
+- Primitives in JSON, not being string and not stated otherwise, can be any value from the respective value range.

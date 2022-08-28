@@ -58,6 +58,7 @@ func (suite *handleGetAddressBookEntryByIDSuite) SetupTest() {
 			Username:  "rot",
 			FirstName: "result",
 			LastName:  "disgust",
+			IsActive:  true,
 		}),
 	}
 	suite.samplePublicEntry = publicAddressBookEntryDetailedFromStore(suite.sampleStoreEntry)
@@ -273,6 +274,16 @@ func (suite *handleGetAllAddressBookEntriesSuite) TestInvalidVisibleByFilter() {
 		Server: suite.r,
 		Method: http.MethodGet,
 		URL:    "/address-book/entries?visible_by=abc",
+		Token:  suite.tokenOK,
+	})
+	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
+}
+
+func (suite *handleGetAllAddressBookEntriesSuite) TestInvalidIncludeForInactiveUsersFilter() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    "/address-book/entries?include_for_inactive_users=abc",
 		Token:  suite.tokenOK,
 	})
 	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")

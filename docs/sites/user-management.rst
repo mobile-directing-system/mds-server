@@ -3,8 +3,10 @@ Users
 
 This section covers all user-related actions and API endpoints.
 
-A user consists of an unique id, a name, unique username and password for logging in, as well as an is-admin-state.
+A user consists of an unique id, a name, unique username and password for logging in, as well as an is-admin-state and active-state.
 The is-admin-state grants all permissions and normally should not be granted to regular users.
+The active-state is used instead of deleting users.
+When a user should be deleted, it is set to inactive instead for providing better operation logs and consistency.
 
 When the system starts and no admin-user exists, an example admin user will be created.
 The default credentials are::
@@ -43,10 +45,12 @@ Response:
         "username": "<username>",
         "first_name": "Max",
         "last_name": "Mustermann",
-        "is_admin": false
+        "is_admin": false,
+        "is_active": true
     }
 
 Keep in mind, that for creating a user with ``is_admin`` set to ``true``, the :ref:`permission.user.set-admin` permission is needed as well.
+The user will always be set to active.
 
 Update user
 ===========
@@ -64,9 +68,15 @@ If provided, updating is done via:
         "first_name": "Max",
         "last_name": "Mustermann",
         "is_admin": false,
+        "is_active": true
     }
 
 As with creating a user, changing the ``is_admin``-field requires the :ref:`permission.user.set-admin` permission, too.
+Updating the ``is_active``-field requires the :ref:`permission.user.set-active-state` permission.
+
+An alternative to setting the active-state to inactive is calling with :ref:`permission.user.set-active-state` permission:
+
+`DELETE /users/<user_id>`
 
 Update user password
 ====================
@@ -81,13 +91,6 @@ Updating a user's password, not being the caller, requires the :ref:`permission.
         "user_id": "<user_id>",
         "new_pass": "<new_password_in_plaintext>"
     }
-
-Delete user
-===========
-
-Deleting a user requires the :ref:`permission.user.delete` permission and is done via:
-
-`DELETE /users/<user_id>`
 
 Retrieve users
 ==============
@@ -106,7 +109,8 @@ Response:
         "username": "<username>",
         "first_name": "Max",
         "last_name": "Mustermann",
-        "is_admin": false
+        "is_admin": false,
+        "is_active": true
     }
 
 :ref:`Paginated <http-api.pagination>` user lists can be retrieved via:
@@ -122,14 +126,13 @@ Entry payload:
         "username": "<username>",
         "first_name": "Max",
         "last_name": "Mustermann",
-        "is_admin": false
+        "is_admin": false,
+        "is_active": true
     }
 
 Available query parameters:
 
-- ``only_ongoing``: Limit only to operations, currently running (default is ``false``).
-- ``include_archived``: Include archived operations in results (default is ``false``).
-- ``for_user``: Only show operations, the given user is member of.
+- ``include_inactive``: Includes inactive users (default: ``false``)
 
 The following fields can be used for ordering:
 
@@ -151,8 +154,13 @@ Entry payload:
         "username": "<username>",
         "first_name": "Max",
         "last_name": "Mustermann",
-        "is_admin": false
+        "is_admin": false,
+        "is_active": true
     }
+
+Available query parameters:
+
+- ``include_inactive``: Includes inactive users (default: ``false``)
 
 The search index can be rebuilt via:
 

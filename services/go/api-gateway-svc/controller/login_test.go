@@ -3,6 +3,7 @@ package controller
 import (
 	"errors"
 	"github.com/gofrs/uuid"
+	"github.com/lefinal/meh"
 	"github.com/mobile-directing-system/mds-server/services/go/api-gateway-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/auth"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
@@ -54,6 +55,7 @@ func (suite *ControllerLoginSuite) SetupTest() {
 			ID:       testutil.NewUUIDV4(),
 			Username: suite.sampleUsername,
 			IsAdmin:  false,
+			IsActive: true,
 		},
 		Pass: suite.sampleUserPassHashed,
 	}
@@ -83,6 +85,25 @@ func (suite *ControllerLoginSuite) TestRetrieveUserFromStoreFail() {
 		defer cancel()
 		_, _, _, err := suite.ctrl.Ctrl.Login(timeout, suite.sampleUsername, suite.sampleUserPass, suite.sampleRequestMetadata)
 		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerLoginSuite) TestUserInactive() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	user := suite.sampleUser
+	user.IsActive = false
+	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
+	suite.ctrl.Store.On("UserWithPassByUsername", timeout, suite.ctrl.DB.Tx[0], suite.sampleUsername).
+		Return(user, nil)
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		_, _, _, err := suite.ctrl.Ctrl.Login(timeout, suite.sampleUsername, "nonono", suite.sampleRequestMetadata)
+		suite.Require().Error(err, "should fail")
+		suite.Equal(meh.ErrNotFound, meh.ErrorCode(err), "should return correct error code")
 	}()
 
 	wait()

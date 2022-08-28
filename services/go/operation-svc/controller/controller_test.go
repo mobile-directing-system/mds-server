@@ -82,10 +82,6 @@ func (m *StoreMock) UpdateUser(ctx context.Context, tx pgx.Tx, update store.User
 	return m.Called(ctx, tx, update).Error(0)
 }
 
-func (m *StoreMock) DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error {
-	return m.Called(ctx, tx, userID).Error(0)
-}
-
 func (m *StoreMock) UpdateOperationMembersByOperation(ctx context.Context, tx pgx.Tx, operationID uuid.UUID, members []uuid.UUID) error {
 	return m.Called(ctx, tx, operationID, members).Error(0)
 }

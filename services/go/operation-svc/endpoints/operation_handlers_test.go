@@ -583,12 +583,14 @@ func (suite *handleGetOperationMembersByOperationSuite) SetupTest() {
 			Username:  "spring",
 			FirstName: "cautious",
 			LastName:  "hit",
+			IsActive:  true,
 		},
 		{
 			ID:        testutil.NewUUIDV4(),
 			Username:  "piece",
 			FirstName: "since",
 			LastName:  "stand",
+			IsActive:  false,
 		},
 	}
 	suite.samplePublicMembers = make([]publicUser, 0, len(suite.sampleMembers))

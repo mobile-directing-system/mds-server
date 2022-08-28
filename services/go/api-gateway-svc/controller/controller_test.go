@@ -75,10 +75,6 @@ func (m *StoreMock) UpdateUserPassByUserID(ctx context.Context, tx pgx.Tx, userI
 	return m.Called(ctx, tx, userID, newPass).Error(0)
 }
 
-func (m *StoreMock) DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error {
-	return m.Called(ctx, tx, userID).Error(0)
-}
-
 func (m *StoreMock) PermissionsByUserID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) ([]permission.Permission, error) {
 	args := m.Called(ctx, tx, userID)
 	var p []permission.Permission

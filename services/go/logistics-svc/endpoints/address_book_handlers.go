@@ -41,6 +41,7 @@ type publicUser struct {
 	Username  string    `json:"username"`
 	FirstName string    `json:"first_name"`
 	LastName  string    `json:"last_name"`
+	IsActive  bool      `json:"is_active"`
 }
 
 // publicUserFromStore converts store.User to publicUser.
@@ -50,6 +51,7 @@ func publicUserFromStore(s store.User) publicUser {
 		Username:  s.Username,
 		FirstName: s.FirstName,
 		LastName:  s.LastName,
+		IsActive:  s.IsActive,
 	}
 }
 
@@ -168,6 +170,14 @@ func handleGetAllAddressBookEntries(s handleGetAllAddressBookEntriesStore) httpe
 				return meh.NewBadInputErrFromErr(err, "visible-by from string", meh.Details{"was": visibleByStr})
 			}
 			filter.VisibleBy = nulls.NewUUID(visibleBy)
+		}
+		if includeForInactiveUsersStr := c.Query("include_for_inactive_users"); includeForInactiveUsersStr != "" {
+			includeForInactiveUsers, err := strconv.ParseBool(includeForInactiveUsersStr)
+			if err != nil {
+				return meh.NewBadInputErrFromErr(err, "include-for-inactive-users from string",
+					meh.Details{"was": includeForInactiveUsersStr})
+			}
+			filter.IncludeForInactiveUsers = includeForInactiveUsers
 		}
 		// Parse pagination params.
 		paginationParams, err := pagination.ParamsFromRequest(c)

@@ -50,6 +50,7 @@ Response (201):
             "username": "<associated_username>",
             "first_name": "<associated_user_first_name>",
             "last_name": "<associated_user_last_name>"
+            "is_active": true
         }
     }
 
@@ -105,7 +106,8 @@ Response:
             "id": "<associated_user_id>",
             "username": "<associated_username>",
             "first_name": "<associated_user_first_name>",
-            "last_name": "<associated_user_last_name>"
+            "last_name": "<associated_user_last_name>",
+            "is_active": true
         }
     }
 
@@ -129,7 +131,8 @@ Entry payload:
             "id": "<associated_user_id>",
             "username": "<associated_username>",
             "first_name": "<associated_user_first_name>",
-            "last_name": "<associated_user_last_name>"
+            "last_name": "<associated_user_last_name>",
+            "is_active": true
         }
     }
 
@@ -144,6 +147,7 @@ Additionally, query parameters can be applied in order to filter entries:
 - ``for_operation=<operation_id>``: Only include entries for the operation with the given id or global ones.
 - ``exclude_global=true``: Exclude entries with have no operation assigned.
 - ``visible_by=<user_id>``: Only include entries, being visible to the user with the given id. If the :ref:`permission.logistics.address-book.entry.view.any` permission is not granted, this will have no effect, as the requesting users id is used here by default.
+- ``include_for_inactive_users=false``: Includes entries, associated with inactive users.
 
 Channels in General
 ===================

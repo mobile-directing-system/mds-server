@@ -8,7 +8,8 @@ create table users
     id         uuid primary key not null,
     username   varchar          not null,
     first_name varchar          not null,
-    last_name  varchar          not null
+    last_name  varchar          not null,
+    is_active  bool             not null
 );
 
 -- Create operations table.

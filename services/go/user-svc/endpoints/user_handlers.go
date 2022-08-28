@@ -14,7 +14,24 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/shared/search"
 	"github.com/mobile-directing-system/mds-server/services/go/user-svc/store"
 	"net/http"
+	"net/url"
+	"strconv"
 )
+
+// userFiltersFromQuery extracts store.UserFilters from the given url.Values.
+func userFiltersFromQuery(q url.Values) (store.UserFilters, error) {
+	var err error
+	var filters store.UserFilters
+	includeInactiveStr := q.Get("include_inactive")
+	if includeInactiveStr != "" {
+		filters.IncludeInactive, err = strconv.ParseBool(includeInactiveStr)
+		if err != nil {
+			return store.UserFilters{}, meh.NewBadInputErrFromErr(err, "parse include-inactive",
+				meh.Details{"was": includeInactiveStr})
+		}
+	}
+	return filters, nil
+}
 
 // createUserRequest contains all information for creating a user.
 type createUserRequest struct {
@@ -43,6 +60,8 @@ type createUserResponse struct {
 	LastName string `json:"last_name"`
 	// IsAdmin describes whether the user is an administrator.
 	IsAdmin bool `json:"is_admin"`
+	// IsActive describes whether the user is active (not deleted).
+	IsActive bool `json:"is_active"`
 }
 
 // handleCreateUserStore are the dependencies needed for handleCreateUser.
@@ -92,6 +111,7 @@ func handleCreateUser(s handleCreateUserStore) httpendpoints.HandlerFunc {
 				FirstName: userToCreate.FirstName,
 				LastName:  userToCreate.LastName,
 				IsAdmin:   userToCreate.IsAdmin,
+				IsActive:  true,
 			},
 			Pass: hashedPass,
 		}
@@ -114,6 +134,7 @@ func handleCreateUser(s handleCreateUserStore) httpendpoints.HandlerFunc {
 			FirstName: createdUser.FirstName,
 			LastName:  createdUser.LastName,
 			IsAdmin:   createdUser.IsAdmin,
+			IsActive:  createdUser.IsActive,
 		})
 		return nil
 	}
@@ -132,14 +153,17 @@ type updateUserRequest struct {
 	LastName string `json:"last_name"`
 	// IsAdmin describes whether the user is an administrator.
 	IsAdmin bool `json:"is_admin"`
+	// IsActive describes whether the user is active (not deleted).
+	IsActive bool `json:"is_active"`
 }
 
 // handleUpdateUserByIDStore are the dependencies needed for
 // handleUpdateUserByID.
 type handleUpdateUserByIDStore interface {
 	// UpdateUser updates the given store.User and makes sure that changing the
-	// admin state is only allowed if the flag is set.
-	UpdateUser(ctx context.Context, user store.User, allowAdminChange bool) error
+	// admin state is only allowed if the flag is set as well as active-state
+	// changing.
+	UpdateUser(ctx context.Context, user store.User, allowAdminChange bool, allowActiveStateChange bool) error
 }
 
 // handleUpdateUserByID updates a user.
@@ -176,12 +200,18 @@ func handleUpdateUserByID(s handleUpdateUserByIDStore) httpendpoints.HandlerFunc
 		if err != nil {
 			return meh.Wrap(err, "check permission for allowing admin change", nil)
 		}
+		// Check if allowed to change active-state.
+		allowActiveStateChange, err := auth.HasPermission(token, permission.SetUserActiveState())
+		if err != nil {
+			return meh.Wrap(err, "check permission for allowing active-state change", nil)
+		}
 		updatedUser := store.User{
 			ID:        user.ID,
 			Username:  user.Username,
 			FirstName: user.FirstName,
 			LastName:  user.LastName,
 			IsAdmin:   user.IsAdmin,
+			IsActive:  user.IsActive,
 		}
 		// Validate.
 		if ok, err := entityvalidation.ValidateInRequest(c, updatedUser); err != nil {
@@ -191,7 +221,7 @@ func handleUpdateUserByID(s handleUpdateUserByIDStore) httpendpoints.HandlerFunc
 			return nil
 		}
 		// Update.
-		err = s.UpdateUser(c.Request.Context(), updatedUser, allowAdminChange)
+		err = s.UpdateUser(c.Request.Context(), updatedUser, allowAdminChange, allowActiveStateChange)
 		if err != nil {
 			return meh.Wrap(err, "update user", meh.Details{
 				"updated_user":       updatedUser,
@@ -266,35 +296,35 @@ func handleUpdateUserPassByUserID(s handleUpdateUserPassByUserIDStore) httpendpo
 // handleDeleteUserByIDStore are the dependencies needed for
 // handleDeleteUserByID.
 type handleDeleteUserByIDStore interface {
-	// DeleteUserByID deletes the user with the given id.
-	DeleteUserByID(ctx context.Context, userID uuid.UUID) error
+	// SetUserInactiveByID sets the user with the given id to inactive.
+	SetUserInactiveByID(ctx context.Context, userID uuid.UUID) error
 }
 
-// handleDeleteUserByID deletes a user. Deleting self is still only allowed with
-// the required permission.
+// handleDeleteUserByID sets a user inactive. Setting self inactive is still
+// only allowed with the required permission.
 func handleDeleteUserByID(s handleDeleteUserByIDStore) httpendpoints.HandlerFunc {
 	return func(c *gin.Context, token auth.Token) error {
 		if !token.IsAuthenticated {
 			return meh.NewUnauthorizedErr("not authenticated", nil)
 		}
 		// Extract id.
-		userIDToDeleteStr := c.Param("userID")
-		userIDToDelete, err := uuid.FromString(userIDToDeleteStr)
+		userIDToSetInactiveStr := c.Param("userID")
+		userIDToSetInactive, err := uuid.FromString(userIDToSetInactiveStr)
 		if err != nil {
-			return meh.NewBadInputErrFromErr(err, "parse user id", meh.Details{"was": userIDToDeleteStr})
+			return meh.NewBadInputErrFromErr(err, "parse user id", meh.Details{"was": userIDToSetInactiveStr})
 		}
 		// Check permission.
-		ok, err := auth.HasPermission(token, permission.DeleteUser())
+		ok, err := auth.HasPermission(token, permission.SetUserActiveState())
 		if err != nil {
-			return meh.Wrap(err, "check permission for deleting users", nil)
+			return meh.Wrap(err, "check permission for setting active-state for users", nil)
 		}
 		if !ok {
-			return meh.NewForbiddenErr("no permission to delete users", nil)
+			return meh.NewForbiddenErr("no permission to set active-state for users", nil)
 		}
 		// Delete.
-		err = s.DeleteUserByID(c.Request.Context(), userIDToDelete)
+		err = s.SetUserInactiveByID(c.Request.Context(), userIDToSetInactive)
 		if err != nil {
-			return meh.Wrap(err, "delete user by id", meh.Details{"user_id": userIDToDelete})
+			return meh.Wrap(err, "set user inactive by id", meh.Details{"user_id": userIDToSetInactive})
 		}
 		c.Status(http.StatusOK)
 		return nil
@@ -313,6 +343,8 @@ type getUserResponse struct {
 	LastName string `json:"last_name"`
 	// IsAdmin describes whether the user is an administrator.
 	IsAdmin bool `json:"is_admin"`
+	// IsActive describes whether the user is active (not deleted).
+	IsActive bool `json:"is_active"`
 }
 
 // handleGetUserByIDStore are the dependencies needed for handleGetUserByID.
@@ -354,6 +386,7 @@ func handleGetUserByID(s handleGetUserByIDStore) httpendpoints.HandlerFunc {
 			FirstName: retrievedUser.FirstName,
 			LastName:  retrievedUser.LastName,
 			IsAdmin:   retrievedUser.IsAdmin,
+			IsActive:  retrievedUser.IsActive,
 		})
 		return nil
 	}
@@ -372,12 +405,14 @@ type getUsersResponseUser struct {
 	LastName string `json:"last_name"`
 	// IsAdmin describes whether the user is an administrator.
 	IsAdmin bool `json:"is_admin"`
+	// IsActive describes whether the user is active (not deleted).
+	IsActive bool `json:"is_active"`
 }
 
 // handleGetUsersStore are the dependencies needed for handleGetUsers.
 type handleGetUsersStore interface {
 	// Users retrieves a paginated store.User list.
-	Users(ctx context.Context, params pagination.Params) (pagination.Paginated[store.User], error)
+	Users(ctx context.Context, filters store.UserFilters, params pagination.Params) (pagination.Paginated[store.User], error)
 }
 
 // handleGetUsers retrieves a user list.
@@ -399,8 +434,13 @@ func handleGetUsers(s handleGetUsersStore) httpendpoints.HandlerFunc {
 		if err != nil {
 			return meh.Wrap(err, "params from request", nil)
 		}
+		// Extract filters.
+		filters, err := userFiltersFromQuery(c.Request.URL.Query())
+		if err != nil {
+			return meh.Wrap(err, "user filters from query", nil)
+		}
 		// Retrieve.
-		retrievedUsers, err := s.Users(c.Request.Context(), params)
+		retrievedUsers, err := s.Users(c.Request.Context(), filters, params)
 		if err != nil {
 			return meh.Wrap(err, "retrieve users", meh.Details{"params": params})
 		}
@@ -411,6 +451,7 @@ func handleGetUsers(s handleGetUsersStore) httpendpoints.HandlerFunc {
 				FirstName: from.FirstName,
 				LastName:  from.LastName,
 				IsAdmin:   from.IsAdmin,
+				IsActive:  from.IsActive,
 			}
 		}))
 		return nil
@@ -419,7 +460,7 @@ func handleGetUsers(s handleGetUsersStore) httpendpoints.HandlerFunc {
 
 // handleSearchUsersStore are the dependencies needed for handleSearchUsers.
 type handleSearchUsersStore interface {
-	SearchUsers(ctx context.Context, searchParams search.Params) (search.Result[store.User], error)
+	SearchUsers(ctx context.Context, filters store.UserFilters, searchParams search.Params) (search.Result[store.User], error)
 }
 
 // handleSearchUsers searches for users.
@@ -435,8 +476,13 @@ func handleSearchUsers(s handleSearchUsersStore) httpendpoints.HandlerFunc {
 		if err != nil {
 			return meh.Wrap(err, "search params from request", nil)
 		}
+		// Extract filter params.
+		filters, err := userFiltersFromQuery(c.Request.URL.Query())
+		if err != nil {
+			return meh.Wrap(err, "user filters from query", nil)
+		}
 		// Search.
-		result, err := s.SearchUsers(c.Request.Context(), searchParams)
+		result, err := s.SearchUsers(c.Request.Context(), filters, searchParams)
 		if err != nil {
 			return meh.Wrap(err, "search users", meh.Details{"search_params": searchParams})
 		}
@@ -447,6 +493,7 @@ func handleSearchUsers(s handleSearchUsersStore) httpendpoints.HandlerFunc {
 				FirstName: from.FirstName,
 				LastName:  from.LastName,
 				IsAdmin:   from.IsAdmin,
+				IsActive:  from.IsActive,
 			}
 		}))
 		return nil

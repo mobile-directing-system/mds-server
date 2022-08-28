@@ -2,10 +2,11 @@
 
 create table users
 (
-    id       uuid primary key not null,
-    username varchar          not null,
-    is_admin bool             not null,
-    pass     varchar          not null
+    id        uuid primary key not null,
+    username  varchar          not null,
+    is_admin  bool             not null,
+    pass      varchar          not null,
+    is_active bool             not null
 );
 
 comment on column users.pass is 'The hashed password of the user.';
