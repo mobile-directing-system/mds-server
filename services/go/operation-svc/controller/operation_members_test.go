@@ -3,7 +3,6 @@ package controller
 import (
 	"errors"
 	"github.com/gofrs/uuid"
-	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/operation-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
@@ -133,19 +132,13 @@ type ControllerOperationMembersByOperationSuite struct {
 	ctrl              *ControllerMock
 	sampleOperationID uuid.UUID
 	sampleParams      pagination.Params
-	sampleMembers     pagination.Paginated[store.User]
+	sampleMembers     []store.User
 }
 
 func (suite *ControllerOperationMembersByOperationSuite) SetupTest() {
 	suite.ctrl = NewMockController()
 	suite.sampleOperationID = testutil.NewUUIDV4()
-	suite.sampleParams = pagination.Params{
-		Limit:          47,
-		Offset:         93,
-		OrderBy:        nulls.NewString("intend"),
-		OrderDirection: pagination.OrderDirDesc,
-	}
-	suite.sampleMembers = pagination.NewPaginated(suite.sampleParams, []store.User{
+	suite.sampleMembers = []store.User{
 		{
 			ID:        testutil.NewUUIDV4(),
 			Username:  "power",
@@ -158,7 +151,7 @@ func (suite *ControllerOperationMembersByOperationSuite) SetupTest() {
 			FirstName: "occasion",
 			LastName:  "cliff",
 		},
-	}, 645)
+	}
 }
 
 func (suite *ControllerOperationMembersByOperationSuite) TestTxFail() {
@@ -167,7 +160,7 @@ func (suite *ControllerOperationMembersByOperationSuite) TestTxFail() {
 
 	go func() {
 		defer cancel()
-		_, err := suite.ctrl.Ctrl.OperationMembersByOperation(timeout, suite.sampleOperationID, suite.sampleParams)
+		_, err := suite.ctrl.Ctrl.OperationMembersByOperation(timeout, suite.sampleOperationID)
 		suite.Error(err, "should fail")
 	}()
 
@@ -183,7 +176,7 @@ func (suite *ControllerOperationMembersByOperationSuite) TestAssureOperationFail
 
 	go func() {
 		defer cancel()
-		_, err := suite.ctrl.Ctrl.OperationMembersByOperation(timeout, suite.sampleOperationID, suite.sampleParams)
+		_, err := suite.ctrl.Ctrl.OperationMembersByOperation(timeout, suite.sampleOperationID)
 		suite.Error(err, "should fail")
 		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit")
 	}()
@@ -196,13 +189,13 @@ func (suite *ControllerOperationMembersByOperationSuite) TestMemberRetrievalFail
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
 	suite.ctrl.Store.On("OperationByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleOperationID).
 		Return(store.Operation{}, nil)
-	suite.ctrl.Store.On("OperationMembersByOperation", timeout, suite.ctrl.DB.Tx[0], suite.sampleOperationID, suite.sampleParams).
-		Return(pagination.Paginated[store.User]{}, errors.New("sad life"))
+	suite.ctrl.Store.On("OperationMembersByOperation", timeout, suite.ctrl.DB.Tx[0], suite.sampleOperationID).
+		Return(nil, errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		_, err := suite.ctrl.Ctrl.OperationMembersByOperation(timeout, suite.sampleOperationID, suite.sampleParams)
+		_, err := suite.ctrl.Ctrl.OperationMembersByOperation(timeout, suite.sampleOperationID)
 		suite.Error(err, "should fail")
 		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit")
 	}()
@@ -215,13 +208,13 @@ func (suite *ControllerOperationMembersByOperationSuite) TestOK() {
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
 	suite.ctrl.Store.On("OperationByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleOperationID).
 		Return(store.Operation{}, nil)
-	suite.ctrl.Store.On("OperationMembersByOperation", timeout, suite.ctrl.DB.Tx[0], suite.sampleOperationID, suite.sampleParams).
+	suite.ctrl.Store.On("OperationMembersByOperation", timeout, suite.ctrl.DB.Tx[0], suite.sampleOperationID).
 		Return(suite.sampleMembers, nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		got, err := suite.ctrl.Ctrl.OperationMembersByOperation(timeout, suite.sampleOperationID, suite.sampleParams)
+		got, err := suite.ctrl.Ctrl.OperationMembersByOperation(timeout, suite.sampleOperationID)
 		suite.Require().NoError(err, "should not fail")
 		suite.True(suite.ctrl.DB.Tx[0].IsCommitted, "should commit")
 		suite.Equal(suite.sampleMembers, got, "should return correct value")

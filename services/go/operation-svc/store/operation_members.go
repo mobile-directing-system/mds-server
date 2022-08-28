@@ -7,7 +7,6 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/lefinal/meh"
 	"github.com/lefinal/meh/mehpg"
-	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 )
 
 // UpdateOperationMembersByOperation updates the members for the operation with
@@ -55,48 +54,41 @@ func (m *Mall) UpdateOperationMembersByOperation(ctx context.Context, tx pgx.Tx,
 	return nil
 }
 
-// OperationMembersByOperation retrieves a paginated User list for the operation
-// with the given id.
-func (m *Mall) OperationMembersByOperation(ctx context.Context, tx pgx.Tx, operationID uuid.UUID,
-	params pagination.Params) (pagination.Paginated[User], error) {
+// OperationMembersByOperation retrieves the User list for the operation with
+// the given id.
+func (m *Mall) OperationMembersByOperation(ctx context.Context, tx pgx.Tx, operationID uuid.UUID) ([]User, error) {
 	// Build query.
-	q, _, err := pagination.QueryToSQLWithPagination(m.dialect.From(goqu.T("operation_members")).
+	q, _, err := m.dialect.From(goqu.T("operation_members")).
 		InnerJoin(goqu.T("users"), goqu.On(goqu.I("users.id").Eq(goqu.I("operation_members.user")))).
 		Select(goqu.I("users.id"),
 			goqu.I("users.username"),
 			goqu.I("users.first_name"),
 			goqu.I("users.last_name")).
 		Where(goqu.I("operation_members.operation").Eq(operationID)).
-		Order(goqu.I("users.username").Asc()), params, pagination.FieldMap{
-		"username":   goqu.I("users.username"),
-		"first_name": goqu.I("users.first_name"),
-		"last_name":  goqu.I("users.last_name"),
-	})
+		Order(goqu.I("users.last_name").Asc(), goqu.I("users.first_name").Asc()).ToSQL()
 	if err != nil {
-		return pagination.Paginated[User]{}, meh.Wrap(err, "query to sql with pagination", nil)
+		return nil, meh.Wrap(err, "query to sql", nil)
 	}
 	// Query.
 	rows, err := tx.Query(ctx, q)
 	if err != nil {
-		return pagination.Paginated[User]{}, mehpg.NewQueryDBErr(err, "query db", q)
+		return nil, mehpg.NewQueryDBErr(err, "query db", q)
 	}
 	defer rows.Close()
 	// Scan.
 	users := make([]User, 0)
-	var total int
 	for rows.Next() {
 		var user User
 		err = rows.Scan(&user.ID,
 			&user.Username,
 			&user.FirstName,
-			&user.LastName,
-			&total)
+			&user.LastName)
 		if err != nil {
-			return pagination.Paginated[User]{}, mehpg.NewScanRowsErr(err, "scan row", q)
+			return nil, mehpg.NewScanRowsErr(err, "scan row", q)
 		}
 		users = append(users, user)
 	}
-	return pagination.NewPaginated(params, users, total), nil
+	return users, nil
 }
 
 // allOperationMembersByOperation retrieves all members for the operation with

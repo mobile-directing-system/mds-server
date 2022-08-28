@@ -556,8 +556,8 @@ type handleGetOperationMembersByOperationSuite struct {
 	tokenOK                auth.Token
 	sampleOperationID      uuid.UUID
 	samplePaginationParams pagination.Params
-	sampleMembers          pagination.Paginated[store.User]
-	samplePublicMembers    pagination.Paginated[publicUser]
+	sampleMembers          []store.User
+	samplePublicMembers    []publicUser
 }
 
 func (suite *handleGetOperationMembersByOperationSuite) SetupTest() {
@@ -577,7 +577,7 @@ func (suite *handleGetOperationMembersByOperationSuite) SetupTest() {
 		OrderBy:        nulls.NewString("meow"),
 		OrderDirection: pagination.OrderDirDesc,
 	}
-	suite.sampleMembers = pagination.NewPaginated(suite.samplePaginationParams, []store.User{
+	suite.sampleMembers = []store.User{
 		{
 			ID:        testutil.NewUUIDV4(),
 			Username:  "spring",
@@ -590,8 +590,16 @@ func (suite *handleGetOperationMembersByOperationSuite) SetupTest() {
 			FirstName: "since",
 			LastName:  "stand",
 		},
-	}, 13)
-	suite.samplePublicMembers = pagination.MapPaginated(suite.sampleMembers, publicUserFromStore)
+	}
+	suite.samplePublicMembers = make([]publicUser, 0, len(suite.sampleMembers))
+	for _, sMember := range suite.sampleMembers {
+		suite.samplePublicMembers = append(suite.samplePublicMembers, publicUser{
+			ID:        sMember.ID,
+			Username:  sMember.Username,
+			FirstName: sMember.FirstName,
+			LastName:  sMember.LastName,
+		})
+	}
 }
 
 func (suite *handleGetOperationMembersByOperationSuite) TestSecretMismatch() {
@@ -630,19 +638,9 @@ func (suite *handleGetOperationMembersByOperationSuite) TestMissingPermission() 
 	suite.Equal(http.StatusForbidden, rr.Code, "should return correct code")
 }
 
-func (suite *handleGetOperationMembersByOperationSuite) TestInvalidPaginationParams() {
-	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
-		Server: suite.r,
-		Method: http.MethodGet,
-		URL:    fmt.Sprintf("/%s/members?%s=abc", suite.sampleOperationID.String(), pagination.LimitQueryParam),
-		Token:  suite.tokenOK,
-	})
-	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
-}
-
 func (suite *handleGetOperationMembersByOperationSuite) TestStoreRetrievalFail() {
-	suite.s.On("OperationMembersByOperation", mock.Anything, suite.sampleOperationID, suite.samplePaginationParams).
-		Return(pagination.Paginated[store.User]{}, errors.New("sad life"))
+	suite.s.On("OperationMembersByOperation", mock.Anything, suite.sampleOperationID).
+		Return(nil, errors.New("sad life"))
 	defer suite.s.AssertExpectations(suite.T())
 	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
 		Server: suite.r,
@@ -655,7 +653,7 @@ func (suite *handleGetOperationMembersByOperationSuite) TestStoreRetrievalFail()
 }
 
 func (suite *handleGetOperationMembersByOperationSuite) TestOK() {
-	suite.s.On("OperationMembersByOperation", mock.Anything, suite.sampleOperationID, suite.samplePaginationParams).
+	suite.s.On("OperationMembersByOperation", mock.Anything, suite.sampleOperationID).
 		Return(suite.sampleMembers, nil)
 	defer suite.s.AssertExpectations(suite.T())
 	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
@@ -666,7 +664,7 @@ func (suite *handleGetOperationMembersByOperationSuite) TestOK() {
 		Token: suite.tokenOK,
 	})
 	suite.Require().Equal(http.StatusOK, rr.Code, "should return correct code")
-	var got pagination.Paginated[publicUser]
+	var got []publicUser
 	suite.Require().NoError(json.NewDecoder(rr.Body).Decode(&got), "should return valid body")
 	suite.Equal(suite.samplePublicMembers, got, "should return correct body")
 }

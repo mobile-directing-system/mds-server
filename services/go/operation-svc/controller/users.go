@@ -6,7 +6,6 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/lefinal/meh"
 	"github.com/mobile-directing-system/mds-server/services/go/operation-svc/store"
-	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -39,13 +38,13 @@ func (c *Controller) DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.
 	// Remove from all operations.
 	updatedMembersByOperation := make(map[uuid.UUID][]uuid.UUID, len(currentlyMemberOf))
 	for _, operation := range currentlyMemberOf {
-		operationMembers, err := c.Store.OperationMembersByOperation(ctx, tx, operation.ID, pagination.Params{Limit: 0})
+		operationMembers, err := c.Store.OperationMembersByOperation(ctx, tx, operation.ID)
 		if err != nil {
 			return meh.Wrap(err, "operation members for assigned operation",
 				meh.Details{"operation_id": operation.ID})
 		}
-		newMembers := make([]uuid.UUID, 0, len(operationMembers.Entries))
-		for _, member := range operationMembers.Entries {
+		newMembers := make([]uuid.UUID, 0, len(operationMembers))
+		for _, member := range operationMembers {
 			if member.ID != userID {
 				newMembers = append(newMembers, member.ID)
 			}
