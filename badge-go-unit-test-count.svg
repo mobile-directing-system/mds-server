@@ -1,5 +1,5 @@
-<svg width="122.9" height="20" viewBox="0 0 1229 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Go unit tests: ≈825">
-  <title>Go unit tests: ≈825</title>
+<svg width="122.9" height="20" viewBox="0 0 1229 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Go unit tests: ≈824">
+  <title>Go unit tests: ≈824</title>
   <linearGradient id="a" x2="0" y2="100%">
     <stop offset="0" stop-opacity=".1" stop-color="#EEE"/>
     <stop offset="1" stop-opacity=".1"/>
@@ -13,8 +13,8 @@
   <g aria-hidden="true" fill="#fff" text-anchor="start" font-family="Verdana,DejaVu Sans,sans-serif" font-size="110">
     <text x="60" y="148" textLength="709" fill="#000" opacity="0.25">Go unit tests</text>
     <text x="50" y="138" textLength="709">Go unit tests</text>
-    <text x="864" y="148" textLength="320" fill="#000" opacity="0.25">≈825</text>
-    <text x="854" y="138" textLength="320">≈825</text>
+    <text x="864" y="148" textLength="320" fill="#000" opacity="0.25">≈824</text>
+    <text x="854" y="138" textLength="320">≈824</text>
   </g>
   
 </svg>
