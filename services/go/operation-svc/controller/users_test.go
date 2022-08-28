@@ -5,7 +5,6 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/operation-svc/store"
-	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -126,7 +125,7 @@ type ControllerDeleteUserByIDSuite struct {
 	ctrl                     *ControllerMock
 	sampleUserID             uuid.UUID
 	sampleOperations         []store.Operation
-	sampleMembersByOperation map[uuid.UUID]pagination.Paginated[store.User]
+	sampleMembersByOperation map[uuid.UUID][]store.User
 }
 
 func (suite *ControllerDeleteUserByIDSuite) SetupTest() {
@@ -134,7 +133,7 @@ func (suite *ControllerDeleteUserByIDSuite) SetupTest() {
 	suite.sampleUserID = testutil.NewUUIDV4()
 	suite.sampleOperations = make([]store.Operation, 16)
 	rand.Seed(0)
-	suite.sampleMembersByOperation = make(map[uuid.UUID]pagination.Paginated[store.User])
+	suite.sampleMembersByOperation = make(map[uuid.UUID][]store.User)
 	for operationIndex := range suite.sampleOperations {
 		operation := store.Operation{
 			ID:          testutil.NewUUIDV4(),
@@ -159,7 +158,7 @@ func (suite *ControllerDeleteUserByIDSuite) SetupTest() {
 			}
 			members[memberIndex] = member
 		}
-		suite.sampleMembersByOperation[operation.ID] = pagination.NewPaginated(pagination.Params{}, members, len(members))
+		suite.sampleMembersByOperation[operation.ID] = members
 	}
 }
 
@@ -185,7 +184,7 @@ func (suite *ControllerDeleteUserByIDSuite) TestRetrieveOperationMembersFail() {
 	suite.ctrl.Store.On("OperationsByMember", timeout, suite.ctrl.DB.Tx[0], suite.sampleUserID).
 		Return(suite.sampleOperations, nil)
 	suite.ctrl.Store.On("OperationMembersByOperation", timeout, suite.ctrl.DB.Tx[0], mock.Anything, mock.Anything).
-		Return(pagination.Paginated[store.User]{}, errors.New("sad life"))
+		Return(nil, errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
@@ -273,10 +272,10 @@ func (suite *ControllerDeleteUserByIDSuite) TestOK() {
 	for i := range suite.sampleOperations {
 		operation := suite.sampleOperations[i]
 		// Store stuff.
-		suite.ctrl.Store.On("OperationMembersByOperation", timeout, suite.ctrl.DB.Tx[0], operation.ID, pagination.Params{}).
+		suite.ctrl.Store.On("OperationMembersByOperation", timeout, suite.ctrl.DB.Tx[0], operation.ID).
 			Return(suite.sampleMembersByOperation[operation.ID], nil).Once()
 		newMembers := make([]uuid.UUID, 0)
-		for _, member := range suite.sampleMembersByOperation[operation.ID].Entries {
+		for _, member := range suite.sampleMembersByOperation[operation.ID] {
 			if member.ID != suite.sampleUserID {
 				newMembers = append(newMembers, member.ID)
 			}

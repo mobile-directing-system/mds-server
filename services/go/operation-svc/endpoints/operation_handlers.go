@@ -283,12 +283,11 @@ func handleUpdateOperation(s handleUpdateOperationStore) httpendpoints.HandlerFu
 // handleGetOperationMembersByOperationStore are the dependencies needed for
 // handleGetOperationMembersByOperation.
 type handleGetOperationMembersByOperationStore interface {
-	OperationMembersByOperation(ctx context.Context, operationID uuid.UUID,
-		paginationParams pagination.Params) (pagination.Paginated[store.User], error)
+	OperationMembersByOperation(ctx context.Context, operationID uuid.UUID) ([]store.User, error)
 }
 
-// handleGetOperationMembersByOperation retrieves a paginated member list for
-// the given operation.
+// handleGetOperationMembersByOperation retrieves the member list for the given
+// operation.
 func handleGetOperationMembersByOperation(s handleGetOperationMembersByOperationStore) httpendpoints.HandlerFunc {
 	return func(c *gin.Context, token auth.Token) error {
 		// Check permission.
@@ -302,20 +301,16 @@ func handleGetOperationMembersByOperation(s handleGetOperationMembersByOperation
 		if err != nil {
 			return meh.NewBadInputErrFromErr(err, "parse operation id from query", meh.Details{"str": idFromQueryStr})
 		}
-		// Extract pagination params.
-		paginationParams, err := pagination.ParamsFromRequest(c)
-		if err != nil {
-			return meh.Wrap(err, "pagination params from request", nil)
-		}
 		// Retrieve.
-		users, err := s.OperationMembersByOperation(c.Request.Context(), idFromQuery, paginationParams)
+		users, err := s.OperationMembersByOperation(c.Request.Context(), idFromQuery)
 		if err != nil {
-			return meh.Wrap(err, "operation members by operation", meh.Details{
-				"operation_id":      idFromQuery,
-				"pagination_params": paginationParams,
-			})
+			return meh.Wrap(err, "operation members by operation", meh.Details{"operation_id": idFromQuery})
 		}
-		c.JSON(http.StatusOK, pagination.MapPaginated(users, publicUserFromStore))
+		publicUsers := make([]publicUser, 0, len(users))
+		for _, sUser := range users {
+			publicUsers = append(publicUsers, publicUserFromStore(sUser))
+		}
+		c.JSON(http.StatusOK, publicUsers)
 		return nil
 	}
 }

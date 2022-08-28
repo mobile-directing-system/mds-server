@@ -47,10 +47,13 @@ func (m *StoreMock) UpdateOperation(ctx context.Context, operation store.Operati
 	return m.Called(ctx, operation).Error(0)
 }
 
-func (m *StoreMock) OperationMembersByOperation(ctx context.Context, operationID uuid.UUID,
-	paginationParams pagination.Params) (pagination.Paginated[store.User], error) {
-	args := m.Called(ctx, operationID, paginationParams)
-	return args.Get(0).(pagination.Paginated[store.User]), args.Error(1)
+func (m *StoreMock) OperationMembersByOperation(ctx context.Context, operationID uuid.UUID) ([]store.User, error) {
+	args := m.Called(ctx, operationID)
+	var members []store.User
+	if a := args.Get(0); a != nil {
+		members = a.([]store.User)
+	}
+	return members, args.Error(1)
 }
 
 func (m *StoreMock) UpdateOperationMembersByOperation(ctx context.Context, operationID uuid.UUID, members []uuid.UUID) error {
