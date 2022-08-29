@@ -282,6 +282,7 @@ func (m *Mall) CreateAddressBookEntry(ctx context.Context, tx pgx.Tx, entry Addr
 	if err != nil {
 		return AddressBookEntryDetailed{}, mehpg.NewScanRowsErr(err, "scan row", q)
 	}
+	rows.Close()
 	created := AddressBookEntryDetailed{
 		AddressBookEntry: entry,
 	}
