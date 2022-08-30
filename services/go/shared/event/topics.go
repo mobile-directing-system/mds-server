@@ -22,3 +22,6 @@ const PermissionsTopic Topic = "core.permissions.0"
 
 // UsersTopic is the Kafka topic to write user events to.
 const UsersTopic Topic = "core.users.0"
+
+// IntelTopic is the Kafka topic for intel.
+const IntelTopic = "intelligence.intel.0"

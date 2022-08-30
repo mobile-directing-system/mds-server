@@ -24,6 +24,13 @@ spec:
                 name: mds-group-svc-service
                 port:
                   number: 3000
+          - path: /?(intel.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: mds-intelligence-svc-service
+                port:
+                  number: 3000
           - path: /operations/?(.*)
             pathType: Prefix
             backend:

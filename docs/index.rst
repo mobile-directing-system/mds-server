@@ -14,6 +14,7 @@ Welcome to MDS Server's documentation!
     sites/operations
     sites/groups
     sites/address-book
+    sites/intelligence
     sites/development
 
 
