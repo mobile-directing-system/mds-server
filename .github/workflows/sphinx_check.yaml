@@ -3,7 +3,6 @@
 name: "Docs Check"
 
 on:
-  - push
   - pull_request
 
 jobs:

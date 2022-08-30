@@ -1,6 +1,6 @@
 name: "K8s startup"
 
-on: [ push, pull_request ]
+on: [ pull_request ]
 
 jobs:
   k8s_startup:
