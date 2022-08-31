@@ -116,7 +116,7 @@ func Run(ctx context.Context) error {
 				event.AddressBookTopic,
 			})
 		kafkaWriter := kafkautil.NewWriter(logger.Named("kafka"), c.KafkaAddr)
-		err := kafkautil.RunConnector(ctx, kafkaConnector, sqlDB, kafkaWriter, kafkaReader, eventPort.HandlerFn(ctrl))
+		err := kafkautil.RunConnector(egCtx, kafkaConnector, sqlDB, kafkaWriter, kafkaReader, eventPort.HandlerFn(ctrl))
 		if err != nil {
 			return meh.Wrap(err, "run connector", nil)
 		}
