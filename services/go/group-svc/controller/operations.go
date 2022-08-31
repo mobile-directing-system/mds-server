@@ -8,7 +8,6 @@ import (
 	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/group-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
-	"golang.org/x/sync/errgroup"
 )
 
 // CreateOperation creates the operation with the given id.
@@ -90,16 +89,11 @@ func (c *Controller) UpdateOperationMembersByOperation(ctx context.Context, tx p
 	if len(updatedGroups) == 0 {
 		return nil
 	}
-	var eg errgroup.Group
 	for _, updatedGroup := range updatedGroups {
-		group := updatedGroup
-		eg.Go(func() error {
-			err := c.Notifier.NotifyGroupUpdated(ctx, tx, group)
-			if err != nil {
-				return meh.Wrap(err, "notify group updated", meh.Details{"group": group})
-			}
-			return nil
-		})
+		err := c.Notifier.NotifyGroupUpdated(ctx, tx, updatedGroup)
+		if err != nil {
+			return meh.Wrap(err, "notify group updated", meh.Details{"group": updatedGroup})
+		}
 	}
-	return eg.Wait()
+	return nil
 }
