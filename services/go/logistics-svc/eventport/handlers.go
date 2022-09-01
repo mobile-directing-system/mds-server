@@ -30,6 +30,11 @@ type Handler interface {
 	// UpdateOperationMembersByOperation updates the operation members for the given
 	// operation.
 	UpdateOperationMembersByOperation(ctx context.Context, tx pgx.Tx, operationID uuid.UUID, newMembers []uuid.UUID) error
+	// CreateIntel and schedule delivery.
+	CreateIntel(ctx context.Context, tx pgx.Tx, create store.Intel) error
+	// InvalidateIntelByID sets the valid-field of the intel with the given id to
+	// false.
+	InvalidateIntelByID(ctx context.Context, tx pgx.Tx, intelID uuid.UUID) error
 }
 
 // HandlerFn for handling messages.
@@ -42,6 +47,8 @@ func (p *Port) HandlerFn(handler Handler) kafkautil.HandlerFunc {
 			return meh.NilOrWrap(p.handleOperationsTopic(ctx, tx, handler, message), "handle operations topic", nil)
 		case event.UsersTopic:
 			return meh.NilOrWrap(p.handleUsersTopic(ctx, tx, handler, message), "handle users topic", nil)
+		case event.IntelTopic:
+			return meh.NilOrWrap(p.handleIntelTopic(ctx, tx, handler, message), "handle intel topic", nil)
 		}
 		return nil
 	}
@@ -240,6 +247,65 @@ func (p *Port) handleOperationMembersUpdated(ctx context.Context, tx pgx.Tx, han
 			"operation":   operationMembersUpdatedEvent.Operation,
 			"new_members": operationMembersUpdatedEvent.Members,
 		})
+	}
+	return nil
+}
+
+// handleIntelTopic handles the event.IntelTopic.
+func (p *Port) handleIntelTopic(ctx context.Context, tx pgx.Tx, handler Handler, message kafkautil.InboundMessage) error {
+	switch message.EventType {
+	case event.TypeIntelCreated:
+		return meh.NilOrWrap(p.handleIntelCreated(ctx, tx, handler, message), "handle intel created", nil)
+	case event.TypeIntelInvalidated:
+		return meh.NilOrWrap(p.handleIntelInvalidated(ctx, tx, handler, message), "handle intel invalidated", nil)
+	}
+	return nil
+}
+
+// handleIntelCreated handles an event.TypeIntelCreated event.
+func (p *Port) handleIntelCreated(ctx context.Context, tx pgx.Tx, handler Handler, message kafkautil.InboundMessage) error {
+	var intelCreatedEvent event.IntelCreated
+	err := json.Unmarshal(message.RawValue, &intelCreatedEvent)
+	if err != nil {
+		return meh.NewInternalErrFromErr(err, "unmarshal event", meh.Details{"raw": string(message.RawValue)})
+	}
+	sAssignments := make([]store.IntelAssignment, 0, len(intelCreatedEvent.Assignments))
+	for _, assignment := range intelCreatedEvent.Assignments {
+		sAssignments = append(sAssignments, store.IntelAssignment{
+			ID:    assignment.ID,
+			Intel: intelCreatedEvent.ID,
+			To:    assignment.To,
+		})
+	}
+	sCreate := store.Intel{
+		ID:          intelCreatedEvent.ID,
+		CreatedAt:   intelCreatedEvent.CreatedAt,
+		CreatedBy:   intelCreatedEvent.CreatedBy,
+		Operation:   intelCreatedEvent.Operation,
+		Type:        store.IntelType(intelCreatedEvent.Type), // No conversation, as we simply do not care.
+		Content:     intelCreatedEvent.Content,
+		SearchText:  intelCreatedEvent.SearchText,
+		Importance:  intelCreatedEvent.Importance,
+		IsValid:     intelCreatedEvent.IsValid,
+		Assignments: sAssignments,
+	}
+	err = handler.CreateIntel(ctx, tx, sCreate)
+	if err != nil {
+		return meh.Wrap(err, "create intel", meh.Details{"create": sCreate})
+	}
+	return nil
+}
+
+// handleIntelInvalidated handles an event.TypeIntelInvalidated event.
+func (p *Port) handleIntelInvalidated(ctx context.Context, tx pgx.Tx, handler Handler, message kafkautil.InboundMessage) error {
+	var intelInvalidatedEvent event.IntelInvalidated
+	err := json.Unmarshal(message.RawValue, &intelInvalidatedEvent)
+	if err != nil {
+		return meh.NewInternalErrFromErr(err, "unmarshal event", meh.Details{"raw": string(message.RawValue)})
+	}
+	err = handler.InvalidateIntelByID(ctx, tx, intelInvalidatedEvent.ID)
+	if err != nil {
+		return meh.Wrap(err, "create intel", meh.Details{"intel_id": intelInvalidatedEvent.ID})
 	}
 	return nil
 }

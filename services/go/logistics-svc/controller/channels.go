@@ -41,10 +41,9 @@ func (c *Controller) ChannelsByAddressBookEntry(ctx context.Context, entryID uui
 }
 
 // UpdateChannelsByAddressBookEntry updates the channels for the entry with the
-// given id. It tries to preserve existing channel ids for ongoing deliveries.
-// This is accomplished by using channel ids as identifiers. If limit-to-user is
-// set, a meh.ErrForbidden will be returned, if the entry is not associated with
-// the user.
+// given id. All previous channels are deleted and active delivery attempts,
+// using them, are canceled. If limit-to-user is set, a meh.ErrForbidden will be
+// returned, if the entry is not associated with the user.
 func (c *Controller) UpdateChannelsByAddressBookEntry(ctx context.Context, entryID uuid.UUID, newChannels []store.Channel,
 	limitToUser uuid.NullUUID) error {
 	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
@@ -66,52 +65,14 @@ func (c *Controller) UpdateChannelsByAddressBookEntry(ctx context.Context, entry
 		if err != nil {
 			return meh.Wrap(err, "retrieve old channels", meh.Details{"entry_id": entryID})
 		}
-		oldChannelsHitByID := make(map[uuid.UUID]bool, len(oldChannels))
-		for _, oldChannel := range oldChannels {
-			oldChannelsHitByID[oldChannel.ID] = false
+		affectedDeliveries, err := c.handleDeletedChannelsForDeliveryAttempts(ctx, tx, oldChannels)
+		if err != nil {
+			return meh.Wrap(err, "handle deleted channels for delivery attempts", nil)
 		}
-		// Analyze which channels need to be created/removed/updated.
-		create := make([]store.Channel, 0)
-		update := make([]store.Channel, 0)
-		for _, newChannel := range newChannels {
-			if newChannel.ID.IsNil() {
-				create = append(create, newChannel)
-			} else if hit, ok := oldChannelsHitByID[newChannel.ID]; ok {
-				if hit {
-					return meh.NewBadInputErr("duplicate channel ids", meh.Details{"channel_id": newChannel.ID})
-				}
-				oldChannelsHitByID[newChannel.ID] = true
-				update = append(update, newChannel)
-			} else if !ok {
-				return meh.NewBadInputErr("unknown channel", meh.Details{"channel_id": newChannel.ID})
-			}
-		}
-		// Remove old channels, that are not used anymore.
-		for _, oldChannel := range oldChannels {
-			if oldChannelsHitByID[oldChannel.ID] {
-				continue
-			}
-			err = c.Store.DeleteChannelWithDetailsByID(ctx, tx, oldChannel.ID, oldChannel.Type)
-			if err != nil {
-				return meh.Wrap(err, "delete channel with details", meh.Details{
-					"channel_id":   oldChannel.ID,
-					"channel_type": oldChannel.Type,
-				})
-			}
-		}
-		// Create channels.
-		for _, channelToCreate := range create {
-			err = c.Store.CreateChannelWithDetails(ctx, tx, channelToCreate)
-			if err != nil {
-				return meh.Wrap(err, "create channel with details", meh.Details{"channel": channelToCreate})
-			}
-		}
-		// Update channels.
-		for _, channelToUpdate := range update {
-			err = c.Store.UpdateChannelWithDetails(ctx, tx, channelToUpdate)
-			if err != nil {
-				return meh.Wrap(err, "update channel with details", meh.Details{"channel": channelToUpdate})
-			}
+		// Recreate channels in store.
+		err = c.Store.UpdateChannelsByEntry(ctx, tx, entryID, newChannels)
+		if err != nil {
+			return meh.Wrap(err, "update channels by entry in store", meh.Details{"entry_id": entryID})
 		}
 		// Notify.
 		finalUpdatedChannels, err := c.Store.ChannelsByAddressBookEntry(ctx, tx, entryID)
@@ -124,6 +85,13 @@ func (c *Controller) UpdateChannelsByAddressBookEntry(ctx context.Context, entry
 				"entry_id": entryID,
 				"channels": finalUpdatedChannels,
 			})
+		}
+		// Look after affected deliveries.
+		for _, affectedDelivery := range affectedDeliveries {
+			err = c.lookAfterDelivery(ctx, tx, affectedDelivery)
+			if err != nil {
+				return meh.Wrap(err, "look after affected delivery", meh.Details{"affected_delivery": affectedDelivery})
+			}
 		}
 		return nil
 	})

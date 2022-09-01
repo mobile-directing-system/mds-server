@@ -98,3 +98,17 @@ spec:
   replicas: 1
   config:
     retention.ms: -1
+---
+# Intel-deliveries topic (key: delivery id).
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: logistics.intel-delivery.0
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: kafka-cluster
+spec:
+  partitions: 1
+  replicas: 1
+  config:
+    retention.ms: -1

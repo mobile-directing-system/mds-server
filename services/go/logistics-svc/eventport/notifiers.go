@@ -7,6 +7,7 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v4"
 	"github.com/lefinal/meh"
+	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/logistics-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/kafkautil"
@@ -298,6 +299,134 @@ func (p *Port) NotifyAddressBookEntryChannelsUpdated(ctx context.Context, tx pgx
 	})
 	if err != nil {
 		return meh.Wrap(err, "write kafka messages", nil)
+	}
+	return nil
+}
+
+// NotifyIntelDeliveryCreated emits an event.TypeIntelDeliveryCreated event.
+func (p *Port) NotifyIntelDeliveryCreated(ctx context.Context, tx pgx.Tx, created store.IntelDelivery) error {
+	message := kafkautil.OutboundMessage{
+		Topic:     event.IntelDeliveriesTopic,
+		Key:       created.ID.String(),
+		EventType: event.TypeIntelDeliveryCreated,
+		Value: event.IntelDeliveryCreated{
+			ID:         created.ID,
+			Assignment: created.Assignment,
+			IsActive:   created.IsActive,
+			Success:    created.Success,
+			Note:       created.Note,
+		},
+		Headers: nil,
+	}
+	err := p.writer.AddOutboxMessages(ctx, tx, message)
+	if err != nil {
+		return meh.Wrap(err, "add outbox messages", meh.Details{"message": message})
+	}
+	return nil
+}
+
+// NotifyIntelDeliveryStatusUpdated emits an
+// event.TypeIntelDeliveryStatusUpdated event.
+func (p *Port) NotifyIntelDeliveryStatusUpdated(ctx context.Context, tx pgx.Tx, deliveryID uuid.UUID, newIsActive bool,
+	newSuccess bool, newNote nulls.String) error {
+	message := kafkautil.OutboundMessage{
+		Topic:     event.IntelDeliveriesTopic,
+		Key:       deliveryID.String(),
+		EventType: event.TypeIntelDeliveryStatusUpdated,
+		Value: event.IntelDeliveryStatusUpdated{
+			ID:       deliveryID,
+			IsActive: newIsActive,
+			Success:  newSuccess,
+			Note:     newNote,
+		},
+		Headers: nil,
+	}
+	err := p.writer.AddOutboxMessages(ctx, tx, message)
+	if err != nil {
+		return meh.Wrap(err, "add outbox messages", meh.Details{"message": message})
+	}
+	return nil
+}
+
+// eventIntelDeliveryStatusFromStore maps store.IntelDeliveryStatus to
+// event.IntelDeliveryStaus and returns a meh.ErrInternal when no mapping was
+// found.
+func eventIntelDeliveryStatusFromStore(s store.IntelDeliveryStatus) (event.IntelDeliveryStatus, error) {
+	switch s {
+	case store.IntelDeliveryStatusOpen:
+		return event.IntelDeliveryStatusOpen, nil
+	case store.IntelDeliveryStatusAwaitingDelivery:
+		return event.IntelDeliveryStatusAwaitingDelivery, nil
+	case store.IntelDeliveryStatusDelivering:
+		return event.IntelDeliveryStatusDelivering, nil
+	case store.IntelDeliveryStatusAwaitingAck:
+		return event.IntelDeliveryStatusAwaitingAck, nil
+	case store.IntelDeliveryStatusDelivered:
+		return event.IntelDeliveryStatusDelivered, nil
+	case store.IntelDeliveryStatusTimeout:
+		return event.IntelDeliveryStatusTimeout, nil
+	case store.IntelDeliveryStatusCanceled:
+		return event.IntelDeliveryStatusCanceled, nil
+	case store.IntelDeliveryStatusFailed:
+		return event.IntelDeliveryStatusFailed, nil
+	default:
+		return "", meh.NewInternalErr("unsupported delivery-status", meh.Details{"state": s})
+	}
+}
+
+// NotifyIntelDeliveryAttemptCreated emits an
+// event.TypeIntelDeliveryAttemptCreated event.
+func (p *Port) NotifyIntelDeliveryAttemptCreated(ctx context.Context, tx pgx.Tx, created store.IntelDeliveryAttempt) error {
+	mappedStatus, err := eventIntelDeliveryStatusFromStore(created.Status)
+	if err != nil {
+		return meh.Wrap(err, "event intel-delivery-status from store", meh.Details{"status": created.Status})
+	}
+	message := kafkautil.OutboundMessage{
+		Topic:     event.IntelDeliveriesTopic,
+		Key:       created.Delivery.String(),
+		EventType: event.TypeIntelDeliveryAttemptCreated,
+		Value: event.IntelDeliveryAttemptCreated{
+			ID:        created.ID,
+			Delivery:  created.Delivery,
+			Channel:   created.Channel,
+			CreatedAt: created.CreatedAt,
+			IsActive:  created.IsActive,
+			Status:    mappedStatus,
+			StatusTS:  created.StatusTS,
+			Note:      created.Note,
+		},
+		Headers: nil,
+	}
+	err = p.writer.AddOutboxMessages(ctx, tx, message)
+	if err != nil {
+		return meh.Wrap(err, "add outbox messages", meh.Details{"message": message})
+	}
+	return nil
+}
+
+// NotifyIntelDeliveryAttemptStatusUpdated emits an
+// event.TypeIntelDeliveryAttemptStatusUpdated event.
+func (p *Port) NotifyIntelDeliveryAttemptStatusUpdated(ctx context.Context, tx pgx.Tx, attempt store.IntelDeliveryAttempt) error {
+	mappedStatus, err := eventIntelDeliveryStatusFromStore(attempt.Status)
+	if err != nil {
+		return meh.Wrap(err, "event intel-delivery-status from store", meh.Details{"status": attempt.Status})
+	}
+	message := kafkautil.OutboundMessage{
+		Topic:     event.IntelDeliveriesTopic,
+		Key:       attempt.Delivery.String(),
+		EventType: event.TypeIntelDeliveryAttemptStatusUpdated,
+		Value: event.IntelDeliveryAttemptStatusUpdated{
+			ID:       attempt.ID,
+			IsActive: attempt.IsActive,
+			Status:   mappedStatus,
+			StatusTS: attempt.StatusTS,
+			Note:     attempt.Note,
+		},
+		Headers: nil,
+	}
+	err = p.writer.AddOutboxMessages(ctx, tx, message)
+	if err != nil {
+		return meh.Wrap(err, "add outbox messages", meh.Details{"message": message})
 	}
 	return nil
 }

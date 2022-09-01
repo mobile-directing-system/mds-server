@@ -130,3 +130,67 @@ create table forward_to_group_channel_entries
     forward_to_group uuid not null references groups (id)
         on delete restrict on update restrict
 );
+
+-- Create intel table.
+
+create table intel
+(
+    id          uuid primary key not null,
+    created_at  timestamp        not null,
+    created_by  uuid             not null references users (id)
+        on delete restrict on update restrict,
+    operation   uuid             not null references operations (id)
+        on delete restrict on update restrict,
+    "type"      varchar          not null,
+    "content"   jsonb            not null,
+    importance  int              not null,
+    search_text varchar,
+    is_valid    bool             not null
+);
+
+-- Create assignments table.
+
+create table intel_assignments
+(
+    id    uuid primary key not null default uuid_generate_v4(),
+    intel uuid             not null references intel (id)
+        on delete restrict on update restrict,
+    "to"  uuid             not null -- No ref for possible deletion.
+);
+
+-- Create deliveries table.
+
+create table intel_deliveries
+(
+    id           uuid primary key not null default uuid_generate_v4(),
+    "assignment" uuid             not null references intel_assignments (id)
+        on delete restrict on update restrict,
+    is_active    bool             not null,
+    success      bool             not null,
+    note         varchar
+);
+
+create index intel_deliveries_active_ix on intel_deliveries (is_active)
+    where is_active = true;
+
+create index intel_deliveries_failed_ix on intel_deliveries (is_active, success)
+    where is_active = false and success = false;
+
+-- Create delivery attempts table.
+
+create table intel_delivery_attempts
+(
+    id         uuid primary key not null default uuid_generate_v4(),
+    delivery   uuid             not null references intel_deliveries (id)
+        on delete restrict on update restrict,
+    channel    uuid             not null references channels (id)
+        on delete restrict on update restrict,
+    created_at timestamp        not null,
+    is_active  bool             not null,
+    status     varchar          not null,
+    status_ts  timestamp        not null,
+    note       varchar
+);
+
+create index intel_delivery_attempts_active_ix on intel_delivery_attempts (is_active)
+    where is_active = true;

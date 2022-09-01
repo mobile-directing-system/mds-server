@@ -13,6 +13,10 @@ import (
 	"time"
 )
 
+func Test_mapChannelType(t *testing.T) {
+	testutil.TestMapperWithConstExtractionFromDir(t, mapChannelType, "../store", nulls.String{})
+}
+
 // PortNotifyAddressBookEntryCreatedSuite tests Port.NotifyAddressBookEntryCreated.
 type PortNotifyAddressBookEntryCreatedSuite struct {
 	suite.Suite
@@ -579,4 +583,312 @@ func (suite *assureChannelTypesSupportedSuite) TestOK() {
 
 func Test_assureChannelTypesSupported(t *testing.T) {
 	suite.Run(t, new(assureChannelTypesSupportedSuite))
+}
+
+func Test_eventIntelDeliveryStatusFromStore(t *testing.T) {
+	testutil.TestMapperWithConstExtractionFromDir(t, eventIntelDeliveryStatusFromStore, "../../shared/event", nulls.String{})
+}
+
+// PortNotifyIntelDeliveryAttemptCreatedSuite tests
+// Port.NotifyIntelDeliveryAttemptCreated.
+type PortNotifyIntelDeliveryAttemptCreatedSuite struct {
+	suite.Suite
+	port             *PortMock
+	tx               *testutil.DBTx
+	sampleCreated    store.IntelDeliveryAttempt
+	expectedMessages []kafkautil.OutboundMessage
+}
+
+func (suite *PortNotifyIntelDeliveryAttemptCreatedSuite) SetupTest() {
+	suite.port = newMockPort()
+	suite.tx = &testutil.DBTx{}
+	suite.sampleCreated = store.IntelDeliveryAttempt{
+		ID:        testutil.NewUUIDV4(),
+		Delivery:  testutil.NewUUIDV4(),
+		Channel:   testutil.NewUUIDV4(),
+		CreatedAt: time.Date(2022, 9, 1, 12, 18, 37, 0, time.UTC),
+		IsActive:  true,
+		Status:    store.IntelDeliveryStatusOpen,
+		StatusTS:  time.Date(2022, 9, 1, 12, 18, 55, 0, time.UTC),
+		Note:      nulls.NewString("variety"),
+	}
+	suite.expectedMessages = []kafkautil.OutboundMessage{
+		{
+			Topic:     event.IntelDeliveriesTopic,
+			Key:       suite.sampleCreated.Delivery.String(),
+			EventType: event.TypeIntelDeliveryAttemptCreated,
+			Value: event.IntelDeliveryAttemptCreated{
+				ID:        suite.sampleCreated.ID,
+				Delivery:  suite.sampleCreated.Delivery,
+				Channel:   suite.sampleCreated.Channel,
+				CreatedAt: suite.sampleCreated.CreatedAt,
+				IsActive:  suite.sampleCreated.IsActive,
+				Status:    event.IntelDeliveryStatusOpen,
+				StatusTS:  suite.sampleCreated.StatusTS,
+				Note:      suite.sampleCreated.Note,
+			},
+			Headers: nil,
+		},
+	}
+}
+
+func (suite *PortNotifyIntelDeliveryAttemptCreatedSuite) TestUnsupportedStatus() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.sampleCreated.Status = "3fD0ZRD"
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyIntelDeliveryAttemptCreated(timeout, suite.tx, suite.sampleCreated)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *PortNotifyIntelDeliveryAttemptCreatedSuite) TestWriteFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.port.recorder.WriteFail = true
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyIntelDeliveryAttemptCreated(timeout, suite.tx, suite.sampleCreated)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *PortNotifyIntelDeliveryAttemptCreatedSuite) TestOK() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyIntelDeliveryAttemptCreated(timeout, suite.tx, suite.sampleCreated)
+		suite.Require().NoError(err, "should not fail")
+		suite.Equal(suite.expectedMessages, suite.port.recorder.Recorded, "should write correct messages")
+	}()
+
+	wait()
+}
+
+func TestPort_NotifyIntelDeliveryAttemptCreated(t *testing.T) {
+	suite.Run(t, new(PortNotifyIntelDeliveryAttemptCreatedSuite))
+}
+
+// PortNotifyIntelDeliveryAttemptStatusUpdatedSuite tests
+// Port.NotifyIntelDeliveryAttemptStatusUpdated.
+type PortNotifyIntelDeliveryAttemptStatusUpdatedSuite struct {
+	suite.Suite
+	port             *PortMock
+	tx               *testutil.DBTx
+	sampleUpdated    store.IntelDeliveryAttempt
+	expectedMessages []kafkautil.OutboundMessage
+}
+
+func (suite *PortNotifyIntelDeliveryAttemptStatusUpdatedSuite) SetupTest() {
+	suite.port = newMockPort()
+	suite.tx = &testutil.DBTx{}
+	suite.sampleUpdated = store.IntelDeliveryAttempt{
+		ID:        testutil.NewUUIDV4(),
+		Delivery:  testutil.NewUUIDV4(),
+		Channel:   testutil.NewUUIDV4(),
+		CreatedAt: time.Date(2022, 9, 1, 12, 18, 37, 0, time.UTC),
+		IsActive:  true,
+		Status:    store.IntelDeliveryStatusAwaitingAck,
+		StatusTS:  time.Date(2022, 9, 1, 12, 18, 55, 0, time.UTC),
+		Note:      nulls.NewString("variety"),
+	}
+	suite.expectedMessages = []kafkautil.OutboundMessage{
+		{
+			Topic:     event.IntelDeliveriesTopic,
+			Key:       suite.sampleUpdated.Delivery.String(),
+			EventType: event.TypeIntelDeliveryAttemptStatusUpdated,
+			Value: event.IntelDeliveryAttemptStatusUpdated{
+				ID:       suite.sampleUpdated.ID,
+				IsActive: suite.sampleUpdated.IsActive,
+				Status:   event.IntelDeliveryStatusAwaitingAck,
+				StatusTS: suite.sampleUpdated.StatusTS,
+				Note:     suite.sampleUpdated.Note,
+			},
+			Headers: nil,
+		},
+	}
+}
+
+func (suite *PortNotifyIntelDeliveryAttemptStatusUpdatedSuite) TestUnsupportedStatus() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.sampleUpdated.Status = "9FCqD"
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyIntelDeliveryAttemptStatusUpdated(timeout, suite.tx, suite.sampleUpdated)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *PortNotifyIntelDeliveryAttemptStatusUpdatedSuite) TestWriteFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.port.recorder.WriteFail = true
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyIntelDeliveryAttemptStatusUpdated(timeout, suite.tx, suite.sampleUpdated)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *PortNotifyIntelDeliveryAttemptStatusUpdatedSuite) TestOK() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyIntelDeliveryAttemptStatusUpdated(timeout, suite.tx, suite.sampleUpdated)
+		suite.Require().NoError(err, "should not fail")
+		suite.Equal(suite.expectedMessages, suite.port.recorder.Recorded, "should write correct messages")
+	}()
+
+	wait()
+}
+
+func TestPort_NotifyIntelDeliveryAttemptStatusUpdated(t *testing.T) {
+	suite.Run(t, new(PortNotifyIntelDeliveryAttemptStatusUpdatedSuite))
+}
+
+// PortNotifyIntelDeliveryCreatedSuite tests
+// Port.NotifyIntelDeliveryCreated.
+type PortNotifyIntelDeliveryCreatedSuite struct {
+	suite.Suite
+	port             *PortMock
+	tx               *testutil.DBTx
+	sampleCreated    store.IntelDelivery
+	expectedMessages []kafkautil.OutboundMessage
+}
+
+func (suite *PortNotifyIntelDeliveryCreatedSuite) SetupTest() {
+	suite.port = newMockPort()
+	suite.tx = &testutil.DBTx{}
+	suite.sampleCreated = store.IntelDelivery{
+		ID:         testutil.NewUUIDV4(),
+		Assignment: testutil.NewUUIDV4(),
+		IsActive:   false,
+		Success:    true,
+		Note:       nulls.NewString("variety"),
+	}
+	suite.expectedMessages = []kafkautil.OutboundMessage{
+		{
+			Topic:     event.IntelDeliveriesTopic,
+			Key:       suite.sampleCreated.ID.String(),
+			EventType: event.TypeIntelDeliveryCreated,
+			Value: event.IntelDeliveryCreated{
+				ID:         suite.sampleCreated.ID,
+				Assignment: suite.sampleCreated.Assignment,
+				IsActive:   suite.sampleCreated.IsActive,
+				Success:    suite.sampleCreated.Success,
+				Note:       suite.sampleCreated.Note,
+			},
+			Headers: nil,
+		},
+	}
+}
+
+func (suite *PortNotifyIntelDeliveryCreatedSuite) TestWriteFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.port.recorder.WriteFail = true
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyIntelDeliveryCreated(timeout, suite.tx, suite.sampleCreated)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *PortNotifyIntelDeliveryCreatedSuite) TestOK() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyIntelDeliveryCreated(timeout, suite.tx, suite.sampleCreated)
+		suite.Require().NoError(err, "should not fail")
+		suite.Equal(suite.expectedMessages, suite.port.recorder.Recorded, "should write correct messages")
+	}()
+
+	wait()
+}
+
+func TestPort_NotifyIntelDeliveryCreated(t *testing.T) {
+	suite.Run(t, new(PortNotifyIntelDeliveryCreatedSuite))
+}
+
+// PortNotifyIntelDeliveryStatusUpdatedSuite tests
+// Port.NotifyIntelDeliveryStatusUpdated.
+type PortNotifyIntelDeliveryStatusUpdatedSuite struct {
+	suite.Suite
+	port              *PortMock
+	tx                *testutil.DBTx
+	sampleID          uuid.UUID
+	sampleNewIsActive bool
+	sampleNewSuccess  bool
+	sampleNewNote     nulls.String
+	expectedMessages  []kafkautil.OutboundMessage
+}
+
+func (suite *PortNotifyIntelDeliveryStatusUpdatedSuite) SetupTest() {
+	suite.port = newMockPort()
+	suite.tx = &testutil.DBTx{}
+	suite.sampleID = testutil.NewUUIDV4()
+	suite.sampleNewIsActive = true
+	suite.sampleNewSuccess = true
+	suite.sampleNewNote = nulls.NewString("kingdom")
+	suite.expectedMessages = []kafkautil.OutboundMessage{
+		{
+			Topic:     event.IntelDeliveriesTopic,
+			Key:       suite.sampleID.String(),
+			EventType: event.TypeIntelDeliveryStatusUpdated,
+			Value: event.IntelDeliveryStatusUpdated{
+				ID:       suite.sampleID,
+				IsActive: suite.sampleNewIsActive,
+				Success:  suite.sampleNewSuccess,
+				Note:     suite.sampleNewNote,
+			},
+			Headers: nil,
+		},
+	}
+}
+
+func (suite *PortNotifyIntelDeliveryStatusUpdatedSuite) TestWriteFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.port.recorder.WriteFail = true
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyIntelDeliveryStatusUpdated(timeout, suite.tx, suite.sampleID, suite.sampleNewIsActive,
+			suite.sampleNewSuccess, suite.sampleNewNote)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *PortNotifyIntelDeliveryStatusUpdatedSuite) TestOK() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyIntelDeliveryStatusUpdated(timeout, suite.tx, suite.sampleID, suite.sampleNewIsActive,
+			suite.sampleNewSuccess, suite.sampleNewNote)
+		suite.Require().NoError(err, "should not fail")
+		suite.Equal(suite.expectedMessages, suite.port.recorder.Recorded, "should write correct messages")
+	}()
+
+	wait()
+}
+
+func TestPort_NotifyIntelDeliveryStatusUpdated(t *testing.T) {
+	suite.Run(t, new(PortNotifyIntelDeliveryStatusUpdatedSuite))
 }

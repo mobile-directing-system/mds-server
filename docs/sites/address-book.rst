@@ -234,7 +234,6 @@ Setting channels for global entries or ones, being associated to other users tha
 
     [
         {
-            "id": "<optional_channel_id>",
             "entry": "<entry_id>",
             "label": "<label>",
             "type": "<channel_type>",
@@ -246,9 +245,8 @@ Setting channels for global entries or ones, being associated to other users tha
     ]
 
 This is a list of channels, that will be set.
-
-The ``id``-field allows setting the old channel id, if it was only changed.
-In case of ongoing deliveries, this will avoid retrying all channels because of knowing, which failed or are currently delivering.
+Keep in mind that updating channels will restart all ongoing deliveries.
+So if delivery was already tried over an old channel and failed or timed out, it will be tried again.
 
 Retrieving channels
 ===================
