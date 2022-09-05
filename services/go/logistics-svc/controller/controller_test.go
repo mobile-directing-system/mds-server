@@ -7,6 +7,7 @@ import (
 	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/logistics-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/search"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
 	"github.com/stretchr/testify/mock"
 	"go.uber.org/zap"
@@ -246,6 +247,16 @@ func (m *StoreMock) ActiveIntelDeliveriesAndLockOrSkip(ctx context.Context, tx p
 
 func (m *StoreMock) InvalidateIntelByID(ctx context.Context, tx pgx.Tx, intelID uuid.UUID) error {
 	return m.Called(ctx, tx, intelID).Error(0)
+}
+
+func (m *StoreMock) SearchAddressBookEntries(ctx context.Context, tx pgx.Tx, filters store.AddressBookEntryFilters,
+	searchParams search.Params) (search.Result[store.AddressBookEntryDetailed], error) {
+	args := m.Called(ctx, tx, filters, searchParams)
+	return args.Get(0).(search.Result[store.AddressBookEntryDetailed]), args.Error(1)
+}
+
+func (m *StoreMock) RebuildAddressBookEntrySearch(ctx context.Context, tx pgx.Tx) error {
+	return m.Called(ctx, tx).Error(0)
 }
 
 // NotifierMock mocks Notifier.

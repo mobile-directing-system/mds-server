@@ -7,6 +7,8 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/lefinal/meh"
 	"github.com/lefinal/meh/mehpg"
+	"github.com/lefinal/nulls"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 )
 
 // User contains all stored user information.
@@ -132,6 +134,21 @@ func (m *Mall) UpdateUser(ctx context.Context, tx pgx.Tx, user User) error {
 	}
 	if result.RowsAffected() == 0 {
 		return meh.NewNotFoundErr("not found", nil)
+	}
+	// Update associated address book entries.
+	entries, err := m.AddressBookEntries(ctx, tx, AddressBookEntryFilters{
+		ByUser:                  nulls.NewUUID(user.ID),
+		ExcludeGlobal:           true,
+		IncludeForInactiveUsers: true,
+	}, pagination.Params{Limit: 0})
+	if err != nil {
+		return meh.Wrap(err, "address book entries by user for search updated", nil)
+	}
+	for _, entry := range entries.Entries {
+		err = m.addOrUpdateAddressBookEntryInSearch(ctx, tx, entry.ID)
+		if err != nil {
+			return meh.Wrap(err, "addor update address book entry in search", meh.Details{"entry_id": entry.ID})
+		}
 	}
 	return nil
 }

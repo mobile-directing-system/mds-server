@@ -96,9 +96,9 @@ func QueryWithOrdinalityUUID(qb *goqu.SelectDataset, idCol exp.IdentifierExpress
 		unnestListContent = strings.Repeat("?,", len(ids))
 		unnestListContent = unnestListContent[:len(unnestListContent)-1]
 	}
-	joinLiteral := fmt.Sprintf("unnest(ARRAY[%s]::uuid[]) WITH ORDINALITY pgutil_ord_t(%s, ord)",
-		unnestListContent, idCol.GetCol())
-	qb = qb.Join(goqu.L(joinLiteral, idsStr...), goqu.Using(idCol.GetCol())).
+	joinLiteral := fmt.Sprintf("unnest(ARRAY[%s]::uuid[]) WITH ORDINALITY pgutil_ord_t(pgutil_ord_t_id, ord)",
+		unnestListContent)
+	qb = qb.Join(goqu.L(joinLiteral, idsStr...), goqu.On(goqu.L("pgutil_ord_t_id").Eq(idCol))).
 		Order(goqu.I("pgutil_ord_t.ord").Asc())
 	return qb
 }

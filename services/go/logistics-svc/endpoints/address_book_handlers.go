@@ -12,7 +12,9 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/shared/httpendpoints"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/permission"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/search"
 	"net/http"
+	"net/url"
 	"strconv"
 )
 
@@ -126,6 +128,49 @@ func handleGetAddressBookEntryByID(s handleGetAddressBookEntryByIDStore) httpend
 	}
 }
 
+// addressBookEntryFiltersFromQuery parses store.AddressBookEntryFilters from
+// the given url.Values.
+func addressBookEntryFiltersFromQuery(q url.Values) (store.AddressBookEntryFilters, error) {
+	var filters store.AddressBookEntryFilters
+	if byUserStr := q.Get("by_user"); byUserStr != "" {
+		byUser, err := uuid.FromString(byUserStr)
+		if err != nil {
+			return store.AddressBookEntryFilters{}, meh.NewBadInputErrFromErr(err, "by-user from string", meh.Details{"was": byUserStr})
+		}
+		filters.ByUser = nulls.NewUUID(byUser)
+	}
+	if forOperationStr := q.Get("for_operation"); forOperationStr != "" {
+		forOperation, err := uuid.FromString(forOperationStr)
+		if err != nil {
+			return store.AddressBookEntryFilters{}, meh.NewBadInputErrFromErr(err, "for-operation from string", meh.Details{"was": forOperationStr})
+		}
+		filters.ForOperation = nulls.NewUUID(forOperation)
+	}
+	if excludeGlobalStr := q.Get("exclude_global"); excludeGlobalStr != "" {
+		excludeGlobal, err := strconv.ParseBool(excludeGlobalStr)
+		if err != nil {
+			return store.AddressBookEntryFilters{}, meh.NewBadInputErrFromErr(err, "parse bool", meh.Details{"was": excludeGlobalStr})
+		}
+		filters.ExcludeGlobal = excludeGlobal
+	}
+	if visibleByStr := q.Get("visible_by"); visibleByStr != "" {
+		visibleBy, err := uuid.FromString(visibleByStr)
+		if err != nil {
+			return store.AddressBookEntryFilters{}, meh.NewBadInputErrFromErr(err, "visible-by from string", meh.Details{"was": visibleByStr})
+		}
+		filters.VisibleBy = nulls.NewUUID(visibleBy)
+	}
+	if includeForInactiveUsersStr := q.Get("include_for_inactive_users"); includeForInactiveUsersStr != "" {
+		includeForInactiveUsers, err := strconv.ParseBool(includeForInactiveUsersStr)
+		if err != nil {
+			return store.AddressBookEntryFilters{}, meh.NewBadInputErrFromErr(err, "include-for-inactive-users from string",
+				meh.Details{"was": includeForInactiveUsersStr})
+		}
+		filters.IncludeForInactiveUsers = includeForInactiveUsers
+	}
+	return filters, nil
+}
+
 // handleGetAllAddressBookEntriesStore are the dependencies needed for
 // handleGetAllAddressBookEntries.
 type handleGetAllAddressBookEntriesStore interface {
@@ -141,43 +186,10 @@ func handleGetAllAddressBookEntries(s handleGetAllAddressBookEntriesStore) httpe
 		if !token.IsAuthenticated {
 			return meh.NewUnauthorizedErr("not authorized", nil)
 		}
-		// Parse filter params.
-		var filter store.AddressBookEntryFilters
-		if byUserStr := c.Query("by_user"); byUserStr != "" {
-			byUser, err := uuid.FromString(byUserStr)
-			if err != nil {
-				return meh.NewBadInputErrFromErr(err, "by-user from string", meh.Details{"was": byUserStr})
-			}
-			filter.ByUser = nulls.NewUUID(byUser)
-		}
-		if forOperationStr := c.Query("for_operation"); forOperationStr != "" {
-			forOperation, err := uuid.FromString(forOperationStr)
-			if err != nil {
-				return meh.NewBadInputErrFromErr(err, "for-operation from string", meh.Details{"was": forOperationStr})
-			}
-			filter.ForOperation = nulls.NewUUID(forOperation)
-		}
-		if excludeGlobalStr := c.Query("exclude_global"); excludeGlobalStr != "" {
-			excludeGlobal, err := strconv.ParseBool(excludeGlobalStr)
-			if err != nil {
-				return meh.NewBadInputErrFromErr(err, "parse bool", meh.Details{"was": excludeGlobalStr})
-			}
-			filter.ExcludeGlobal = excludeGlobal
-		}
-		if visibleByStr := c.Query("visible_by"); visibleByStr != "" {
-			visibleBy, err := uuid.FromString(visibleByStr)
-			if err != nil {
-				return meh.NewBadInputErrFromErr(err, "visible-by from string", meh.Details{"was": visibleByStr})
-			}
-			filter.VisibleBy = nulls.NewUUID(visibleBy)
-		}
-		if includeForInactiveUsersStr := c.Query("include_for_inactive_users"); includeForInactiveUsersStr != "" {
-			includeForInactiveUsers, err := strconv.ParseBool(includeForInactiveUsersStr)
-			if err != nil {
-				return meh.NewBadInputErrFromErr(err, "include-for-inactive-users from string",
-					meh.Details{"was": includeForInactiveUsersStr})
-			}
-			filter.IncludeForInactiveUsers = includeForInactiveUsers
+		// Parse entry filters.
+		filters, err := addressBookEntryFiltersFromQuery(c.Request.URL.Query())
+		if err != nil {
+			return meh.Wrap(err, "address book entry filters from query", nil)
 		}
 		// Parse pagination params.
 		paginationParams, err := pagination.ParamsFromRequest(c)
@@ -190,10 +202,10 @@ func handleGetAllAddressBookEntries(s handleGetAllAddressBookEntriesStore) httpe
 			return meh.Wrap(err, "check permission", nil)
 		}
 		if !viewAnyGranted {
-			filter.VisibleBy = nulls.NewUUID(token.UserID)
+			filters.VisibleBy = nulls.NewUUID(token.UserID)
 		}
 		// Retrieve.
-		sEntries, err := s.AddressBookEntries(c.Request.Context(), filter, paginationParams)
+		sEntries, err := s.AddressBookEntries(c.Request.Context(), filters, paginationParams)
 		if err != nil {
 			return meh.Wrap(err, "entries from store", nil)
 		}
@@ -330,6 +342,70 @@ func handleDeleteAddressBookEntryByID(s handleDeleteAddressBookEntryByIDStore) h
 				"limit_to_user": limitToUser,
 			})
 		}
+		c.Status(http.StatusOK)
+		return nil
+	}
+}
+
+// handleSearchAddressBookEntriesStore are the dependencies needed for
+// handleSearchAddressBookEntries.
+type handleSearchAddressBookEntriesStore interface {
+	SearchAddressBookEntries(ctx context.Context, filters store.AddressBookEntryFilters,
+		searchParams search.Params) (search.Result[store.AddressBookEntryDetailed], error)
+}
+
+// handleSearchAddressBookEntries performs search on address book entries.
+func handleSearchAddressBookEntries(s handleSearchAddressBookEntriesStore) httpendpoints.HandlerFunc {
+	return func(c *gin.Context, token auth.Token) error {
+		if !token.IsAuthenticated {
+			return meh.NewUnauthorizedErr("not authorized", nil)
+		}
+		// Extract filters.
+		entryFilters, err := addressBookEntryFiltersFromQuery(c.Request.URL.Query())
+		if err != nil {
+			return meh.Wrap(err, "address book entry filters from query", nil)
+		}
+		// Extract search params.
+		searchParams, err := search.ParamsFromRequest(c)
+		if err != nil {
+			return meh.Wrap(err, "search params from request", nil)
+		}
+		// Check permisions.
+		viewAnyGranted, err := auth.HasPermission(token, permission.ViewAnyAddressBookEntry())
+		if err != nil {
+			return meh.Wrap(err, "check permission", nil)
+		}
+		if !viewAnyGranted {
+			entryFilters.VisibleBy = nulls.NewUUID(token.UserID)
+		}
+		// Search.
+		result, err := s.SearchAddressBookEntries(c.Request.Context(), entryFilters, searchParams)
+		if err != nil {
+			return meh.Wrap(err, "search address book entries", meh.Details{
+				"filters":       entryFilters,
+				"search_params": searchParams,
+			})
+		}
+		c.JSON(http.StatusOK, search.MapResult(result, publicAddressBookEntryDetailedFromStore))
+		return nil
+	}
+}
+
+// handleRebuildAddressBookEntrySearchStore are the dependencies needed for
+// handleRebuildAddressBookEntrySearch.
+type handleRebuildAddressBookEntrySearchStore interface {
+	RebuildAddressBookEntrySearch(ctx context.Context)
+}
+
+// handleRebuildAddressBookEntrySearch rebuilds the search for address book
+// entries.
+func handleRebuildAddressBookEntrySearch(s handleRebuildAddressBookEntrySearchStore) httpendpoints.HandlerFunc {
+	return func(c *gin.Context, token auth.Token) error {
+		err := auth.AssurePermission(token, permission.RebuildSearchIndex())
+		if err != nil {
+			return meh.Wrap(err, "check permissions", nil)
+		}
+		go s.RebuildAddressBookEntrySearch(context.Background())
 		c.Status(http.StatusOK)
 		return nil
 	}

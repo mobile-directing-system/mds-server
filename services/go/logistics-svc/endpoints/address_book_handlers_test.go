@@ -10,16 +10,87 @@ import (
 	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/logistics-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/auth"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/httpendpoints"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/permission"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/search"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 )
+
+type addressBookEntryFiltersFromQuerySuite struct {
+	suite.Suite
+	sampleFilters store.AddressBookEntryFilters
+	qOK           url.Values
+}
+
+func (suite *addressBookEntryFiltersFromQuerySuite) SetupTest() {
+	suite.sampleFilters = store.AddressBookEntryFilters{
+		ByUser:                  nulls.NewUUID(testutil.NewUUIDV4()),
+		ForOperation:            nulls.NewUUID(testutil.NewUUIDV4()),
+		ExcludeGlobal:           true,
+		VisibleBy:               nulls.NewUUID(testutil.NewUUIDV4()),
+		IncludeForInactiveUsers: true,
+	}
+	suite.qOK = map[string][]string{
+		"by_user":                    {suite.sampleFilters.ByUser.UUID.String()},
+		"for_operation":              {suite.sampleFilters.ForOperation.UUID.String()},
+		"exclude_global":             {fmt.Sprintf("%t", suite.sampleFilters.ExcludeGlobal)},
+		"visible_by":                 {suite.sampleFilters.VisibleBy.UUID.String()},
+		"include_for_inactive_users": {fmt.Sprintf("%t", suite.sampleFilters.IncludeForInactiveUsers)},
+	}
+}
+
+func (suite *addressBookEntryFiltersFromQuerySuite) TestInvalidByUserFilter() {
+	q := suite.qOK
+	q["by_user"] = []string{"abc"}
+	_, err := addressBookEntryFiltersFromQuery(q)
+	suite.Error(err, "should fail")
+}
+
+func (suite *addressBookEntryFiltersFromQuerySuite) TestInvalidForOperationFilter() {
+	q := suite.qOK
+	q["for_operation"] = []string{"abc"}
+	_, err := addressBookEntryFiltersFromQuery(q)
+	suite.Error(err, "should fail")
+}
+
+func (suite *addressBookEntryFiltersFromQuerySuite) TestInvalidExcludeGlobalFilter() {
+	q := suite.qOK
+	q["exclude_global"] = []string{"abc"}
+	_, err := addressBookEntryFiltersFromQuery(q)
+	suite.Error(err, "should fail")
+}
+
+func (suite *addressBookEntryFiltersFromQuerySuite) TestInvalidVisibleByFilter() {
+	q := suite.qOK
+	q["visible_by"] = []string{"abc"}
+	_, err := addressBookEntryFiltersFromQuery(q)
+	suite.Error(err, "should fail")
+}
+
+func (suite *addressBookEntryFiltersFromQuerySuite) TestInvalidIncludeForInactiveUsersFilter() {
+	q := suite.qOK
+	q["include_for_inactive_users"] = []string{"abc"}
+	_, err := addressBookEntryFiltersFromQuery(q)
+	suite.Error(err, "should fail")
+}
+
+func (suite *addressBookEntryFiltersFromQuerySuite) TestOK() {
+	got, err := addressBookEntryFiltersFromQuery(suite.qOK)
+	suite.Require().NoError(err, "should not fail")
+	suite.Equal(suite.sampleFilters, got, "should return correct value")
+}
+
+func Test_addressBookEntryFiltersFromQuery(t *testing.T) {
+	suite.Run(t, new(addressBookEntryFiltersFromQuerySuite))
+}
 
 // handleGetAddressBookEntryByIDSuite tests handleGetAddressBookEntryByID.
 type handleGetAddressBookEntryByIDSuite struct {
@@ -239,47 +310,7 @@ func (suite *handleGetAllAddressBookEntriesSuite) TestNotAuthenticated() {
 	suite.Equal(http.StatusUnauthorized, rr.Code, "should return correct code")
 }
 
-func (suite *handleGetAllAddressBookEntriesSuite) TestInvalidByUserFilter() {
-	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
-		Server: suite.r,
-		Method: http.MethodGet,
-		URL:    "/address-book/entries?by_user=abc",
-		Token:  suite.tokenOK,
-	})
-	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
-}
-
-func (suite *handleGetAllAddressBookEntriesSuite) TestInvalidForOperationFilter() {
-	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
-		Server: suite.r,
-		Method: http.MethodGet,
-		URL:    "/address-book/entries?for_operation=abc",
-		Token:  suite.tokenOK,
-	})
-	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
-}
-
-func (suite *handleGetAllAddressBookEntriesSuite) TestInvalidExcludeGlobalFilter() {
-	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
-		Server: suite.r,
-		Method: http.MethodGet,
-		URL:    "/address-book/entries?exclude_global=abc",
-		Token:  suite.tokenOK,
-	})
-	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
-}
-
-func (suite *handleGetAllAddressBookEntriesSuite) TestInvalidVisibleByFilter() {
-	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
-		Server: suite.r,
-		Method: http.MethodGet,
-		URL:    "/address-book/entries?visible_by=abc",
-		Token:  suite.tokenOK,
-	})
-	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
-}
-
-func (suite *handleGetAllAddressBookEntriesSuite) TestInvalidIncludeForInactiveUsersFilter() {
+func (suite *handleGetAllAddressBookEntriesSuite) TestInvalidFilter() {
 	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
 		Server: suite.r,
 		Method: http.MethodGet,
@@ -896,4 +927,297 @@ func (suite *handleDeleteAddressBookEntryByIDSuite) TestOKWithoutDeleteAnyPermis
 
 func Test_handleDeleteAddressBookEntryByID(t *testing.T) {
 	suite.Run(t, new(handleDeleteAddressBookEntryByIDSuite))
+}
+
+// handleSearchAddressBookEntriesSuite tests handleSearchAddressBookEntries.
+type handleSearchAddressBookEntriesSuite struct {
+	suite.Suite
+	s                  *StoreMock
+	r                  *gin.Engine
+	tokenOK            auth.Token
+	sampleResult       search.Result[store.AddressBookEntryDetailed]
+	samplePublicResult search.Result[publicAddressBookEntryDetailed]
+	sampleFilters      store.AddressBookEntryFilters
+	sampleParams       search.Params
+	sampleURL          string
+}
+
+func (suite *handleSearchAddressBookEntriesSuite) SetupTest() {
+	suite.s = &StoreMock{}
+	suite.r = testutil.NewGinEngine()
+	populateRoutes(suite.r, zap.NewNop(), "", suite.s)
+	suite.tokenOK = auth.Token{
+		UserID:          testutil.NewUUIDV4(),
+		Username:        "future",
+		IsAuthenticated: true,
+		IsAdmin:         false,
+		Permissions:     nil,
+		RandomSalt:      nil,
+	}
+	suite.sampleResult = search.Result[store.AddressBookEntryDetailed]{
+		Hits: []store.AddressBookEntryDetailed{
+			{
+				AddressBookEntry: store.AddressBookEntry{
+					ID:          testutil.NewUUIDV4(),
+					Label:       "bribe",
+					Description: "ground",
+					Operation:   uuid.NullUUID{},
+					User:        uuid.NullUUID{},
+				},
+				UserDetails: nulls.JSONNullable[store.User]{},
+			},
+			{
+				AddressBookEntry: store.AddressBookEntry{
+					ID:          testutil.NewUUIDV4(),
+					Label:       "unite",
+					Description: "lessen",
+					Operation:   nulls.NewUUID(testutil.NewUUIDV4()),
+					User:        nulls.NewUUID(testutil.NewUUIDV4()),
+				},
+				UserDetails: nulls.NewJSONNullable(store.User{
+					ID:        testutil.NewUUIDV4(),
+					Username:  "anything",
+					FirstName: "solemn",
+					LastName:  "tough",
+					IsActive:  true,
+				}),
+			},
+		},
+	}
+	suite.samplePublicResult = search.Result[publicAddressBookEntryDetailed]{
+		Hits: []publicAddressBookEntryDetailed{
+			{
+				publicAddressBookEntry: publicAddressBookEntry{
+					ID:          suite.sampleResult.Hits[0].ID,
+					Label:       suite.sampleResult.Hits[0].Label,
+					Description: suite.sampleResult.Hits[0].Description,
+					Operation:   suite.sampleResult.Hits[0].Operation,
+					User:        suite.sampleResult.Hits[0].User,
+				},
+				UserDetails: nulls.JSONNullable[publicUser]{},
+			},
+			{
+				publicAddressBookEntry: publicAddressBookEntry{
+					ID:          suite.sampleResult.Hits[1].ID,
+					Label:       suite.sampleResult.Hits[1].Label,
+					Description: suite.sampleResult.Hits[1].Description,
+					Operation:   suite.sampleResult.Hits[1].Operation,
+					User:        suite.sampleResult.Hits[1].User,
+				},
+				UserDetails: nulls.NewJSONNullable(publicUser{
+					ID:        suite.sampleResult.Hits[1].UserDetails.V.ID,
+					Username:  suite.sampleResult.Hits[1].UserDetails.V.Username,
+					FirstName: suite.sampleResult.Hits[1].UserDetails.V.FirstName,
+					LastName:  suite.sampleResult.Hits[1].UserDetails.V.LastName,
+					IsActive:  suite.sampleResult.Hits[1].UserDetails.V.IsActive,
+				}),
+			},
+		},
+	}
+	suite.sampleFilters = store.AddressBookEntryFilters{
+		ByUser:                  nulls.NewUUID(testutil.NewUUIDV4()),
+		ForOperation:            nulls.NewUUID(testutil.NewUUIDV4()),
+		ExcludeGlobal:           true,
+		VisibleBy:               nulls.NewUUID(testutil.NewUUIDV4()),
+		IncludeForInactiveUsers: true,
+	}
+	suite.sampleParams = search.Params{
+		Query:  "brick",
+		Offset: 480,
+		Limit:  114,
+	}
+	q := fmt.Sprintf("q=%s", suite.sampleParams.Query)
+	q += fmt.Sprintf("&offset=%d", suite.sampleParams.Offset)
+	q += fmt.Sprintf("&limit=%d", suite.sampleParams.Limit)
+	q += fmt.Sprintf("&by_user=%s", suite.sampleFilters.ByUser.UUID.String())
+	q += fmt.Sprintf("&for_operation=%s", suite.sampleFilters.ForOperation.UUID.String())
+	q += fmt.Sprintf("&exclude_global=%t", suite.sampleFilters.ExcludeGlobal)
+	q += fmt.Sprintf("&visible_by=%s", suite.sampleFilters.VisibleBy.UUID.String())
+	q += fmt.Sprintf("&include_for_inactive_users=%t", suite.sampleFilters.IncludeForInactiveUsers)
+	suite.sampleURL = fmt.Sprintf("/address-book/entries/search?%s", q)
+}
+
+func (suite *handleSearchAddressBookEntriesSuite) TestSecretMismatch() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    suite.sampleURL,
+		Token:  suite.tokenOK,
+		Secret: "meow",
+	})
+	suite.Equal(http.StatusInternalServerError, rr.Code, "should return correct code")
+}
+
+func (suite *handleSearchAddressBookEntriesSuite) TestNotAuthenticated() {
+	token := suite.tokenOK
+	token.IsAuthenticated = false
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    suite.sampleURL,
+		Token:  token,
+	})
+
+	suite.Equal(http.StatusUnauthorized, rr.Code, "should return correct code")
+}
+
+func (suite *handleSearchAddressBookEntriesSuite) TestInvalidFilterParams() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    "/address-book/entries/search?by_user=abc",
+		Token:  suite.tokenOK,
+	})
+
+	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
+}
+
+func (suite *handleSearchAddressBookEntriesSuite) TestInvalidSearchParams() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    "/address-book/entries/search?limit=abc",
+		Token:  suite.tokenOK,
+	})
+
+	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
+}
+
+func (suite *handleSearchAddressBookEntriesSuite) TestSearchFail() {
+	suite.s.On("SearchAddressBookEntries", mock.Anything, mock.Anything, mock.Anything).
+		Return(search.Result[store.AddressBookEntryDetailed]{}, errors.New("sad life"))
+	defer suite.s.AssertExpectations(suite.T())
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    suite.sampleURL,
+		Token:  suite.tokenOK,
+	})
+
+	suite.Equal(http.StatusInternalServerError, rr.Code, "should return correct code")
+}
+
+func (suite *handleSearchAddressBookEntriesSuite) TestOK() {
+	suite.sampleFilters.VisibleBy = nulls.NewUUID(suite.tokenOK.UserID)
+	suite.s.On("SearchAddressBookEntries", mock.Anything, suite.sampleFilters, suite.sampleParams).
+		Return(suite.sampleResult, nil)
+	defer suite.s.AssertExpectations(suite.T())
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    suite.sampleURL,
+		Token:  suite.tokenOK,
+	})
+
+	suite.Require().Equal(http.StatusOK, rr.Code, "should return correct code")
+	var got search.Result[publicAddressBookEntryDetailed]
+	suite.Require().NoError(json.NewDecoder(rr.Body).Decode(&got), "should return valid body")
+	suite.Equal(suite.samplePublicResult, got, "should return correct body")
+}
+
+func (suite *handleSearchAddressBookEntriesSuite) TestOKWithViewAny() {
+	suite.tokenOK.Permissions = []permission.Permission{{Name: permission.ViewAnyAddressBookEntryPermissionName}}
+	suite.s.On("SearchAddressBookEntries", mock.Anything, suite.sampleFilters, suite.sampleParams).
+		Return(suite.sampleResult, nil)
+	defer suite.s.AssertExpectations(suite.T())
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    suite.sampleURL,
+		Token:  suite.tokenOK,
+	})
+
+	suite.Equal(http.StatusOK, rr.Code, "should return correct code")
+}
+
+func Test_handleSearchAddressBookEntries(t *testing.T) {
+	suite.Run(t, new(handleSearchAddressBookEntriesSuite))
+}
+
+// handleRebuildAddressBookEntrySearchSuite tests
+// handleRebuildAddressBookEntrySearch.
+type handleRebuildAddressBookEntrySearchSuite struct {
+	suite.Suite
+	s       *StoreMock
+	r       *gin.Engine
+	tokenOK auth.Token
+}
+
+func (suite *handleRebuildAddressBookEntrySearchSuite) SetupTest() {
+	suite.s = &StoreMock{}
+	suite.r = testutil.NewGinEngine()
+	suite.r.POST("/search/rebuild", httpendpoints.GinHandlerFunc(zap.NewNop(), "", handleRebuildAddressBookEntrySearch(suite.s)))
+	suite.tokenOK = auth.Token{
+		UserID:          testutil.NewUUIDV4(),
+		Username:        "organ",
+		IsAuthenticated: true,
+		IsAdmin:         false,
+		Permissions:     []permission.Permission{{Name: permission.RebuildSearchIndexPermissionName}},
+		RandomSalt:      nil,
+	}
+}
+
+func (suite *handleRebuildAddressBookEntrySearchSuite) TestSecretMismatch() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    "/search/rebuild",
+		Token:  suite.tokenOK,
+		Secret: "meow",
+	})
+	suite.Equal(http.StatusInternalServerError, rr.Code, "should return correct code")
+}
+
+func (suite *handleRebuildAddressBookEntrySearchSuite) TestNotAuthenticated() {
+	token := suite.tokenOK
+	token.IsAuthenticated = false
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    "/search/rebuild",
+		Token:  token,
+	})
+
+	suite.Equal(http.StatusUnauthorized, rr.Code, "should return correct code")
+}
+
+func (suite *handleRebuildAddressBookEntrySearchSuite) TestMissingPermission() {
+	suite.tokenOK.Permissions = []permission.Permission{}
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    "/search/rebuild",
+		Token:  suite.tokenOK,
+	})
+
+	suite.Equal(http.StatusForbidden, rr.Code, "should return correct code")
+}
+
+func (suite *handleRebuildAddressBookEntrySearchSuite) TestOK() {
+	_, cancel, wait := testutil.NewTimeout(suite, timeout)
+	defer cancel()
+	suite.s.On("RebuildAddressBookEntrySearch", mock.Anything).Run(func(_ mock.Arguments) {
+		cancel()
+	}).Once()
+	defer suite.s.AssertExpectations(suite.T())
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    "/search/rebuild",
+		Token:  suite.tokenOK,
+	})
+
+	suite.Equal(http.StatusOK, rr.Code, "should return correct code")
+	wait()
+}
+
+func Test_handleRebuildAddressBookEntrySearch(t *testing.T) {
+	suite.Run(t, new(handleRebuildAddressBookEntrySearchSuite))
 }

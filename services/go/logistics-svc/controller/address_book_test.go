@@ -4,10 +4,13 @@ import (
 	"errors"
 	"github.com/gofrs/uuid"
 	"github.com/lefinal/nulls"
+	"github.com/lefinal/zaprec"
 	"github.com/mobile-directing-system/mds-server/services/go/logistics-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/search"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap/zapcore"
 	"testing"
 )
 
@@ -623,4 +626,161 @@ func (suite *ControllerAddressBookEntriesSuite) TestOK() {
 
 func TestController_AddressBookEntries(t *testing.T) {
 	suite.Run(t, new(ControllerAddressBookEntriesSuite))
+}
+
+// ControllerSearchAddressBookEntriesSuite tests
+// Controller.SearchAddressBookEntries
+type ControllerSearchAddressBookEntriesSuite struct {
+	suite.Suite
+	ctrl          *ControllerMock
+	tx            *testutil.DBTx
+	sampleFilters store.AddressBookEntryFilters
+	sampleParams  search.Params
+	sampleEntries []store.AddressBookEntryDetailed
+}
+
+func (suite *ControllerSearchAddressBookEntriesSuite) SetupTest() {
+	suite.ctrl = NewMockController()
+	suite.tx = &testutil.DBTx{}
+	suite.ctrl.DB.Tx = []*testutil.DBTx{suite.tx}
+	suite.sampleFilters = store.AddressBookEntryFilters{
+		ByUser:                  nulls.NewUUID(testutil.NewUUIDV4()),
+		ForOperation:            nulls.NewUUID(testutil.NewUUIDV4()),
+		ExcludeGlobal:           true,
+		VisibleBy:               nulls.NewUUID(testutil.NewUUIDV4()),
+		IncludeForInactiveUsers: true,
+	}
+	suite.sampleParams = search.Params{
+		Query:  "among",
+		Offset: 93,
+		Limit:  286,
+	}
+	suite.sampleEntries = []store.AddressBookEntryDetailed{
+		{
+			AddressBookEntry: store.AddressBookEntry{
+				ID: testutil.NewUUIDV4(),
+			},
+		},
+		{
+			AddressBookEntry: store.AddressBookEntry{
+				ID: testutil.NewUUIDV4(),
+			},
+		},
+	}
+}
+
+func (suite *ControllerSearchAddressBookEntriesSuite) TestTxFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.DB.BeginFail = true
+
+	go func() {
+		defer cancel()
+		_, err := suite.ctrl.Ctrl.SearchAddressBookEntries(timeout, suite.sampleFilters, suite.sampleParams)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerSearchAddressBookEntriesSuite) TestSearchFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.Store.On("SearchAddressBookEntries", timeout, suite.tx, suite.sampleFilters, suite.sampleParams).
+		Return(search.Result[store.AddressBookEntryDetailed]{}, errors.New("sad life"))
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		_, err := suite.ctrl.Ctrl.SearchAddressBookEntries(timeout, suite.sampleFilters, suite.sampleParams)
+		suite.Error(err, "should fail")
+		suite.False(suite.tx.IsCommitted, "should not commit tx")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerSearchAddressBookEntriesSuite) TestOK() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.Store.On("SearchAddressBookEntries", timeout, suite.tx, suite.sampleFilters, suite.sampleParams).
+		Return(search.Result[store.AddressBookEntryDetailed]{Hits: suite.sampleEntries}, nil)
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		got, err := suite.ctrl.Ctrl.SearchAddressBookEntries(timeout, suite.sampleFilters, suite.sampleParams)
+		suite.Require().NoError(err, "should not fail")
+		suite.Equal(suite.sampleEntries, got.Hits, "shoudl return correct result")
+		suite.True(suite.tx.IsCommitted, "should commit tx")
+	}()
+
+	wait()
+}
+
+func TestController_SearchAddressBookEntries(t *testing.T) {
+	suite.Run(t, new(ControllerSearchAddressBookEntriesSuite))
+}
+
+// ControllerRebuildAddressBookEntrySearchSuite tests
+// Controller.RebuildAddressBookEntrySearch.
+type ControllerRebuildAddressBookEntrySearchSuite struct {
+	suite.Suite
+	ctrl     *ControllerMock
+	tx       *testutil.DBTx
+	recorder *zaprec.RecordStore
+}
+
+func (suite *ControllerRebuildAddressBookEntrySearchSuite) SetupTest() {
+	suite.ctrl = NewMockController()
+	suite.tx = &testutil.DBTx{}
+	suite.ctrl.DB.Tx = []*testutil.DBTx{suite.tx}
+	suite.ctrl.Logger, suite.recorder = zaprec.NewRecorder(zapcore.ErrorLevel)
+	suite.ctrl.Ctrl.Logger = suite.ctrl.Logger
+}
+
+func (suite *ControllerRebuildAddressBookEntrySearchSuite) TestTxFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.DB.BeginFail = true
+
+	go func() {
+		defer cancel()
+		suite.ctrl.Ctrl.RebuildAddressBookEntrySearch(timeout)
+		suite.Len(suite.recorder.Records(), 1, "should have logged error")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerRebuildAddressBookEntrySearchSuite) TestStoreRebuildFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.Store.On("RebuildAddressBookEntrySearch", timeout, suite.tx).
+		Return(errors.New("sad life"))
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		suite.ctrl.Ctrl.RebuildAddressBookEntrySearch(timeout)
+		suite.Len(suite.recorder.Records(), 1, "should have logged error")
+		suite.False(suite.tx.IsCommitted, "should not have committed tx")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerRebuildAddressBookEntrySearchSuite) TestOK() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.Store.On("RebuildAddressBookEntrySearch", timeout, suite.tx).
+		Return(nil)
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		suite.ctrl.Ctrl.RebuildAddressBookEntrySearch(timeout)
+		suite.Len(suite.recorder.Records(), 0, "should not have logged error")
+		suite.True(suite.tx.IsCommitted, "should have committed tx")
+	}()
+
+	wait()
+}
+
+func TestController_RebuildAddressBookEntrySearch(t *testing.T) {
+	suite.Run(t, new(ControllerRebuildAddressBookEntrySearchSuite))
 }

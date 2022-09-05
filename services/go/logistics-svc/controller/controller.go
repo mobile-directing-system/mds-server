@@ -9,6 +9,7 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/logistics-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pgutil"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/search"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
@@ -144,8 +145,15 @@ type Store interface {
 	// ActiveIntelDeliveriesAndLockOrSkip retrieves all active intel-deliveries and
 	// locks or skips them.
 	ActiveIntelDeliveriesAndLockOrSkip(ctx context.Context, tx pgx.Tx) ([]store.IntelDelivery, error)
-	// InvalidateIntel sets the valid-field of the intel with the given id to false.
+	// InvalidateIntelByID sets the valid-field of the intel with the given id to
+	// false.
 	InvalidateIntelByID(ctx context.Context, tx pgx.Tx, intelID uuid.UUID) error
+	// SearchAddressBookEntries with the given AddressBookEntryFilters and
+	// search.Params.
+	SearchAddressBookEntries(ctx context.Context, tx pgx.Tx, filters store.AddressBookEntryFilters,
+		searchParams search.Params) (search.Result[store.AddressBookEntryDetailed], error)
+	// RebuildAddressBookEntrySearch rebuilds the address-book-entry-search.
+	RebuildAddressBookEntrySearch(ctx context.Context, tx pgx.Tx) error
 }
 
 // Notifier sends event messages.

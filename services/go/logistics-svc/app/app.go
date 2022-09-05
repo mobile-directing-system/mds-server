@@ -63,7 +63,7 @@ func Run(ctx context.Context) error {
 		eg, egCtx := errgroup.WithContext(ctx)
 		// Check hosts.
 		eg.Go(func() error {
-			err := connectutil.AwaitHostsReachable(egCtx, c.KafkaAddr)
+			err := connectutil.AwaitHostsReachable(egCtx, c.KafkaAddr, c.searchConfig.Host)
 			return meh.NilOrWrap(err, "await hosts reachable", nil)
 		})
 		// Check Kafka topics.
@@ -96,10 +96,14 @@ func Run(ctx context.Context) error {
 		return meh.Wrap(err, "init new kafka connector", nil)
 	}
 	eventPort := eventport.NewPort(kafkaConnector)
+	mall, err := store.InitNewMall(ctx, logger.Named("mall"), sqlDB, c.searchConfig.Host, c.searchConfig.MasterKey)
+	if err != nil {
+		return meh.Wrap(err, "init new mall", nil)
+	}
 	ctrl := &controller.Controller{
 		Logger:   logger.Named("controller"),
 		DB:       sqlDB,
-		Store:    store.NewMall(),
+		Store:    mall,
 		Notifier: eventPort,
 	}
 	// Serve endpoints.
@@ -127,6 +131,10 @@ func Run(ctx context.Context) error {
 	// Run controller.
 	eg.Go(func() error {
 		return meh.NilOrWrap(ctrl.Run(egCtx), "run controller", nil)
+	})
+	// Open mall.
+	eg.Go(func() error {
+		return meh.NilOrWrap(mall.Open(egCtx), "open mall", nil)
 	})
 	startUpCompleted(readyCheck)
 	return eg.Wait()
