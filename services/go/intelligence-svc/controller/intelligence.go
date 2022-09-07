@@ -39,6 +39,8 @@ func (c *Controller) CreateIntel(ctx context.Context, create store.CreateIntel) 
 				return meh.Wrap(err, "address book entry by id", meh.Details{"entry_id": assignment.To})
 			}
 		}
+		// Search text.
+		create.SearchText, err = c.genSearchText(create)
 		// Create in store.
 		created, err = c.Store.CreateIntel(ctx, tx, create)
 		if err != nil {

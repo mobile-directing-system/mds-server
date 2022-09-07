@@ -13,7 +13,7 @@ import (
 )
 
 func Test_intelTypeFromStore(t *testing.T) {
-	testutil.TestMapperWithConstExtraction(t, intelTypeFromStore, "../store/intel.go", nulls.String{})
+	testutil.TestMapperWithConstExtraction(t, intelTypeFromStore, "../store/intel_content.go", nulls.String{})
 }
 
 // PortNotifyIntelCreatedSuite tests Port.NotifyIntelCreated.
@@ -32,7 +32,7 @@ func (suite *PortNotifyIntelCreatedSuite) SetupTest() {
 		ID:         testutil.NewUUIDV4(),
 		CreatedBy:  testutil.NewUUIDV4(),
 		Operation:  testutil.NewUUIDV4(),
-		Type:       store.IntelTypePlainTextMessage,
+		Type:       store.IntelTypePlaintextMessage,
 		Content:    json.RawMessage(`null`),
 		SearchText: nulls.NewString("gold"),
 	}
@@ -58,7 +58,7 @@ func (suite *PortNotifyIntelCreatedSuite) SetupTest() {
 				CreatedAt:  suite.sampleCreated.CreatedAt,
 				CreatedBy:  suite.sampleCreated.CreatedBy,
 				Operation:  suite.sampleCreated.Operation,
-				Type:       event.IntelTypePlainTextMessage,
+				Type:       event.IntelTypePlaintextMessage,
 				Content:    suite.sampleCreated.Content,
 				SearchText: suite.sampleCreated.SearchText,
 				IsValid:    suite.sampleCreated.IsValid,

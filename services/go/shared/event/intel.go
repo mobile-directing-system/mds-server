@@ -14,9 +14,16 @@ const TypeIntelCreated Type = "intel-created"
 type IntelType string
 
 const (
-	// IntelTypePlainTextMessage for simple plaintext messages.
-	IntelTypePlainTextMessage IntelType = "plaintext-message"
+	// IntelTypePlaintextMessage for simple plaintext messages.
+	IntelTypePlaintextMessage IntelType = "plaintext-message"
 )
+
+// IntelTypePlaintextMessageContent is the content for intel with
+// IntelTypePlaintextMessage.
+type IntelTypePlaintextMessageContent struct {
+	// Text is the actual text content.
+	Text string `json:"text"`
+}
 
 // IntelCreated for TypeIntelCreated.
 type IntelCreated struct {

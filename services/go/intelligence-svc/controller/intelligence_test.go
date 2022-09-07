@@ -30,9 +30,9 @@ func (suite *ControllerCreateIntelSuite) SetupTest() {
 	suite.sampleCreate = store.CreateIntel{
 		CreatedBy:  testutil.NewUUIDV4(),
 		Operation:  testutil.NewUUIDV4(),
-		Type:       "everyone",
-		Content:    json.RawMessage(`null`),
-		SearchText: nulls.NewString("gold"),
+		Type:       store.IntelTypePlaintextMessage,
+		Content:    json.RawMessage(`{"text":"world"}`),
+		SearchText: nulls.NewString("world"),
 		Assignments: []store.IntelAssignment{
 			{
 				ID:    uuid.UUID{},

@@ -10,9 +10,17 @@ Intel types
 ===========
 
 plaintext-message
-^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
 
-`Coming soon`
+Used for plaintext content.
+
+Options:
+
+.. code-block:: json
+
+    {
+        "text": "<content>"
+    }
 
 Create intel
 ============
@@ -28,7 +36,6 @@ Creating intel is done by calling:
         "operation": "<associated_operation_id>",
         "type": "<intel_type>",
         "content": {},
-        "search_text": "<search_text>",
         "importance": 0,
         "assignments": [
             {

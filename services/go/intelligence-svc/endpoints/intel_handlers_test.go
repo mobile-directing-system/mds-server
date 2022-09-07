@@ -23,7 +23,7 @@ import (
 // Test_publicIntelTypeFromStore reads all constants of store.IntelType and
 // assures that the mapper does not fail.
 func Test_publicIntelTypeFromStore(t *testing.T) {
-	testutil.TestMapperWithConstExtraction(t, publicIntelTypeFromStore, "../store/intel.go", nulls.String{})
+	testutil.TestMapperWithConstExtraction(t, publicIntelTypeFromStore, "../store/intel_content.go", nulls.String{})
 }
 
 // Test_storeIntelTypeFromPublic reads all constants of public intel-type and
@@ -57,10 +57,9 @@ func (suite *handleCreateIntelSuite) SetupTest() {
 		RandomSalt:      nil,
 	}
 	suite.samplePublicCreate = publicCreateIntel{
-		Operation:  testutil.NewUUIDV4(),
-		Type:       intelTypePlainTextMessage,
-		Content:    json.RawMessage(`{"hello":"world"}`),
-		SearchText: nulls.NewString("hello world"),
+		Operation: testutil.NewUUIDV4(),
+		Type:      intelTypePlainTextMessage,
+		Content:   json.RawMessage(`{"text":"hello"}`),
 		Assignments: []publicIntelAssignment{
 			{
 				ID: uuid.UUID{},
@@ -73,11 +72,10 @@ func (suite *handleCreateIntelSuite) SetupTest() {
 		},
 	}
 	suite.sampleStoreCreate = store.CreateIntel{
-		CreatedBy:  suite.tokenOK.UserID,
-		Operation:  suite.samplePublicCreate.Operation,
-		Type:       store.IntelTypePlainTextMessage,
-		Content:    json.RawMessage(`{"hello":"world"}`),
-		SearchText: nulls.NewString("hello world"),
+		CreatedBy: suite.tokenOK.UserID,
+		Operation: suite.samplePublicCreate.Operation,
+		Type:      store.IntelTypePlaintextMessage,
+		Content:   json.RawMessage(`{"text":"hello"}`),
 		Assignments: []store.IntelAssignment{
 			{
 				ID:    uuid.UUID{},
@@ -380,7 +378,7 @@ func (suite *handleGetIntelByIDSuite) SetupTest() {
 		CreatedAt:  time.Now().UTC(),
 		CreatedBy:  testutil.NewUUIDV4(),
 		Operation:  testutil.NewUUIDV4(),
-		Type:       store.IntelTypePlainTextMessage,
+		Type:       store.IntelTypePlaintextMessage,
 		Content:    json.RawMessage(`null`),
 		SearchText: nulls.NewString("Hello World!"),
 		IsValid:    true,

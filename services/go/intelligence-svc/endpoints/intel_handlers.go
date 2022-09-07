@@ -27,7 +27,7 @@ const (
 // mapping was found, a meh.ErrInternal is returned.
 func publicIntelTypeFromStore(s store.IntelType) (publicIntelType, error) {
 	switch s {
-	case store.IntelTypePlainTextMessage:
+	case store.IntelTypePlaintextMessage:
 		return intelTypePlainTextMessage, nil
 	default:
 		return "", meh.NewInternalErr("unsupported type", meh.Details{"type": s})
@@ -39,7 +39,7 @@ func publicIntelTypeFromStore(s store.IntelType) (publicIntelType, error) {
 func storeIntelTypeFromPublic(p publicIntelType) (store.IntelType, error) {
 	switch p {
 	case intelTypePlainTextMessage:
-		return store.IntelTypePlainTextMessage, nil
+		return store.IntelTypePlaintextMessage, nil
 	default:
 		return "", meh.NewBadInputErr("unsupported type", meh.Details{"type": p})
 	}
@@ -50,7 +50,6 @@ type publicCreateIntel struct {
 	Operation   uuid.UUID               `json:"operation"`
 	Type        publicIntelType         `json:"type"`
 	Content     json.RawMessage         `json:"content"`
-	SearchText  nulls.String            `json:"search_text"`
 	Importance  int                     `json:"importance"`
 	Assignments []publicIntelAssignment `json:"assignments"`
 }
@@ -72,7 +71,6 @@ func storeCreateIntelFromPublic(createdBy uuid.UUID, p publicCreateIntel) (store
 		Operation:   p.Operation,
 		Type:        intelType,
 		Content:     p.Content,
-		SearchText:  p.SearchText,
 		Importance:  p.Importance,
 		Assignments: storeIntelAssignmentsFromPublic(uuid.UUID{}, p.Assignments),
 	}, nil

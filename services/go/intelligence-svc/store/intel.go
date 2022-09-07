@@ -17,11 +17,6 @@ import (
 // IntelType of intel. Also describes the content.
 type IntelType string
 
-const (
-	// IntelTypePlainTextMessage for simple plaintext messages.
-	IntelTypePlainTextMessage IntelType = "plaintext-message"
-)
-
 // CreateIntel for creating intel.
 type CreateIntel struct {
 	// CreatedBy is the id of the user, who created the intent.
@@ -43,8 +38,12 @@ type CreateIntel struct {
 // Validate the CreateIntel for Type, Content and Assignments.
 func (i CreateIntel) Validate() (entityvalidation.Report, error) {
 	report := entityvalidation.NewReport()
-	// TODO: Validate intel type as well as content per type.
-
+	// Validate intel-type and content.
+	subReport, err := validateCreateIntelTypeAndContent(i.Type, i.Content)
+	if err != nil {
+		return entityvalidation.Report{}, meh.Wrap(err, "validate create-intel-type and content", nil)
+	}
+	report.Include(subReport)
 	// Assure no duplicate assignments.
 	assignedTo := make(map[uuid.UUID]struct{}, len(i.Assignments))
 	for _, assignment := range i.Assignments {

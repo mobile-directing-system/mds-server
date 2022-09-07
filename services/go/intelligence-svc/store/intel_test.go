@@ -2,7 +2,6 @@ package store
 
 import (
 	"encoding/json"
-	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -16,11 +15,10 @@ type CreateIntelValidateSuite struct {
 
 func (suite *CreateIntelValidateSuite) SetupTest() {
 	suite.sampleCreateIntel = CreateIntel{
-		CreatedBy:  testutil.NewUUIDV4(),
-		Operation:  testutil.NewUUIDV4(),
-		Type:       "test",
-		Content:    json.RawMessage(`{"hello":"world"}`),
-		SearchText: nulls.NewString("hello world"),
+		CreatedBy: testutil.NewUUIDV4(),
+		Operation: testutil.NewUUIDV4(),
+		Type:      IntelTypePlaintextMessage,
+		Content:   json.RawMessage(`{"text":"hello"}`),
 		Assignments: []IntelAssignment{
 			{
 				ID: testutil.NewUUIDV4(),

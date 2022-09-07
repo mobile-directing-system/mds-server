@@ -750,7 +750,7 @@ func (suite *portHandleIntelCreatedSuite) SetupTest() {
 		CreatedAt:  time.Date(2022, 9, 1, 11, 53, 45, 0, time.UTC),
 		CreatedBy:  testutil.NewUUIDV4(),
 		Operation:  testutil.NewUUIDV4(),
-		Type:       event.IntelTypePlainTextMessage,
+		Type:       event.IntelTypePlaintextMessage,
 		Content:    json.RawMessage(`{"hello":"world"}`),
 		SearchText: nulls.NewString("Hello World!"),
 		Importance: 286,

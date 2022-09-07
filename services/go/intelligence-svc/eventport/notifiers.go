@@ -13,8 +13,8 @@ import (
 // intelTypeFromStore converts store.IntelType to event.IntelType.
 func intelTypeFromStore(s store.IntelType) (event.IntelType, error) {
 	switch s {
-	case store.IntelTypePlainTextMessage:
-		return event.IntelTypePlainTextMessage, nil
+	case store.IntelTypePlaintextMessage:
+		return event.IntelTypePlaintextMessage, nil
 	default:
 		return "", meh.NewInternalErr("unsupported intel type", meh.Details{"intel_type": s})
 	}
