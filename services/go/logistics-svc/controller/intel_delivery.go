@@ -151,11 +151,31 @@ func (c *Controller) lookAfterDelivery(ctx context.Context, tx pgx.Tx, deliveryI
 		StatusTS:  time.Now(),
 		Note:      nulls.String{},
 	}
+	err = c.createIntelDeliveryAttempt(ctx, tx, attemptToCreate, delivery)
+	if err != nil {
+		return meh.Wrap(err, "create intel delivery attempt", meh.Details{"to_create": attemptToCreate})
+	}
+	return nil
+}
+
+// createIntelDeliveryAttempt creates and notifies about the given
+// store.IntelDeliveryAttempt.
+func (c *Controller) createIntelDeliveryAttempt(ctx context.Context, tx pgx.Tx, attemptToCreate store.IntelDeliveryAttempt,
+	delivery store.IntelDelivery) error {
 	createdAttempt, err := c.Store.CreateIntelDeliveryAttempt(ctx, tx, attemptToCreate)
 	if err != nil {
 		return meh.Wrap(err, "create intel delivery attempt", meh.Details{"to_create": attemptToCreate})
 	}
-	err = c.Notifier.NotifyIntelDeliveryAttemptCreated(ctx, tx, createdAttempt)
+	// Gather information for notifying.
+	assignment, err := c.Store.IntelAssignmentByID(ctx, tx, delivery.Assignment)
+	if err != nil {
+		return meh.Wrap(err, "intel assignment by id from store", meh.Details{"assignment_id": delivery.Assignment})
+	}
+	intel, err := c.Store.IntelByID(ctx, tx, assignment.Intel)
+	if err != nil {
+		return meh.Wrap(err, "intel by id from store", meh.Details{"intel_id": assignment.Intel})
+	}
+	err = c.Notifier.NotifyIntelDeliveryAttemptCreated(ctx, tx, createdAttempt, delivery, assignment, intel)
 	if err != nil {
 		return meh.Wrap(err, "notify intel delivery attempt created", meh.Details{"created": createdAttempt})
 	}

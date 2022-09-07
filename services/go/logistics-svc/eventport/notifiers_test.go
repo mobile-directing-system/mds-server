@@ -596,15 +596,42 @@ type PortNotifyIntelDeliveryAttemptCreatedSuite struct {
 	port             *PortMock
 	tx               *testutil.DBTx
 	sampleCreated    store.IntelDeliveryAttempt
+	sampleDelivery   store.IntelDelivery
+	sampleAssignment store.IntelAssignment
+	sampleIntel      store.Intel
 	expectedMessages []kafkautil.OutboundMessage
 }
 
 func (suite *PortNotifyIntelDeliveryAttemptCreatedSuite) SetupTest() {
 	suite.port = newMockPort()
 	suite.tx = &testutil.DBTx{}
+	suite.sampleIntel = store.Intel{
+		ID:         testutil.NewUUIDV4(),
+		CreatedAt:  time.Date(2022, 9, 6, 9, 41, 14, 0, time.UTC),
+		CreatedBy:  testutil.NewUUIDV4(),
+		Operation:  testutil.NewUUIDV4(),
+		Type:       "until",
+		Content:    []byte(`{"hello":"world"}`),
+		SearchText: nulls.NewString("true"),
+		Importance: 260,
+		IsValid:    true,
+	}
+	suite.sampleAssignment = store.IntelAssignment{
+		ID:    testutil.NewUUIDV4(),
+		Intel: suite.sampleIntel.ID,
+		To:    testutil.NewUUIDV4(),
+	}
+	suite.sampleIntel.Assignments = []store.IntelAssignment{suite.sampleAssignment}
+	suite.sampleDelivery = store.IntelDelivery{
+		ID:         testutil.NewUUIDV4(),
+		Assignment: suite.sampleIntel.Assignments[0].ID,
+		IsActive:   true,
+		Success:    false,
+		Note:       nulls.NewString("inch"),
+	}
 	suite.sampleCreated = store.IntelDeliveryAttempt{
 		ID:        testutil.NewUUIDV4(),
-		Delivery:  testutil.NewUUIDV4(),
+		Delivery:  suite.sampleDelivery.ID,
 		Channel:   testutil.NewUUIDV4(),
 		CreatedAt: time.Date(2022, 9, 1, 12, 18, 37, 0, time.UTC),
 		IsActive:  true,
@@ -618,8 +645,30 @@ func (suite *PortNotifyIntelDeliveryAttemptCreatedSuite) SetupTest() {
 			Key:       suite.sampleCreated.Delivery.String(),
 			EventType: event.TypeIntelDeliveryAttemptCreated,
 			Value: event.IntelDeliveryAttemptCreated{
-				ID:        suite.sampleCreated.ID,
-				Delivery:  suite.sampleCreated.Delivery,
+				ID: suite.sampleCreated.ID,
+				Delivery: event.IntelDeliveryAttemptCreatedDelivery{
+					ID:         suite.sampleDelivery.ID,
+					Assignment: suite.sampleDelivery.Assignment,
+					IsActive:   suite.sampleDelivery.IsActive,
+					Success:    suite.sampleDelivery.Success,
+					Note:       suite.sampleDelivery.Note,
+				},
+				Assignment: event.IntelDeliveryAttemptCreatedAssignment{
+					ID:    suite.sampleAssignment.ID,
+					Intel: suite.sampleAssignment.Intel,
+					To:    suite.sampleAssignment.To,
+				},
+				Intel: event.IntelDeliveryAttemptCreatedIntel{
+					ID:         suite.sampleIntel.ID,
+					CreatedAt:  suite.sampleIntel.CreatedAt,
+					CreatedBy:  suite.sampleIntel.CreatedBy,
+					Operation:  suite.sampleIntel.Operation,
+					Type:       event.IntelType(suite.sampleIntel.Type),
+					Content:    suite.sampleIntel.Content,
+					SearchText: suite.sampleIntel.SearchText,
+					Importance: suite.sampleIntel.Importance,
+					IsValid:    suite.sampleIntel.IsValid,
+				},
 				Channel:   suite.sampleCreated.Channel,
 				CreatedAt: suite.sampleCreated.CreatedAt,
 				IsActive:  suite.sampleCreated.IsActive,
@@ -638,7 +687,8 @@ func (suite *PortNotifyIntelDeliveryAttemptCreatedSuite) TestUnsupportedStatus()
 
 	go func() {
 		defer cancel()
-		err := suite.port.Port.NotifyIntelDeliveryAttemptCreated(timeout, suite.tx, suite.sampleCreated)
+		err := suite.port.Port.NotifyIntelDeliveryAttemptCreated(timeout, suite.tx, suite.sampleCreated,
+			suite.sampleDelivery, suite.sampleAssignment, suite.sampleIntel)
 		suite.Error(err, "should fail")
 	}()
 
@@ -651,7 +701,8 @@ func (suite *PortNotifyIntelDeliveryAttemptCreatedSuite) TestWriteFail() {
 
 	go func() {
 		defer cancel()
-		err := suite.port.Port.NotifyIntelDeliveryAttemptCreated(timeout, suite.tx, suite.sampleCreated)
+		err := suite.port.Port.NotifyIntelDeliveryAttemptCreated(timeout, suite.tx, suite.sampleCreated,
+			suite.sampleDelivery, suite.sampleAssignment, suite.sampleIntel)
 		suite.Error(err, "should fail")
 	}()
 
@@ -663,7 +714,8 @@ func (suite *PortNotifyIntelDeliveryAttemptCreatedSuite) TestOK() {
 
 	go func() {
 		defer cancel()
-		err := suite.port.Port.NotifyIntelDeliveryAttemptCreated(timeout, suite.tx, suite.sampleCreated)
+		err := suite.port.Port.NotifyIntelDeliveryAttemptCreated(timeout, suite.tx, suite.sampleCreated,
+			suite.sampleDelivery, suite.sampleAssignment, suite.sampleIntel)
 		suite.Require().NoError(err, "should not fail")
 		suite.Equal(suite.expectedMessages, suite.port.recorder.Recorded, "should write correct messages")
 	}()

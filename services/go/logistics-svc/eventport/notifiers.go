@@ -376,7 +376,8 @@ func eventIntelDeliveryStatusFromStore(s store.IntelDeliveryStatus) (event.Intel
 
 // NotifyIntelDeliveryAttemptCreated emits an
 // event.TypeIntelDeliveryAttemptCreated event.
-func (p *Port) NotifyIntelDeliveryAttemptCreated(ctx context.Context, tx pgx.Tx, created store.IntelDeliveryAttempt) error {
+func (p *Port) NotifyIntelDeliveryAttemptCreated(ctx context.Context, tx pgx.Tx, created store.IntelDeliveryAttempt,
+	delivery store.IntelDelivery, assignment store.IntelAssignment, intel store.Intel) error {
 	mappedStatus, err := eventIntelDeliveryStatusFromStore(created.Status)
 	if err != nil {
 		return meh.Wrap(err, "event intel-delivery-status from store", meh.Details{"status": created.Status})
@@ -386,8 +387,30 @@ func (p *Port) NotifyIntelDeliveryAttemptCreated(ctx context.Context, tx pgx.Tx,
 		Key:       created.Delivery.String(),
 		EventType: event.TypeIntelDeliveryAttemptCreated,
 		Value: event.IntelDeliveryAttemptCreated{
-			ID:        created.ID,
-			Delivery:  created.Delivery,
+			ID: created.ID,
+			Delivery: event.IntelDeliveryAttemptCreatedDelivery{
+				ID:         delivery.ID,
+				Assignment: delivery.Assignment,
+				IsActive:   delivery.IsActive,
+				Success:    delivery.Success,
+				Note:       delivery.Note,
+			},
+			Assignment: event.IntelDeliveryAttemptCreatedAssignment{
+				ID:    assignment.ID,
+				Intel: assignment.Intel,
+				To:    assignment.To,
+			},
+			Intel: event.IntelDeliveryAttemptCreatedIntel{
+				ID:         intel.ID,
+				CreatedAt:  intel.CreatedAt,
+				CreatedBy:  intel.CreatedBy,
+				Operation:  intel.Operation,
+				Type:       event.IntelType(intel.Type),
+				Content:    intel.Content,
+				SearchText: intel.SearchText,
+				Importance: intel.Importance,
+				IsValid:    intel.IsValid,
+			},
 			Channel:   created.Channel,
 			CreatedAt: created.CreatedAt,
 			IsActive:  created.IsActive,

@@ -284,8 +284,9 @@ func (m *NotifierMock) NotifyIntelDeliveryCreated(ctx context.Context, tx pgx.Tx
 	return m.Called(ctx, tx, created).Error(0)
 }
 
-func (m *NotifierMock) NotifyIntelDeliveryAttemptCreated(ctx context.Context, tx pgx.Tx, created store.IntelDeliveryAttempt) error {
-	return m.Called(ctx, tx, created).Error(0)
+func (m *NotifierMock) NotifyIntelDeliveryAttemptCreated(ctx context.Context, tx pgx.Tx, created store.IntelDeliveryAttempt,
+	delivery store.IntelDelivery, assignment store.IntelAssignment, intel store.Intel) error {
+	return m.Called(ctx, tx, created, delivery, assignment, intel).Error(0)
 }
 
 func (m *NotifierMock) NotifyIntelDeliveryAttemptStatusUpdated(ctx context.Context, tx pgx.Tx, attempt store.IntelDeliveryAttempt) error {

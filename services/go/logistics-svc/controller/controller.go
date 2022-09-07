@@ -171,7 +171,8 @@ type Notifier interface {
 	NotifyIntelDeliveryCreated(ctx context.Context, tx pgx.Tx, created store.IntelDelivery) error
 	// NotifyIntelDeliveryAttemptCreated notifies about a created
 	// intel-delivery-attempt.
-	NotifyIntelDeliveryAttemptCreated(ctx context.Context, tx pgx.Tx, created store.IntelDeliveryAttempt) error
+	NotifyIntelDeliveryAttemptCreated(ctx context.Context, tx pgx.Tx, created store.IntelDeliveryAttempt, delivery store.IntelDelivery,
+		assignment store.IntelAssignment, intel store.Intel) error
 	// NotifyIntelDeliveryAttemptStatusUpdated notifies about an status-update for a
 	// intel-delivery-attempt.
 	NotifyIntelDeliveryAttemptStatusUpdated(ctx context.Context, tx pgx.Tx, attempt store.IntelDeliveryAttempt) error
