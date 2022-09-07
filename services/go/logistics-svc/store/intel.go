@@ -120,7 +120,7 @@ func (m *Mall) CreateIntel(ctx context.Context, tx pgx.Tx, create Intel) error {
 	// Create intel.
 	q, _, err := m.dialect.Insert(goqu.T("intel")).Rows(goqu.Record{
 		"id":          create.ID,
-		"created_at":  create.CreatedAt,
+		"created_at":  create.CreatedAt.UTC(),
 		"created_by":  create.CreatedBy,
 		"operation":   create.Operation,
 		"type":        create.Type,
