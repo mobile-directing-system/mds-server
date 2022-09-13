@@ -162,6 +162,36 @@ Allows retrieving of groups with details.
 
 Options: `none`
 
+Intelligence
+------------
+
+.. _permission.intelligence.intel.create:
+
+intelligence.intel.create
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Allows creating intel (if member of operation).
+
+Options: `none`
+
+.. _permission.intelligence.intel.invalidate:
+
+intelligence.intel.invalidate
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Allows invalidating intel (if member of operation).
+
+Options: `none`
+
+.. _permission.intelligence.intel.view.any:
+
+intelligence.intel.view.any
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Allows viewing any intel (if member of operation), even if not assigned to.
+
+Options: `none`
+
 Operations
 ----------
 
@@ -212,12 +242,12 @@ Allows creating users.
 
 Options: `none`
 
-.. _permission.user.delete:
+.. _permission.user.set-active-state:
 
-user.delete
-^^^^^^^^^^^
+user.set-active-state
+^^^^^^^^^^^^^^^^^^^^^
 
-Allows deleting users.
+Allows setting the active-state for users.
 
 Options: `none`
 

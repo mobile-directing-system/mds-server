@@ -3,7 +3,7 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Development" href="development.html" /><link rel="prev" title="Groups" href="groups.html" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Intelligence" href="intelligence.html" /><link rel="prev" title="Groups" href="groups.html" />
 
     <meta name="generator" content="sphinx-4.5.0, furo 2022.06.21"/>
         <title>Address Book - MDS Server documentation</title>
@@ -158,11 +158,14 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="general-http-api.html">General HTTP API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api-gateway.html">API Gateway</a></li>
+<li class="toctree-l1"><a class="reference internal" href="websocket.html">WebSocket</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user-management.html">Users</a></li>
 <li class="toctree-l1"><a class="reference internal" href="permissions.html">Permissions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="operations.html">Operations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="groups.html">Groups</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Address Book</a></li>
+<li class="toctree-l1"><a class="reference internal" href="intelligence.html">Intelligence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="in-app-notifications.html">In-App Notifications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
 </ul>
 
@@ -237,7 +240,8 @@ Creating an entry is done by calling:</p>
 <span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;associated_user_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">        </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;associated_username&gt;&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">        </span><span class="nt">&quot;first_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;associated_user_first_name&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;associated_user_last_name&gt;&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="nt">&quot;&lt;associated_user_last_name&gt;&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;is_active&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"></span>
 <span class="w">    </span><span class="p">}</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
@@ -283,7 +287,8 @@ If the limit for associated users should be removed, the <a class="reference int
 <span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;associated_user_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">        </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;associated_username&gt;&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">        </span><span class="nt">&quot;first_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;associated_user_first_name&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;associated_user_last_name&gt;&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;associated_user_last_name&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;is_active&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"></span>
 <span class="w">    </span><span class="p">}</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
@@ -303,7 +308,8 @@ Regarding entry visibility, the same regulations apply as for retrieving single 
 <span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;associated_user_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">        </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;associated_username&gt;&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">        </span><span class="nt">&quot;first_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;associated_user_first_name&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;associated_user_last_name&gt;&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;associated_user_last_name&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;is_active&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"></span>
 <span class="w">    </span><span class="p">}</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
@@ -319,7 +325,29 @@ Regarding entry visibility, the same regulations apply as for retrieving single 
 <li><p><code class="docutils literal notranslate"><span class="pre">for_operation=&lt;operation_id&gt;</span></code>: Only include entries for the operation with the given id or global ones.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">exclude_global=true</span></code>: Exclude entries with have no operation assigned.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">visible_by=&lt;user_id&gt;</span></code>: Only include entries, being visible to the user with the given id. If the <a class="reference internal" href="permissions.html#permission-logistics-address-book-entry-view-any"><span class="std std-ref">logistics.address-book.entry.view.any</span></a> permission is not granted, this will have no effect, as the requesting users id is used here by default.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">include_for_inactive_users=false</span></code>: Includes entries, associated with inactive users.</p></li>
 </ul>
+<p><a class="reference internal" href="general-http-api.html#http-api-search"><span class="std std-ref">Search</span></a> allows using these filters as well and is available via:</p>
+<p><cite>GET /address-book/entries/search</cite></p>
+<p>Entry payload:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="nt">&quot;&lt;entry_id&gt;&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;public_entry_label&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;additional_information&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;optional_operation_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;user&quot;</span><span class="p">:</span><span class="w"> </span><span class="nt">&quot;&lt;optional_user_id&gt;&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;user_details&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;associated_user_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;associated_username&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;first_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;associated_user_first_name&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;associated_user_last_name&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;is_active&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+<p>The search index can be rebuilt via:</p>
+<p><cite>POST /address-book/entries/search/rebuild</cite></p>
 </section>
 <section id="channels-in-general">
 <h2>Channels in General<a class="headerlink" href="#channels-in-general" title="Permalink to this headline">#</a></h2>
@@ -333,8 +361,8 @@ Each channel has a unique priority, timeout and minimum importance for intel.</p
 <li><p><strong>Email</strong> (<cite>email</cite>): Send an email and await a response.</p></li>
 <li><p><strong>Forward to Group</strong> (<cite>forward-to-group</cite>): Forward intel to members of a group. This will use the first available address book entry for each member.</p></li>
 <li><p><strong>Forward to User</strong> (<cite>forward-to-user</cite>): Forward intel to a user. This will use the first available address book entry for the user.</p></li>
+<li><p><strong>In-App Notification</strong> (<cite>in-app-notification</cite>): Send an in-app notification via the MDS application and await it being read.</p></li>
 <li><p><strong>Phone Call</strong> (<cite>phone-call</cite>): Call the recipient.</p></li>
-<li><p><strong>Push</strong> (<cite>push</cite>): Send a push notification via the MDS application and await it being read.</p></li>
 <li><p><strong>Radio</strong> (<cite>radio</cite>): Forward to a radio operator, that transmits the intel over radio.</p></li>
 </ul>
 <p>Each channel holds additional details, based on the type.</p>
@@ -371,6 +399,10 @@ Each channel has a unique priority, timeout and minimum importance for intel.</p
 </pre></div>
 </div>
 <p>The phone number is expected to be in <a class="reference external" href="https://en.wikipedia.org/wiki/E.164">E.164</a> format.</p>
+<p>For <strong>In-App Notification</strong> channel:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{}</span><span class="w"></span>
+</pre></div>
+</div>
 <p>For <strong>Radio</strong> channel:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;info&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;plain_text&gt;&quot;</span><span class="w"></span>
@@ -384,7 +416,6 @@ Each channel has a unique priority, timeout and minimum importance for intel.</p
 <p><cite>PUT /address-book/entries/&lt;entry_id&gt;/channels</cite></p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="w"></span>
 <span class="w">    </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;optional_channel_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">        </span><span class="nt">&quot;entry&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;entry_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;label&gt;&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;channel_type&gt;&quot;</span><span class="p">,</span><span class="w"></span>
@@ -396,9 +427,9 @@ Each channel has a unique priority, timeout and minimum importance for intel.</p
 <span class="p">]</span><span class="w"></span>
 </pre></div>
 </div>
-<p>This is a list of channels, that will be set.</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">id</span></code>-field allows setting the old channel id, if it was only changed.
-In case of ongoing deliveries, this will avoid retrying all channels because of knowing, which failed or are currently delivering.</p>
+<p>This is a list of channels, that will be set.
+Keep in mind that updating channels will restart all ongoing deliveries.
+So if delivery was already tried over an old channel and failed or timed out, it will be tried again.</p>
 </section>
 <section id="retrieving-channels">
 <h2>Retrieving channels<a class="headerlink" href="#retrieving-channels" title="Permalink to this headline">#</a></h2>
@@ -427,12 +458,12 @@ In case of ongoing deliveries, this will avoid retrying all channels because of 
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="development.html">
+          <a class="next-page" href="intelligence.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Development</div>
+                <div class="title">Intelligence</div>
               </div>
               <svg><use href="#svg-arrow-right"></use></svg>
             </a>

@@ -158,11 +158,14 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="general-http-api.html">General HTTP API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api-gateway.html">API Gateway</a></li>
+<li class="toctree-l1"><a class="reference internal" href="websocket.html">WebSocket</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user-management.html">Users</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Permissions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="operations.html">Operations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="groups.html">Groups</a></li>
 <li class="toctree-l1"><a class="reference internal" href="address-book.html">Address Book</a></li>
+<li class="toctree-l1"><a class="reference internal" href="intelligence.html">Intelligence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="in-app-notifications.html">In-App Notifications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
 </ul>
 
@@ -308,6 +311,24 @@ This also includes associating entries with operations, the requesting client is
 <p>Options: <cite>none</cite></p>
 </section>
 </section>
+<section id="intelligence">
+<h3>Intelligence<a class="headerlink" href="#intelligence" title="Permalink to this headline">#</a></h3>
+<section id="intelligence-intel-create">
+<span id="permission-intelligence-intel-create"></span><h4>intelligence.intel.create<a class="headerlink" href="#intelligence-intel-create" title="Permalink to this headline">#</a></h4>
+<p>Allows creating intel (if member of operation).</p>
+<p>Options: <cite>none</cite></p>
+</section>
+<section id="intelligence-intel-invalidate">
+<span id="permission-intelligence-intel-invalidate"></span><h4>intelligence.intel.invalidate<a class="headerlink" href="#intelligence-intel-invalidate" title="Permalink to this headline">#</a></h4>
+<p>Allows invalidating intel (if member of operation).</p>
+<p>Options: <cite>none</cite></p>
+</section>
+<section id="intelligence-intel-view-any">
+<span id="permission-intelligence-intel-view-any"></span><h4>intelligence.intel.view.any<a class="headerlink" href="#intelligence-intel-view-any" title="Permalink to this headline">#</a></h4>
+<p>Allows viewing any intel (if member of operation), even if not assigned to.</p>
+<p>Options: <cite>none</cite></p>
+</section>
+</section>
 <section id="operations">
 <h3>Operations<a class="headerlink" href="#operations" title="Permalink to this headline">#</a></h3>
 <section id="operation-view-any">
@@ -338,9 +359,9 @@ This also includes associating entries with operations, the requesting client is
 <p>Allows creating users.</p>
 <p>Options: <cite>none</cite></p>
 </section>
-<section id="user-delete">
-<span id="permission-user-delete"></span><h4>user.delete<a class="headerlink" href="#user-delete" title="Permalink to this headline">#</a></h4>
-<p>Allows deleting users.</p>
+<section id="user-set-active-state">
+<span id="permission-user-set-active-state"></span><h4>user.set-active-state<a class="headerlink" href="#user-set-active-state" title="Permalink to this headline">#</a></h4>
+<p>Allows setting the active-state for users.</p>
 <p>Options: <cite>none</cite></p>
 </section>
 <section id="user-set-admin">
@@ -455,6 +476,12 @@ This also includes associating entries with operations, the requesting client is
 <li><a class="reference internal" href="#group-view">group.view</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#intelligence">Intelligence</a><ul>
+<li><a class="reference internal" href="#intelligence-intel-create">intelligence.intel.create</a></li>
+<li><a class="reference internal" href="#intelligence-intel-invalidate">intelligence.intel.invalidate</a></li>
+<li><a class="reference internal" href="#intelligence-intel-view-any">intelligence.intel.view.any</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#operations">Operations</a><ul>
 <li><a class="reference internal" href="#operation-view-any">operation.view.any</a></li>
 <li><a class="reference internal" href="#operation-create">operation.create</a></li>
@@ -465,7 +492,7 @@ This also includes associating entries with operations, the requesting client is
 </li>
 <li><a class="reference internal" href="#users">Users</a><ul>
 <li><a class="reference internal" href="#user-create">user.create</a></li>
-<li><a class="reference internal" href="#user-delete">user.delete</a></li>
+<li><a class="reference internal" href="#user-set-active-state">user.set-active-state</a></li>
 <li><a class="reference internal" href="#user-set-admin">user.set-admin</a></li>
 <li><a class="reference internal" href="#user-update">user.update</a></li>
 <li><a class="reference internal" href="#user-update-pass">user.update-pass</a></li>

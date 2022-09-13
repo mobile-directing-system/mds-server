@@ -158,7 +158,8 @@ Entry payload:
         "id": "<user_id>",
         "username": "<username>",
         "first_name": "<first_name>",
-        "last_name": "<last_name>"
+        "last_name": "<last_name>",
+        "is_active": true
     }
 
 The following fields can be used for ordering:

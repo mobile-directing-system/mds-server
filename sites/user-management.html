@@ -3,7 +3,7 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Permissions" href="permissions.html" /><link rel="prev" title="API Gateway" href="api-gateway.html" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Permissions" href="permissions.html" /><link rel="prev" title="WebSocket" href="websocket.html" />
 
     <meta name="generator" content="sphinx-4.5.0, furo 2022.06.21"/>
         <title>Users - MDS Server documentation</title>
@@ -158,11 +158,14 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="general-http-api.html">General HTTP API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api-gateway.html">API Gateway</a></li>
+<li class="toctree-l1"><a class="reference internal" href="websocket.html">WebSocket</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Users</a></li>
 <li class="toctree-l1"><a class="reference internal" href="permissions.html">Permissions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="operations.html">Operations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="groups.html">Groups</a></li>
 <li class="toctree-l1"><a class="reference internal" href="address-book.html">Address Book</a></li>
+<li class="toctree-l1"><a class="reference internal" href="intelligence.html">Intelligence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="in-app-notifications.html">In-App Notifications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
 </ul>
 
@@ -200,8 +203,10 @@
           <section id="users">
 <h1>Users<a class="headerlink" href="#users" title="Permalink to this headline">#</a></h1>
 <p>This section covers all user-related actions and API endpoints.</p>
-<p>A user consists of an unique id, a name, unique username and password for logging in, as well as an is-admin-state.
-The is-admin-state grants all permissions and normally should not be granted to regular users.</p>
+<p>A user consists of an unique id, a name, unique username and password for logging in, as well as an is-admin-state and active-state.
+The is-admin-state grants all permissions and normally should not be granted to regular users.
+The active-state is used instead of deleting users.
+When a user should be deleted, it is set to inactive instead for providing better operation logs and consistency.</p>
 <p>When the system starts and no admin-user exists, an example admin user will be created.
 The default credentials are:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Username</span><span class="p">:</span> <span class="n">admin</span>
@@ -230,11 +235,13 @@ Creating a user is done by calling:</p>
 <span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;username&gt;&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;first_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Max&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mustermann&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;is_admin&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;is_admin&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;is_active&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-<p>Keep in mind, that for creating a user with <code class="docutils literal notranslate"><span class="pre">is_admin</span></code> set to <code class="docutils literal notranslate"><span class="pre">true</span></code>, the <a class="reference internal" href="permissions.html#permission-user-set-admin"><span class="std std-ref">user.set-admin</span></a> permission is needed as well.</p>
+<p>Keep in mind, that for creating a user with <code class="docutils literal notranslate"><span class="pre">is_admin</span></code> set to <code class="docutils literal notranslate"><span class="pre">true</span></code>, the <a class="reference internal" href="permissions.html#permission-user-set-admin"><span class="std std-ref">user.set-admin</span></a> permission is needed as well.
+The user will always be set to active.</p>
 </section>
 <section id="update-user">
 <h2>Update user<a class="headerlink" href="#update-user" title="Permalink to this headline">#</a></h2>
@@ -247,10 +254,14 @@ If provided, updating is done via:</p>
 <span class="w">    </span><span class="nt">&quot;first_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Max&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mustermann&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;is_admin&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;is_active&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-<p>As with creating a user, changing the <code class="docutils literal notranslate"><span class="pre">is_admin</span></code>-field requires the <a class="reference internal" href="permissions.html#permission-user-set-admin"><span class="std std-ref">user.set-admin</span></a> permission, too.</p>
+<p>As with creating a user, changing the <code class="docutils literal notranslate"><span class="pre">is_admin</span></code>-field requires the <a class="reference internal" href="permissions.html#permission-user-set-admin"><span class="std std-ref">user.set-admin</span></a> permission, too.
+Updating the <code class="docutils literal notranslate"><span class="pre">is_active</span></code>-field requires the <a class="reference internal" href="permissions.html#permission-user-set-active-state"><span class="std std-ref">user.set-active-state</span></a> permission.</p>
+<p>An alternative to setting the active-state to inactive is calling with <a class="reference internal" href="permissions.html#permission-user-set-active-state"><span class="std std-ref">user.set-active-state</span></a> permission:</p>
+<p><cite>DELETE /users/&lt;user_id&gt;</cite></p>
 </section>
 <section id="update-user-password">
 <h2>Update user password<a class="headerlink" href="#update-user-password" title="Permalink to this headline">#</a></h2>
@@ -263,11 +274,6 @@ If provided, updating is done via:</p>
 </pre></div>
 </div>
 </section>
-<section id="delete-user">
-<h2>Delete user<a class="headerlink" href="#delete-user" title="Permalink to this headline">#</a></h2>
-<p>Deleting a user requires the <a class="reference internal" href="permissions.html#permission-user-delete"><span class="std std-ref">user.delete</span></a> permission and is done via:</p>
-<p><cite>DELETE /users/&lt;user_id&gt;</cite></p>
-</section>
 <section id="retrieve-users">
 <h2>Retrieve users<a class="headerlink" href="#retrieve-users" title="Permalink to this headline">#</a></h2>
 <p>Retrieving users, not being the caller, requires the <a class="reference internal" href="permissions.html#permission-user-view"><span class="std std-ref">user.view</span></a> permission.
@@ -279,7 +285,8 @@ A single user can be retrieved using:</p>
 <span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;username&gt;&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;first_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Max&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mustermann&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;is_admin&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;is_admin&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;is_active&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
@@ -291,15 +298,14 @@ A single user can be retrieved using:</p>
 <span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;username&gt;&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;first_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Max&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mustermann&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;is_admin&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;is_admin&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;is_active&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
 <p>Available query parameters:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">only_ongoing</span></code>: Limit only to operations, currently running (default is <code class="docutils literal notranslate"><span class="pre">false</span></code>).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">include_archived</span></code>: Include archived operations in results (default is <code class="docutils literal notranslate"><span class="pre">false</span></code>).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">for_user</span></code>: Only show operations, the given user is member of.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">include_inactive</span></code>: Includes inactive users (default: <code class="docutils literal notranslate"><span class="pre">false</span></code>)</p></li>
 </ul>
 <p>The following fields can be used for ordering:</p>
 <ul class="simple">
@@ -316,10 +322,15 @@ A single user can be retrieved using:</p>
 <span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;username&gt;&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;first_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Max&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mustermann&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;is_admin&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;is_admin&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;is_active&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
+<p>Available query parameters:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">include_inactive</span></code>: Includes inactive users (default: <code class="docutils literal notranslate"><span class="pre">false</span></code>)</p></li>
+</ul>
 <p>The search index can be rebuilt via:</p>
 <p><cite>POST /users/search/rebuild</cite></p>
 </section>
@@ -339,14 +350,14 @@ A single user can be retrieved using:</p>
               </div>
               <svg><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="api-gateway.html">
+          <a class="prev-page" href="websocket.html">
               <svg><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">API Gateway</div>
+                <div class="title">WebSocket</div>
                 
               </div>
             </a>
@@ -386,7 +397,6 @@ A single user can be retrieved using:</p>
 <li><a class="reference internal" href="#create-user">Create user</a></li>
 <li><a class="reference internal" href="#update-user">Update user</a></li>
 <li><a class="reference internal" href="#update-user-password">Update user password</a></li>
-<li><a class="reference internal" href="#delete-user">Delete user</a></li>
 <li><a class="reference internal" href="#retrieve-users">Retrieve users</a></li>
 </ul>
 </li>

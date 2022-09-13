@@ -3,10 +3,10 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Address Book" href="address-book.html" /><link rel="prev" title="Operations" href="operations.html" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="In-App Notifications" href="in-app-notifications.html" /><link rel="prev" title="Address Book" href="address-book.html" />
 
     <meta name="generator" content="sphinx-4.5.0, furo 2022.06.21"/>
-        <title>Groups - MDS Server documentation</title>
+        <title>Intelligence - MDS Server documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=40978830699223671f4072448e654b5958f38b89" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
@@ -162,9 +162,9 @@
 <li class="toctree-l1"><a class="reference internal" href="user-management.html">Users</a></li>
 <li class="toctree-l1"><a class="reference internal" href="permissions.html">Permissions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="operations.html">Operations</a></li>
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Groups</a></li>
+<li class="toctree-l1"><a class="reference internal" href="groups.html">Groups</a></li>
 <li class="toctree-l1"><a class="reference internal" href="address-book.html">Address Book</a></li>
-<li class="toctree-l1"><a class="reference internal" href="intelligence.html">Intelligence</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Intelligence</a></li>
 <li class="toctree-l1"><a class="reference internal" href="in-app-notifications.html">In-App Notifications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
 </ul>
@@ -200,114 +200,109 @@
           </label>
         </div>
         <article role="main">
-          <section id="groups">
-<h1>Groups<a class="headerlink" href="#groups" title="Permalink to this headline">#</a></h1>
-<p>Groups are used for grouping users globally but also for operations.
-These groups can be used in the adress book.</p>
-<p>A valid group must have an non-empty title.
-If a group is assigned to an operation, all group members must also be member of the operation.</p>
-<section id="create-group">
-<h2>Create group<a class="headerlink" href="#create-group" title="Permalink to this headline">#</a></h2>
-<p>In order to create a group, the <a class="reference internal" href="permissions.html#permission-group-create"><span class="std std-ref">group.create</span></a> permission is needed.
-Creating a group is done by calling:</p>
-<p><cite>POST /groups</cite></p>
+          <section id="intelligence">
+<h1>Intelligence<a class="headerlink" href="#intelligence" title="Permalink to this headline">#</a></h1>
+<p>The core of Mobile Directing System is intelligence or intel.
+Intel can be any type of information flowing in the system.</p>
+<p>Intel is always associated with an operation and creators and viewers must be member of that operation.</p>
+<section id="intel-types">
+<h2>Intel types<a class="headerlink" href="#intel-types" title="Permalink to this headline">#</a></h2>
+<section id="plaintext-message">
+<h3>plaintext-message<a class="headerlink" href="#plaintext-message" title="Permalink to this headline">#</a></h3>
+<p>Used for plaintext content.</p>
+<p>Options:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_title&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_description&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;optional_operation_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;members&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_1&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_2&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_n&gt;&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;content&gt;&quot;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="create-intel">
+<h2>Create intel<a class="headerlink" href="#create-intel" title="Permalink to this headline">#</a></h2>
+<p>In order to create intel, the <a class="reference internal" href="permissions.html#permission-intelligence-intel-create"><span class="std std-ref">intelligence.intel.create</span></a> permission is needed and the creator must be member of the operation.
+Creating intel is done by calling:</p>
+<p><cite>POST /intel</cite></p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;associated_operation_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;intel_type&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{},</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;importance&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;assignments&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
+<span class="w">        </span><span class="p">{</span><span class="w"></span>
+<span class="w">            </span><span class="nt">&quot;to&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assigned_address_book_entry_id&gt;&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
 <span class="w">    </span><span class="p">]</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-<p>Response:</p>
+<p>Response (201):</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assigned_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_title&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_description&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;optional_operation_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;members&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_1&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_2&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_n&gt;&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;created_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;creation_timestamp&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;created_by&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;creator_user_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;associated_operation_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;intel_type&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{},</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;search_text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;search_text&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;importance&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;is_valid&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;assignments&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
+<span class="w">        </span><span class="p">{</span><span class="w"></span>
+<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assignment_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">            </span><span class="nt">&quot;to&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assigned_address_book_entry_id&gt;&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
 <span class="w">    </span><span class="p">]</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
 </section>
-<section id="update-group">
-<h2>Update group<a class="headerlink" href="#update-group" title="Permalink to this headline">#</a></h2>
-<p>Updating a group requires the <a class="reference internal" href="permissions.html#permission-group-update"><span class="std std-ref">group.update</span></a> permission.
-If provided, updating is done via:</p>
-<p><cite>PUT /groups/&lt;group_id&gt;</cite></p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_title&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_description&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;optional_operation_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;members&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_1&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_2&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_n&gt;&quot;</span><span class="w"></span>
-<span class="w">    </span><span class="p">]</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
-</pre></div>
-</div>
+<section id="invalidate-intel">
+<h2>Invalidate intel<a class="headerlink" href="#invalidate-intel" title="Permalink to this headline">#</a></h2>
+<p>Intel cannot be deleted.
+However, if marking is needed, invalidation is possible.</p>
+<p>Invalidating intel requires the <a class="reference internal" href="permissions.html#permission-intelligence-intel-invalidate"><span class="std std-ref">intelligence.intel.invalidate</span></a> permission as well as being member of the associated operation.
+If provided, invalidation is done via:</p>
+<p><cite>POST /intel/&lt;intel_id&gt;/invalidate</cite></p>
 </section>
-<section id="delete-group">
-<h2>Delete group<a class="headerlink" href="#delete-group" title="Permalink to this headline">#</a></h2>
-<p>Deleting a group requires the <a class="reference internal" href="permissions.html#permission-group-delete"><span class="std std-ref">group.delete</span></a> permission and is done via:</p>
-<p><cite>DELETE /groups/&lt;group_id&gt;</cite></p>
-</section>
-<section id="retrieve-groups">
-<h2>Retrieve groups<a class="headerlink" href="#retrieve-groups" title="Permalink to this headline">#</a></h2>
-<p>Retrieving groups requires the <a class="reference internal" href="permissions.html#permission-group-view"><span class="std std-ref">group.view</span></a> permission.
-A single group can be retrieved using:</p>
-<p><cite>GET /groups/&lt;group_id&gt;</cite></p>
+<section id="retrieve-intel">
+<h2>Retrieve intel<a class="headerlink" href="#retrieve-intel" title="Permalink to this headline">#</a></h2>
+<p>Retrieving intel (if member of the operation) does not require any permission.
+However, retrieving intel, not being associated with the requester, requires the <a class="reference internal" href="permissions.html#permission-intelligence-intel-view-any"><span class="std std-ref">intelligence.intel.view.any</span></a> permission.</p>
+<p>Usually, intel-retrieval should be done via the mailbox and therefore no batch-retrieval or search is provided.
+Only intels by id can be retrieved via:</p>
+<p><cite>GET /intel/&lt;intel_id&gt;</cite></p>
 <p>Response:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_title&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_description&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;optional_operation_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;members&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_1&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_2&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_n&gt;&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;intel_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;created_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;creation_timestamp&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;created_by&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;creator_user_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;associated_operation_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;intel_type&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{},</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;search_text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;search_text&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;importance&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;is_valid&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;assignments&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
+<span class="w">        </span><span class="p">{</span><span class="w"></span>
+<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assignment_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">            </span><span class="nt">&quot;to&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assigned_address_book_entry_id&gt;&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
 <span class="w">    </span><span class="p">]</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-<p><a class="reference internal" href="general-http-api.html#http-api-pagination"><span class="std std-ref">Paginated</span></a> group lists can be retrieved via:</p>
-<p><cite>GET /groups</cite></p>
-<p>Entry payload:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_title&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;group_description&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;optional_operation_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;members&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_1&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_2&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="s2">&quot;&lt;id_of_member_n&gt;&quot;</span><span class="w"></span>
-<span class="w">    </span><span class="p">]</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
-</pre></div>
-</div>
-<p>The following fields can be used for ordering:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">title</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">description</span></code></p></li>
-</ul>
-<p>Additionally, query parameters can be applied in order to filter groups:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">by_user=&lt;user_id&gt;</span></code>: Only include groups, that the user with the given id is member of.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">for_operation=&lt;operation_id&gt;</span></code>: Only include groups for the operation with the given id or ones, that do not have an operation assigned (global groups).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">exclude_global=true</span></code>: Exclude groups with have no operation assigned.</p></li>
-</ul>
+</section>
+<section id="intel-delivery">
+<h2>Intel-delivery<a class="headerlink" href="#intel-delivery" title="Permalink to this headline">#</a></h2>
+<p>Intel-delivery is managed by the MDS Server.
+However, clients need to notify the server, when intel was successfully delivered (and read!).
+When the source was an actual attempt, it should be confirmed via:</p>
+<p><cite>POST /intel-delivery-attempts/&lt;attempt_id&gt;/delivered</cite></p>
+<p>This makes it easier to see which channels were successful.</p>
+<p>Otherwise, if no attempt is known, you can confirm via:</p>
+<p><cite>POST /intel-deliveries/&lt;delivery_id&gt;/delivered</cite></p>
+<p>Keep in mind, that you can only confirm deliveries that were assigned to you.</p>
 </section>
 </section>
 
@@ -316,23 +311,23 @@ A single group can be retrieved using:</p>
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="address-book.html">
+          <a class="next-page" href="in-app-notifications.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Address Book</div>
+                <div class="title">In-App Notifications</div>
               </div>
               <svg><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="operations.html">
+          <a class="prev-page" href="address-book.html">
               <svg><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Operations</div>
+                <div class="title">Address Book</div>
                 
               </div>
             </a>
@@ -368,11 +363,15 @@ A single group can be retrieved using:</p>
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Groups</a><ul>
-<li><a class="reference internal" href="#create-group">Create group</a></li>
-<li><a class="reference internal" href="#update-group">Update group</a></li>
-<li><a class="reference internal" href="#delete-group">Delete group</a></li>
-<li><a class="reference internal" href="#retrieve-groups">Retrieve groups</a></li>
+<li><a class="reference internal" href="#">Intelligence</a><ul>
+<li><a class="reference internal" href="#intel-types">Intel types</a><ul>
+<li><a class="reference internal" href="#plaintext-message">plaintext-message</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#create-intel">Create intel</a></li>
+<li><a class="reference internal" href="#invalidate-intel">Invalidate intel</a></li>
+<li><a class="reference internal" href="#retrieve-intel">Retrieve intel</a></li>
+<li><a class="reference internal" href="#intel-delivery">Intel-delivery</a></li>
 </ul>
 </li>
 </ul>
