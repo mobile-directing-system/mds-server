@@ -15,6 +15,9 @@ create table operation_members
     "user"    uuid not null
 );
 
+create index operation_members_operation_ix on operation_members (operation);
+create index operation_members_user_ix on operation_members ("user");
+
 -- Create users table.
 
 create table users

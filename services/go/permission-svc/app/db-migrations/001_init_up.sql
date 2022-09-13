@@ -25,4 +25,5 @@ comment on column permissions."user" is 'The id of the user the permission is gr
 comment on column permissions.name is 'The identifier of the permissions that was granted.';
 comment on column permissions.options is 'Additional options for the permission.';
 
-create index idx_permissions_user_permission on permissions ("user", name);
+create index permissions_user_ix on permissions ("user");
+create unique index permissions_user_name_ix on permissions ("user", name);

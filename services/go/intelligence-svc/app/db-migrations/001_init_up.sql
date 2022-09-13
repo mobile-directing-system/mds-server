@@ -31,6 +31,9 @@ create table operation_members
     "user"    uuid not null -- No ref because of async events.
 );
 
+create index operation_members_operation_ix on operation_members (operation);
+create index operation_members_user_ix on operation_members ("user");
+
 -- Create entries table.
 
 create table address_book_entries
@@ -41,6 +44,9 @@ create table address_book_entries
     operation   uuid, -- No ref because of async events.
     "user"      uuid  -- No ref because of async events.
 );
+
+create index address_book_entries_operation_ix on address_book_entries (operation);
+create index address_book_entries_user_ix on address_book_entries ("user");
 
 -- Create intel table.
 
@@ -59,6 +65,9 @@ create table intel
     is_valid    bool             not null
 );
 
+create index intel_created_by_ix on intel (created_by);
+create index intel_operation_ix on intel (operation);
+
 -- Create assignments table.
 
 create table intel_assignments
@@ -67,4 +76,7 @@ create table intel_assignments
     intel uuid             not null references intel (id)
         on delete restrict on update restrict,
     "to"  uuid             not null -- No ref for possible deletion.
-)
+);
+
+create index intel_assignments_intel_ix on intel_assignments (intel);
+create index intel_assignments_to_ix on intel_assignments ("to");

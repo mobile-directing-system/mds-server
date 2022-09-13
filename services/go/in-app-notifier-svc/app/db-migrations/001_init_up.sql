@@ -24,6 +24,8 @@ create table notification_channels
 
 comment on column notification_channels.entry is 'The id of the address book entry.';
 
+create index notification_channels_entry_ix on notification_channels (entry);
+
 -- Create delivery attempts table.
 
 create table accepted_intel_delivery_attempts
@@ -46,7 +48,7 @@ comment on column accepted_intel_delivery_attempts.delivery is 'The id of the re
 comment on column accepted_intel_delivery_attempts.channel is 'The id of the channel to use for delivery.';
 
 create index accepted_intel_delivery_attempts_active_ix on accepted_intel_delivery_attempts (is_active)
-    where is_active = true;
+    where is_active = true or is_active is true;
 
 create index accepted_intel_delivery_attempts_assigned_to_ix on accepted_intel_delivery_attempts (assigned_to);
 
@@ -58,6 +60,8 @@ create table intel_notification_history
 );
 
 comment on table intel_notification_history is 'History log for performed notifications for attempts. Used in order to identify attempts, that still require notification.';
+
+create index intel_notification_history_attempt_ix on intel_notification_history (attempt);
 
 -- Create intel table.
 
@@ -74,3 +78,5 @@ create table intel_to_deliver
     "content"  jsonb     not null,
     importance int       not null
 );
+
+create index intel_to_deliver_id_ix on intel_to_deliver (id);

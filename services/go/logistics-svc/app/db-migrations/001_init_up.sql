@@ -31,6 +31,7 @@ create table operation_members
     "user"    uuid not null -- No ref, because of async events.
 );
 
+create index operation_members_operation_ix on operation_members (operation);
 create index operation_members_user_ix on operation_members ("user");
 
 -- Create entries table.
@@ -45,6 +46,9 @@ create table address_book_entries
     "user"      uuid references users (id)
         on delete restrict on update restrict
 );
+
+create index address_book_entries_operation_ix on address_book_entries (operation);
+create index address_book_entries_user_ix on address_book_entries ("user");
 
 -- Create groups table.
 
@@ -63,6 +67,7 @@ create table group_members
     "user"  uuid not null
 );
 
+create index group_members_group_ix on group_members ("group");
 create index group_members_user_ix on group_members ("user");
 
 -- Create channels table.
@@ -78,6 +83,8 @@ create table channels
     min_importance numeric          not null,
     timeout        bigint           not null
 );
+
+create index channels_entry_ix on channels (entry);
 
 -- Create direct table.
 
@@ -160,6 +167,9 @@ create table intel
     is_valid    bool             not null
 );
 
+create index intel_created_by_ix on intel (created_by);
+create index intel_operation_ix on intel (operation);
+
 -- Create assignments table.
 
 create table intel_assignments
@@ -170,6 +180,7 @@ create table intel_assignments
     "to"  uuid             not null -- No ref for possible deletion.
 );
 
+create index intel_assignments_intel_ix on intel_assignments (intel);
 create index intel_assignments_to_ix on intel_assignments ("to");
 
 -- Create deliveries table.
@@ -184,11 +195,13 @@ create table intel_deliveries
     note         varchar
 );
 
+create index intel_deliveries_assignment_ix on intel_deliveries ("assignment");
+
 create index intel_deliveries_active_ix on intel_deliveries (is_active)
-    where is_active = true;
+    where is_active = true or is_active is true;
 
 create index intel_deliveries_failed_ix on intel_deliveries (is_active, success)
-    where is_active = false and success = false;
+    where (is_active = false or is_active is false) and success = false;
 
 -- Create delivery attempts table.
 
@@ -206,5 +219,7 @@ create table intel_delivery_attempts
     note       varchar
 );
 
+create index intel_delivery_attempts_delivery_ix on intel_delivery_attempts (delivery);
+create index intel_delivery_attempts_channel_ix on intel_delivery_attempts (channel);
 create index intel_delivery_attempts_active_ix on intel_delivery_attempts (is_active)
-    where is_active = true;
+    where is_active = true or is_active is true;

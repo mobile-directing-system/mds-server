@@ -32,5 +32,5 @@ create table operation_members
         on delete restrict on update restrict
 );
 
-create index idx_operation_members_operation
-    on operation_members (operation);
+create index operation_members_operation_ix on operation_members (operation);
+create index operation_members_user_ix on operation_members ("user");
