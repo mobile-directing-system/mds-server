@@ -33,7 +33,6 @@ var operationSearchIndexConfig = search.IndexConfig{
 	Searchable: []search.Attribute{
 		operationSearchAttrTitle,
 		operationSearchAttrDescription,
-		operationSearchAttrID,
 	},
 	Filterable: []search.Attribute{
 		operationSearchAttrStartTS,

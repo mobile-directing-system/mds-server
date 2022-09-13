@@ -40,7 +40,6 @@ var abEntrySearchIndexConfig = search.IndexConfig{
 		abEntrySearchAttrUserFirstName,
 		abEntrySearchAttrUserUsername,
 		abEntrySearchAttrOperationTitle,
-		abEntrySearchAttrID,
 	},
 	Filterable: []search.Attribute{
 		abEntrySearchAttrUserID,

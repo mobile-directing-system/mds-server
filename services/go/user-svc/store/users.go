@@ -28,7 +28,6 @@ var userSearchIndexConfig = search.IndexConfig{
 		userSearchAttrUsername,
 		userSearchAttrFirstName,
 		userSearchAttrLastName,
-		userSearchAttrID,
 	},
 	Filterable: []search.Attribute{
 		userSearchAttrIsActive,
