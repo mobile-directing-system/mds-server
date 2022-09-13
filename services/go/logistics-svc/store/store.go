@@ -30,13 +30,13 @@ var ChannelTypeSupplier channelTypesSupplier
 func init() {
 	ChannelTypeSupplier = channelTypesSupplier{
 		ChannelTypes: map[ChannelType]struct{}{
-			ChannelTypeDirect:         {},
-			ChannelTypeEmail:          {},
-			ChannelTypeForwardToGroup: {},
-			ChannelTypeForwardToUser:  {},
-			ChannelTypePhoneCall:      {},
-			ChannelTypeRadio:          {},
-			ChannelTypePush:           {},
+			ChannelTypeDirect:            {},
+			ChannelTypeEmail:             {},
+			ChannelTypeForwardToGroup:    {},
+			ChannelTypeForwardToUser:     {},
+			ChannelTypeInAppNotification: {},
+			ChannelTypePhoneCall:         {},
+			ChannelTypeRadio:             {},
 		},
 	}
 	_ = ChannelTypeSupplier.operators(nil)
@@ -64,12 +64,12 @@ func (supplier channelTypesSupplier) operators(m *Mall) map[ChannelType]channelO
 			operator = &forwardToGroupChannelOperator{m: m}
 		case ChannelTypeForwardToUser:
 			operator = &forwardToUserChannelOperator{m: m}
+		case ChannelTypeInAppNotification:
+			operator = &inAppNotificationChannelOperator{m: m}
 		case ChannelTypePhoneCall:
 			operator = &phoneCallChannelOperator{m: m}
 		case ChannelTypeRadio:
 			operator = &radioChannelOperator{m: m}
-		case ChannelTypePush:
-			operator = &pushChannelOperator{}
 		default:
 			log.Fatalf("missing channel operator for channel type %v", channelType)
 		}

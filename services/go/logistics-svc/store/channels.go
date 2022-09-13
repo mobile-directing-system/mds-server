@@ -77,12 +77,8 @@ type channelOperator interface {
 	getChannelDetailsByChannel(ctx context.Context, tx pgx.Tx, channelID uuid.UUID) (ChannelDetails, error)
 }
 
-// TODO: maybe adjust channel operators to provide some way of querying with multiple ids?
-
 // TODO: If entry is a user-entry, forbid setting label manually (or changing)
 //  as this should always be the user's first- and lastname.
-
-// TODO: addressbuch sollte später auch routing machen.
 
 // ChannelsByAddressBookEntry retrieves all channels for the address book entry
 // with the given id.

@@ -21,5 +21,7 @@ const (
 	// IntelTopic is the Kafka topic for intel.
 	IntelTopic = "intelligence.intel.0"
 	// IntelDeliveriesTopic is the Kafka topic for delivering intel.
-	IntelDeliveriesTopic = "logistics.intel-delivery.0"
+	IntelDeliveriesTopic Topic = "logistics.intel-delivery.0"
+	// InAppNotificationsTopic is the Kafka topic for in-app-notifications.
+	InAppNotificationsTopic Topic = "notifications.in-app.0"
 )

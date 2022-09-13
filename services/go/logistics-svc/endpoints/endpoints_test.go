@@ -62,3 +62,11 @@ func (m *StoreMock) SearchAddressBookEntries(ctx context.Context, filters store.
 func (m *StoreMock) RebuildAddressBookEntrySearch(ctx context.Context) {
 	m.Called(ctx)
 }
+
+func (m *StoreMock) MarkIntelDeliveryAsDelivered(ctx context.Context, deliveryID uuid.UUID, by uuid.NullUUID) error {
+	return m.Called(ctx, deliveryID, by).Error(0)
+}
+
+func (m *StoreMock) MarkIntelDeliveryAttemptAsDelivered(ctx context.Context, attemptID uuid.UUID, by uuid.NullUUID) error {
+	return m.Called(ctx, attemptID, by).Error(0)
+}

@@ -112,3 +112,17 @@ spec:
   replicas: 1
   config:
     retention.ms: -1
+---
+# In-App-Notifications topic (key: intel-delivery-attempt id).
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: notifications.in-app.0
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: kafka-cluster
+spec:
+  partitions: 1
+  replicas: 1
+  config:
+    retention.ms: -1

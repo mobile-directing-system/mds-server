@@ -52,8 +52,8 @@ func publicChannelFromStore(s store.Channel) (publicChannel, error) {
 		p.Details, marshalErr = json.Marshal(publicForwardToUserChannelDetailsFromStore(d))
 	case store.PhoneCallChannelDetails:
 		p.Details, marshalErr = json.Marshal(publicPhoneCallChannelDetailsFromStore(d))
-	case store.PushChannelDetails:
-		p.Details, marshalErr = json.Marshal(publicPushChannelDetailsFromStore(d))
+	case store.InAppNotificationChannelDetails:
+		p.Details, marshalErr = json.Marshal(publicInAppNotificationChannelDetailsFromStore(d))
 	case store.RadioChannelDetails:
 		p.Details, marshalErr = json.Marshal(publicRadioChannelDetailsFromStore(d))
 	default:
@@ -100,10 +100,10 @@ func storeChannelFromPublic(p publicChannel) (store.Channel, error) {
 		s.Details, err = storeChannelDetailsFromPublic(p.Details, storeForwardToGroupChannelDetailsFromPublic)
 	case store.ChannelTypeForwardToUser:
 		s.Details, err = storeChannelDetailsFromPublic(p.Details, storeForwardToUserChannelDetailsFromPublic)
+	case store.ChannelTypeInAppNotification:
+		s.Details, err = storeChannelDetailsFromPublic(p.Details, storeInAppNotificationChannelDetailsFromPublic)
 	case store.ChannelTypePhoneCall:
 		s.Details, err = storeChannelDetailsFromPublic(p.Details, storePhoneCallChannelDetailsFromPublic)
-	case store.ChannelTypePush:
-		s.Details, err = storeChannelDetailsFromPublic(p.Details, storePushChannelDetailsFromPublic)
 	case store.ChannelTypeRadio:
 		s.Details, err = storeChannelDetailsFromPublic(p.Details, storeRadioChannelDetailsFromPublic)
 	default:
@@ -228,21 +228,22 @@ func storePhoneCallChannelDetailsFromPublic(p publicPhoneCallChannelDetails) sto
 	}
 }
 
-// publicPushChannelDetails is the public representation of
-// store.PushChannelDetails.
-type publicPushChannelDetails struct {
+// publicInAppNotificationChannelDetails is the public representation of
+// store.InAppNotificationChannelDetails.
+type publicInAppNotificationChannelDetails struct {
 }
 
-// publicPushChannelDetailsFromStore converts
-// store.PushChannelDetails to publicPushChannelDetails.
-func publicPushChannelDetailsFromStore(_ store.PushChannelDetails) publicPushChannelDetails {
-	return publicPushChannelDetails{}
+// publicInAppNotificationChannelDetailsFromStore converts
+// store.InAppNotificationChannelDetails to
+// publicInAppNotificationChannelDetails.
+func publicInAppNotificationChannelDetailsFromStore(_ store.InAppNotificationChannelDetails) publicInAppNotificationChannelDetails {
+	return publicInAppNotificationChannelDetails{}
 }
 
-// storePushChannelDetailsFromPublic converts
-// publicPushChannelDetails to store.PushChannelDetails.
-func storePushChannelDetailsFromPublic(_ publicPushChannelDetails) store.ChannelDetails {
-	return store.PushChannelDetails{}
+// storeInAppNotificationChannelDetailsFromPublic converts
+// publicInAppNotificationChannelDetails to store.InAppNotificationChannelDetails.
+func storeInAppNotificationChannelDetailsFromPublic(_ publicInAppNotificationChannelDetails) store.ChannelDetails {
+	return store.InAppNotificationChannelDetails{}
 }
 
 // publicRadioChannelDetails is the public representation of

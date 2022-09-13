@@ -75,6 +75,7 @@ func Run(ctx context.Context) error {
 				event.AddressBookTopic,
 				event.IntelTopic,
 				event.IntelDeliveriesTopic,
+				event.InAppNotificationsTopic,
 			}
 			err := kafkautil.AwaitTopics(egCtx, c.KafkaAddr, awaitTopics...)
 			return meh.NilOrWrap(err, "await topics", meh.Details{"kafka_addr": c.KafkaAddr})
@@ -120,6 +121,7 @@ func Run(ctx context.Context) error {
 				event.UsersTopic,
 				event.GroupsTopic,
 				event.IntelTopic,
+				event.InAppNotificationsTopic,
 			})
 		kafkaWriter := kafkautil.NewWriter(logger.Named("kafka"), c.KafkaAddr)
 		err := kafkautil.RunConnector(egCtx, kafkaConnector, sqlDB, kafkaWriter, kafkaReader, eventPort.HandlerFn(ctrl))

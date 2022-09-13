@@ -6,6 +6,7 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v4"
 	"github.com/lefinal/meh"
+	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/logistics-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/kafkautil"
@@ -35,6 +36,12 @@ type Handler interface {
 	// InvalidateIntelByID sets the valid-field of the intel with the given id to
 	// false.
 	InvalidateIntelByID(ctx context.Context, tx pgx.Tx, intelID uuid.UUID) error
+	// UpdateIntelDeliveryAttemptStatusForActive updates the
+	// intel-delivery-attempt-status for the attempt with the given id. It assures
+	// that the delivery attempt is still active and does not have
+	// store.IntelDeliveryStatusCanceled.
+	UpdateIntelDeliveryAttemptStatusForActive(ctx context.Context, tx pgx.Tx, attemptID uuid.UUID,
+		newStatus store.IntelDeliveryStatus, newNote nulls.String) error
 }
 
 // HandlerFn for handling messages.
@@ -49,6 +56,8 @@ func (p *Port) HandlerFn(handler Handler) kafkautil.HandlerFunc {
 			return meh.NilOrWrap(p.handleUsersTopic(ctx, tx, handler, message), "handle users topic", nil)
 		case event.IntelTopic:
 			return meh.NilOrWrap(p.handleIntelTopic(ctx, tx, handler, message), "handle intel topic", nil)
+		case event.InAppNotificationsTopic:
+			return meh.NilOrWrap(p.handleInAppNotificationsTopic(ctx, tx, handler, message), "handle in-app-notifications topic", nil)
 		}
 		return nil
 	}
@@ -306,6 +315,49 @@ func (p *Port) handleIntelInvalidated(ctx context.Context, tx pgx.Tx, handler Ha
 	err = handler.InvalidateIntelByID(ctx, tx, intelInvalidatedEvent.ID)
 	if err != nil {
 		return meh.Wrap(err, "create intel", meh.Details{"intel_id": intelInvalidatedEvent.ID})
+	}
+	return nil
+}
+
+// handleInAppNotificationsTopic handles the event.InAppNotificationsTopic.
+func (p *Port) handleInAppNotificationsTopic(ctx context.Context, tx pgx.Tx, handler Handler, message kafkautil.InboundMessage) error {
+	switch message.EventType {
+	case event.TypeInAppNotificationForIntelPending:
+		return meh.NilOrWrap(p.handleInAppNotificationForIntelPending(ctx, tx, handler, message), "handle in-app-notification pending", nil)
+	case event.TypeInAppNotificationForIntelSent:
+		return meh.NilOrWrap(p.handleInAppNotificationForIntelSent(ctx, tx, handler, message), "handle in-app-notification sent", nil)
+	}
+	return nil
+}
+
+// handleInAppNotificationForIntelPending handles an
+// event.TypeInAppNotificationForIntelPending event.
+func (p *Port) handleInAppNotificationForIntelPending(ctx context.Context, tx pgx.Tx, handler Handler, message kafkautil.InboundMessage) error {
+	var notifPendingEvent event.InAppNotificationForIntelPending
+	err := json.Unmarshal(message.RawValue, &notifPendingEvent)
+	if err != nil {
+		return meh.NewInternalErrFromErr(err, "unmarshal event", meh.Details{"raw": string(message.RawValue)})
+	}
+	err = handler.UpdateIntelDeliveryAttemptStatusForActive(ctx, tx, notifPendingEvent.Attempt, store.IntelDeliveryStatusAwaitingDelivery,
+		nulls.NewString("in-app-notification pending"))
+	if err != nil {
+		return meh.Wrap(err, "update intel-delivery-attempt-status for active", meh.Details{"attempt_id": notifPendingEvent.Attempt})
+	}
+	return nil
+}
+
+// handleInAppNotificationForIntelSent handles an
+// event.TypeInAppNotificationForIntelSent event.
+func (p *Port) handleInAppNotificationForIntelSent(ctx context.Context, tx pgx.Tx, handler Handler, message kafkautil.InboundMessage) error {
+	var notifSentEvent event.InAppNotificationForIntelSent
+	err := json.Unmarshal(message.RawValue, &notifSentEvent)
+	if err != nil {
+		return meh.NewInternalErrFromErr(err, "unmarshal event", meh.Details{"raw": string(message.RawValue)})
+	}
+	err = handler.UpdateIntelDeliveryAttemptStatusForActive(ctx, tx, notifSentEvent.Attempt, store.IntelDeliveryStatusAwaitingAck,
+		nulls.NewString("in-app-notification sent"))
+	if err != nil {
+		return meh.Wrap(err, "update intel-delivery-attempt-status for active", meh.Details{"attempt_id": notifSentEvent.Attempt})
 	}
 	return nil
 }

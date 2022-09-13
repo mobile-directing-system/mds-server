@@ -115,6 +115,14 @@ create table radio_channels
     "info"  text             not null
 );
 
+-- Create in-app-notification table.
+
+create table in_app_notification_channels
+(
+    channel uuid primary key not null references channels (id)
+        on delete restrict on update restrict
+);
+
 -- Create forward-to-user table.
 
 create table forward_to_user_channel_entries

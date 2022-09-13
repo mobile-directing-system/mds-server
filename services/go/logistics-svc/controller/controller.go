@@ -154,6 +154,9 @@ type Store interface {
 		searchParams search.Params) (search.Result[store.AddressBookEntryDetailed], error)
 	// RebuildAddressBookEntrySearch rebuilds the address-book-entry-search.
 	RebuildAddressBookEntrySearch(ctx context.Context, tx pgx.Tx) error
+	// IntelDeliveryByIDAndLockOrWait retrieves the store.IntelDelivery with the
+	// given id and locks it or waits until it is available.
+	IntelDeliveryByIDAndLockOrWait(ctx context.Context, tx pgx.Tx, deliveryID uuid.UUID) (store.IntelDelivery, error)
 }
 
 // Notifier sends event messages.
@@ -172,7 +175,7 @@ type Notifier interface {
 	// NotifyIntelDeliveryAttemptCreated notifies about a created
 	// intel-delivery-attempt.
 	NotifyIntelDeliveryAttemptCreated(ctx context.Context, tx pgx.Tx, created store.IntelDeliveryAttempt, delivery store.IntelDelivery,
-		assignment store.IntelAssignment, intel store.Intel) error
+		assignment store.IntelAssignment, assignedEntry store.AddressBookEntryDetailed, intel store.Intel) error
 	// NotifyIntelDeliveryAttemptStatusUpdated notifies about an status-update for a
 	// intel-delivery-attempt.
 	NotifyIntelDeliveryAttemptStatusUpdated(ctx context.Context, tx pgx.Tx, attempt store.IntelDeliveryAttempt) error

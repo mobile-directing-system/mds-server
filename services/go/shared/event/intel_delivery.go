@@ -86,6 +86,38 @@ type IntelDeliveryAttemptCreatedAssignment struct {
 	To uuid.UUID `json:"to"`
 }
 
+// IntelDeliveryAttemptCreatedAssignedEntry is the
+// IntelDeliveryAttemptCreated.AssignedEntry.
+type IntelDeliveryAttemptCreatedAssignedEntry struct {
+	// ID identifies the entry.
+	ID uuid.UUID `json:"id"`
+	// Label for better human-readability.
+	Label string `json:"label"`
+	// Description for better human-readability.
+	Description string `json:"description"`
+	// Operation holds the id of an optionally assigned operation.
+	Operation uuid.NullUUID `json:"operation"`
+	// User is the id of an optionally assigned user.
+	User uuid.NullUUID `json:"user"`
+	// UserDetails holds optional user details when User is set.
+	UserDetails nulls.JSONNullable[IntelDeliveryAttemptCreatedAssignedEntryUserDetails] `json:"user_details"`
+}
+
+// IntelDeliveryAttemptCreatedAssignedEntryUserDetails is the
+// IntelDeliveryAttemptCreatedAssignedEntry.UserDetails.
+type IntelDeliveryAttemptCreatedAssignedEntryUserDetails struct {
+	// ID that identifies the ser.
+	ID uuid.UUID `json:"id"`
+	// Username of the user.
+	Username string `json:"username"`
+	// FirstName of the user.
+	FirstName string `json:"first_name"`
+	// LastName of the user.
+	LastName string `json:"last_name"`
+	// IsActive describes whether the user is active.
+	IsActive bool `json:"is_active"`
+}
+
 // IntelDeliveryAttemptCreatedIntel is the intel to deliver in
 // IntelDeliveryAttemptCreated.Intel.
 type IntelDeliveryAttemptCreatedIntel struct {
@@ -118,6 +150,8 @@ type IntelDeliveryAttemptCreated struct {
 	Delivery IntelDeliveryAttemptCreatedDelivery `json:"delivery"`
 	// Assignment for the Delivery.
 	Assignment IntelDeliveryAttemptCreatedAssignment `json:"assignment"`
+	// AssignedEntry is the address book entry from the Assignment.
+	AssignedEntry IntelDeliveryAttemptCreatedAssignedEntry `json:"assigned_entry"`
 	// Intel to deliver.
 	Intel IntelDeliveryAttemptCreatedIntel `json:"intel"`
 	// Channel is the id of the channel to use for this attempt.

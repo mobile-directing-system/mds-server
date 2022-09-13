@@ -52,3 +52,10 @@ spec:
                 name: mds-user-svc-service
                 port:
                   number: 3000
+          - path: /?(ws/.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: mds-ws-hub-svc-service
+                port:
+                  number: 3000

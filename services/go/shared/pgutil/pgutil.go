@@ -2,6 +2,9 @@ package pgutil
 
 import (
 	"context"
+	"database/sql"
+	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/doug-martin/goqu/v9/exp"
@@ -10,6 +13,8 @@ import (
 	"github.com/lefinal/meh"
 	"github.com/lefinal/meh/mehlog"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/logging"
+	"github.com/pkg/errors"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -101,4 +106,41 @@ func QueryWithOrdinalityUUID(qb *goqu.SelectDataset, idCol exp.IdentifierExpress
 	qb = qb.Join(goqu.L(joinLiteral, idsStr...), goqu.On(goqu.L("pgutil_ord_t_id").Eq(idCol))).
 		Order(goqu.I("pgutil_ord_t.ord").Asc())
 	return qb
+}
+
+// JSONBV is used by JSONB for implementing driver.Valuer and sql.Scanner.
+type JSONBV interface {
+	driver.Valuer
+	sql.Scanner
+}
+
+type jsonbv struct {
+	v *any
+}
+
+// Value returns the marshalled value.
+func (j jsonbv) Value() (driver.Value, error) {
+	// Marshal.
+	raw, err := json.Marshal(j.v)
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal json")
+	}
+	return raw, nil
+}
+
+func (j *jsonbv) Scan(src any) error {
+	b, ok := src.([]byte)
+	if !ok {
+		return fmt.Errorf("value is not []byte but %v", reflect.TypeOf(src))
+	}
+	err := json.Unmarshal(b, &j.v)
+	if err != nil {
+		return errors.Wrap(err, "unmarshal")
+	}
+	return nil
+}
+
+// JSONB performs JSON (un)marshalling for the given value.
+func JSONB(v any) JSONBV {
+	return &jsonbv{v: &v}
 }

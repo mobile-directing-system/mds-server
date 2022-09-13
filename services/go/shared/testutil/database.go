@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
+	"sync"
 )
 
 // DBTxSupplier supplies with pgx.Tx and serves an implementation of
@@ -16,6 +17,8 @@ type DBTxSupplier struct {
 	Tx []*DBTx
 	// txOffset keeps track of the current tx in Tx.
 	txOffset int
+	// txOffsetMutex locks txOffset.
+	txOffsetMutex sync.Mutex
 }
 
 // Begin return the next Tx if BeginFail is not set.
@@ -23,6 +26,8 @@ func (supplier *DBTxSupplier) Begin(_ context.Context) (pgx.Tx, error) {
 	if supplier.BeginFail {
 		return nil, errors.New("begin fail")
 	}
+	supplier.txOffsetMutex.Lock()
+	defer supplier.txOffsetMutex.Unlock()
 	if supplier.txOffset >= len(supplier.Tx) {
 		panic("out of tx")
 	}

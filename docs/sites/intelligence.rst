@@ -109,3 +109,20 @@ Response:
             }
         ]
     }
+
+Intel-delivery
+==============
+
+Intel-delivery is managed by the MDS Server.
+However, clients need to notify the server, when intel was successfully delivered (and read!).
+When the source was an actual attempt, it should be confirmed via:
+
+`POST /intel-delivery-attempts/<attempt_id>/delivered`
+
+This makes it easier to see which channels were successful.
+
+Otherwise, if no attempt is known, you can confirm via:
+
+`POST /intel-deliveries/<delivery_id>/delivered`
+
+Keep in mind, that you can only confirm deliveries that were assigned to you.

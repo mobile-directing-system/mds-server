@@ -1,0 +1,87 @@
+# WS hub svc config.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mds-ws-hub-svc-config
+  labels:
+    app: mds-ws-hub-svc
+data:
+  MDS_SERVE_ADDR: :8080
+  MDS_LOG_LEVEL: debug
+  MDS_ROUTER_CONFIG_PATH: /app-config/router.json
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mds-ws-hub-svc-config-router
+  labels:
+    app: mds-ws-hub-svc
+data:
+  router.json: |
+    {
+      "gates": [
+        {
+          "name": "desktop-app",
+          "channels": [
+            {
+              "name": "in-app-notifier",
+              "url": "ws://mds-in-app-notifier-svc-service:3000/ws"
+            }
+          ]
+        }
+      ]
+    }
+---
+# WS hub svc service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mds-ws-hub-svc-service
+spec:
+  selector:
+    app: mds-ws-hub-svc
+  ports:
+    - port: 3000
+      targetPort: 8080
+---
+# WS hub svc deployment.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mds-ws-hub-svc-deployment
+  annotations:
+    reloader.stakater.com/auto: "true"
+spec:
+  selector:
+    matchLabels:
+      app: mds-ws-hub-svc
+  template:
+    metadata:
+      labels:
+        app: mds-ws-hub-svc
+    spec:
+      containers:
+        - name: mds-ws-hub-svc
+          image: mds-ws-hub-svc
+          envFrom:
+            - configMapRef:
+                name: mds-ws-hub-svc-config
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app-config
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              port: 31234
+              path: /livez
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              port: 31234
+              path: /readyz
+            timeoutSeconds: 5
+      volumes:
+        - name: config-volume
+          configMap:
+            name: mds-ws-hub-svc-config-router

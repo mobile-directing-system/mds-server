@@ -347,6 +347,40 @@ func Test_mapForwardToUserChannelDetails(t *testing.T) {
 	suite.Run(t, new(mapForwardToUserChannelDetailsSuite))
 }
 
+// mapInAppNotificationChannelDetailsSuite tests
+// mapInAppNotificationChannelDetails.
+type mapInAppNotificationChannelDetailsSuite struct {
+	suite.Suite
+	sampleDetails store.InAppNotificationChannelDetails
+	mapper        channelDetailsMapper
+}
+
+func (suite *mapInAppNotificationChannelDetailsSuite) SetupTest() {
+	suite.sampleDetails = store.InAppNotificationChannelDetails{}
+	var err error
+	suite.mapper, err = mapChannelDetails(store.ChannelTypeInAppNotification)
+	if err != nil {
+		suite.FailNow("get channel-details-mapper failed")
+	}
+}
+
+func (suite *mapInAppNotificationChannelDetailsSuite) TestInvalidDetails() {
+	_, err := suite.mapper(store.EmailChannelDetails{})
+	suite.Error(err, "should fail")
+}
+
+func (suite *mapInAppNotificationChannelDetailsSuite) TestOK() {
+	raw, err := suite.mapper(suite.sampleDetails)
+	suite.Require().NoError(err, "should not fail")
+	var got event.AddressBookEntryInAppNotificationChannelDetails
+	suite.Require().NoError(json.Unmarshal(raw, &got), "should return valid details")
+	suite.Equal(event.AddressBookEntryInAppNotificationChannelDetails{}, got, "should return correct details")
+}
+
+func Test_mapInAppNotificationChannelDetails(t *testing.T) {
+	suite.Run(t, new(mapInAppNotificationChannelDetailsSuite))
+}
+
 // mapPhoneCallChannelDetailsSuite tests mapPhoneCallChannelDetails.
 type mapPhoneCallChannelDetailsSuite struct {
 	suite.Suite
@@ -593,13 +627,14 @@ func Test_eventIntelDeliveryStatusFromStore(t *testing.T) {
 // Port.NotifyIntelDeliveryAttemptCreated.
 type PortNotifyIntelDeliveryAttemptCreatedSuite struct {
 	suite.Suite
-	port             *PortMock
-	tx               *testutil.DBTx
-	sampleCreated    store.IntelDeliveryAttempt
-	sampleDelivery   store.IntelDelivery
-	sampleAssignment store.IntelAssignment
-	sampleIntel      store.Intel
-	expectedMessages []kafkautil.OutboundMessage
+	port                *PortMock
+	tx                  *testutil.DBTx
+	sampleCreated       store.IntelDeliveryAttempt
+	sampleDelivery      store.IntelDelivery
+	sampleAssignment    store.IntelAssignment
+	sampleAssignedEntry store.AddressBookEntryDetailed
+	sampleIntel         store.Intel
+	expectedMessages    []kafkautil.OutboundMessage
 }
 
 func (suite *PortNotifyIntelDeliveryAttemptCreatedSuite) SetupTest() {
@@ -620,6 +655,23 @@ func (suite *PortNotifyIntelDeliveryAttemptCreatedSuite) SetupTest() {
 		ID:    testutil.NewUUIDV4(),
 		Intel: suite.sampleIntel.ID,
 		To:    testutil.NewUUIDV4(),
+	}
+	userID := testutil.NewUUIDV4()
+	suite.sampleAssignedEntry = store.AddressBookEntryDetailed{
+		AddressBookEntry: store.AddressBookEntry{
+			ID:          suite.sampleAssignment.To,
+			Label:       "bay",
+			Description: "cage",
+			Operation:   nulls.NewUUID(testutil.NewUUIDV4()),
+			User:        nulls.NewUUID(userID),
+		},
+		UserDetails: nulls.NewJSONNullable(store.User{
+			ID:        userID,
+			Username:  "that",
+			FirstName: "tribe",
+			LastName:  "late",
+			IsActive:  true,
+		}),
 	}
 	suite.sampleIntel.Assignments = []store.IntelAssignment{suite.sampleAssignment}
 	suite.sampleDelivery = store.IntelDelivery{
@@ -658,6 +710,20 @@ func (suite *PortNotifyIntelDeliveryAttemptCreatedSuite) SetupTest() {
 					Intel: suite.sampleAssignment.Intel,
 					To:    suite.sampleAssignment.To,
 				},
+				AssignedEntry: event.IntelDeliveryAttemptCreatedAssignedEntry{
+					ID:          suite.sampleAssignedEntry.ID,
+					Label:       suite.sampleAssignedEntry.Label,
+					Description: suite.sampleAssignedEntry.Description,
+					Operation:   suite.sampleAssignedEntry.Operation,
+					User:        suite.sampleAssignedEntry.User,
+					UserDetails: nulls.NewJSONNullable(event.IntelDeliveryAttemptCreatedAssignedEntryUserDetails{
+						ID:        suite.sampleAssignedEntry.UserDetails.V.ID,
+						Username:  suite.sampleAssignedEntry.UserDetails.V.Username,
+						FirstName: suite.sampleAssignedEntry.UserDetails.V.FirstName,
+						LastName:  suite.sampleAssignedEntry.UserDetails.V.LastName,
+						IsActive:  suite.sampleAssignedEntry.UserDetails.V.IsActive,
+					}),
+				},
 				Intel: event.IntelDeliveryAttemptCreatedIntel{
 					ID:         suite.sampleIntel.ID,
 					CreatedAt:  suite.sampleIntel.CreatedAt,
@@ -688,7 +754,7 @@ func (suite *PortNotifyIntelDeliveryAttemptCreatedSuite) TestUnsupportedStatus()
 	go func() {
 		defer cancel()
 		err := suite.port.Port.NotifyIntelDeliveryAttemptCreated(timeout, suite.tx, suite.sampleCreated,
-			suite.sampleDelivery, suite.sampleAssignment, suite.sampleIntel)
+			suite.sampleDelivery, suite.sampleAssignment, suite.sampleAssignedEntry, suite.sampleIntel)
 		suite.Error(err, "should fail")
 	}()
 
@@ -702,7 +768,7 @@ func (suite *PortNotifyIntelDeliveryAttemptCreatedSuite) TestWriteFail() {
 	go func() {
 		defer cancel()
 		err := suite.port.Port.NotifyIntelDeliveryAttemptCreated(timeout, suite.tx, suite.sampleCreated,
-			suite.sampleDelivery, suite.sampleAssignment, suite.sampleIntel)
+			suite.sampleDelivery, suite.sampleAssignment, suite.sampleAssignedEntry, suite.sampleIntel)
 		suite.Error(err, "should fail")
 	}()
 
@@ -715,7 +781,7 @@ func (suite *PortNotifyIntelDeliveryAttemptCreatedSuite) TestOK() {
 	go func() {
 		defer cancel()
 		err := suite.port.Port.NotifyIntelDeliveryAttemptCreated(timeout, suite.tx, suite.sampleCreated,
-			suite.sampleDelivery, suite.sampleAssignment, suite.sampleIntel)
+			suite.sampleDelivery, suite.sampleAssignment, suite.sampleAssignedEntry, suite.sampleIntel)
 		suite.Require().NoError(err, "should not fail")
 		suite.Equal(suite.expectedMessages, suite.port.recorder.Recorded, "should write correct messages")
 	}()

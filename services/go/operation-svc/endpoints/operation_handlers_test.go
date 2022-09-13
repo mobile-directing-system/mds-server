@@ -600,6 +600,7 @@ func (suite *handleGetOperationMembersByOperationSuite) SetupTest() {
 			Username:  sMember.Username,
 			FirstName: sMember.FirstName,
 			LastName:  sMember.LastName,
+			IsActive:  sMember.IsActive,
 		})
 	}
 }

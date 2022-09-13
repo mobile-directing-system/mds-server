@@ -190,8 +190,8 @@ Currently, the following channel types are supported, but not all implemented:
 - **Email** (`email`): Send an email and await a response.
 - **Forward to Group** (`forward-to-group`): Forward intel to members of a group. This will use the first available address book entry for each member.
 - **Forward to User** (`forward-to-user`): Forward intel to a user. This will use the first available address book entry for the user.
+- **In-App Notification** (`in-app-notification`): Send an in-app notification via the MDS application and await it being read.
 - **Phone Call** (`phone-call`): Call the recipient.
-- **Push** (`push`): Send a push notification via the MDS application and await it being read.
 - **Radio** (`radio`): Forward to a radio operator, that transmits the intel over radio.
 
 Each channel holds additional details, based on the type.
@@ -241,6 +241,12 @@ For **Phone Call** channel:
     }
 
 The phone number is expected to be in :e-164:`E.164 <>` format.
+
+For **In-App Notification** channel:
+
+.. code-block:: json
+
+    {}
 
 For **Radio** channel:
 

@@ -105,12 +105,12 @@ func mapChannelType(channelType store.ChannelType) (event.AddressBookEntryChanne
 		mappedType = event.AddressBookEntryChannelTypeForwardToGroup
 	case store.ChannelTypeForwardToUser:
 		mappedType = event.AddressBookEntryChannelTypeForwardToUser
+	case store.ChannelTypeInAppNotification:
+		mappedType = event.AddressBookEntryChannelTypeInAppNotification
 	case store.ChannelTypePhoneCall:
 		mappedType = event.AddressBookEntryChannelTypePhoneCall
 	case store.ChannelTypeRadio:
 		mappedType = event.AddressBookEntryChannelTypeRadio
-	case store.ChannelTypePush:
-		mappedType = event.AddressBookEntryChannelTypePush
 	default:
 		return "", meh.NewInternalErr("unsupported channel type", nil)
 	}
@@ -130,12 +130,12 @@ func mapChannelDetails(channelType store.ChannelType) (channelDetailsMapper, err
 		mapper = mapForwardToGroupChannelDetails
 	case store.ChannelTypeForwardToUser:
 		mapper = mapForwardToUserChannelDetails
+	case store.ChannelTypeInAppNotification:
+		mapper = mapInAppNotificationChannelDetails
 	case store.ChannelTypePhoneCall:
 		mapper = mapPhoneCallChannelDetails
 	case store.ChannelTypeRadio:
 		mapper = mapRadioChannelDetails
-	case store.ChannelTypePush:
-		mapper = mapPushChannelDetails
 	default:
 		return nil, meh.NewInternalErr("unsupported channel type", nil)
 	}
@@ -210,6 +210,22 @@ func mapForwardToUserChannelDetails(detailsRaw store.ChannelDetails) (json.RawMe
 	return mappedDetailsRaw, nil
 }
 
+// mapInAppNotificationChannelDetails maps store.ChannelDetails with
+// store.ChannelTypeInAppNotification to
+// event.AddressBookEntryInAppNotificationChannelDetails.
+func mapInAppNotificationChannelDetails(detailsRaw store.ChannelDetails) (json.RawMessage, error) {
+	_, ok := detailsRaw.(store.InAppNotificationChannelDetails)
+	if !ok {
+		return nil, meh.NewInternalErr("cannot cast details", meh.Details{"was": reflect.TypeOf(detailsRaw)})
+	}
+	mappedDetails := event.AddressBookEntryInAppNotificationChannelDetails{}
+	mappedDetailsRaw, err := json.Marshal(mappedDetails)
+	if err != nil {
+		return nil, meh.NewInternalErrFromErr(err, "marshal mapped details", meh.Details{"details": mappedDetails})
+	}
+	return mappedDetailsRaw, nil
+}
+
 // mapPhoneCallChannelDetails maps store.ChannelDetails with
 // store.ChannelTypePhoneCall to event.AddressBookEntryPhoneCallChannelDetails.
 func mapPhoneCallChannelDetails(detailsRaw store.ChannelDetails) (json.RawMessage, error) {
@@ -237,21 +253,6 @@ func mapRadioChannelDetails(detailsRaw store.ChannelDetails) (json.RawMessage, e
 	mappedDetails := event.AddressBookEntryRadioChannelDetails{
 		Info: details.Info,
 	}
-	mappedDetailsRaw, err := json.Marshal(mappedDetails)
-	if err != nil {
-		return nil, meh.NewInternalErrFromErr(err, "marshal mapped details", meh.Details{"details": mappedDetails})
-	}
-	return mappedDetailsRaw, nil
-}
-
-// mapPushChannelDetails maps store.ChannelDetails with
-// store.ChannelTypePush to event.AddressBookEntryPushChannelDetails.
-func mapPushChannelDetails(detailsRaw store.ChannelDetails) (json.RawMessage, error) {
-	_, ok := detailsRaw.(store.PushChannelDetails)
-	if !ok {
-		return nil, meh.NewInternalErr("cannot cast details", meh.Details{"was": reflect.TypeOf(detailsRaw)})
-	}
-	mappedDetails := event.AddressBookEntryPushChannelDetails{}
 	mappedDetailsRaw, err := json.Marshal(mappedDetails)
 	if err != nil {
 		return nil, meh.NewInternalErrFromErr(err, "marshal mapped details", meh.Details{"details": mappedDetails})
@@ -377,10 +378,21 @@ func eventIntelDeliveryStatusFromStore(s store.IntelDeliveryStatus) (event.Intel
 // NotifyIntelDeliveryAttemptCreated emits an
 // event.TypeIntelDeliveryAttemptCreated event.
 func (p *Port) NotifyIntelDeliveryAttemptCreated(ctx context.Context, tx pgx.Tx, created store.IntelDeliveryAttempt,
-	delivery store.IntelDelivery, assignment store.IntelAssignment, intel store.Intel) error {
+	delivery store.IntelDelivery, assignment store.IntelAssignment, assignedEntry store.AddressBookEntryDetailed, intel store.Intel) error {
 	mappedStatus, err := eventIntelDeliveryStatusFromStore(created.Status)
 	if err != nil {
 		return meh.Wrap(err, "event intel-delivery-status from store", meh.Details{"status": created.Status})
+	}
+	var mappedUserDetails nulls.JSONNullable[event.IntelDeliveryAttemptCreatedAssignedEntryUserDetails]
+	if assignedEntry.UserDetails.Valid {
+		v := assignedEntry.UserDetails.V
+		mappedUserDetails = nulls.NewJSONNullable(event.IntelDeliveryAttemptCreatedAssignedEntryUserDetails{
+			ID:        v.ID,
+			Username:  v.Username,
+			FirstName: v.FirstName,
+			LastName:  v.LastName,
+			IsActive:  v.IsActive,
+		})
 	}
 	message := kafkautil.OutboundMessage{
 		Topic:     event.IntelDeliveriesTopic,
@@ -399,6 +411,14 @@ func (p *Port) NotifyIntelDeliveryAttemptCreated(ctx context.Context, tx pgx.Tx,
 				ID:    assignment.ID,
 				Intel: assignment.Intel,
 				To:    assignment.To,
+			},
+			AssignedEntry: event.IntelDeliveryAttemptCreatedAssignedEntry{
+				ID:          assignedEntry.ID,
+				Label:       assignedEntry.Label,
+				Description: assignedEntry.Description,
+				Operation:   assignedEntry.Operation,
+				User:        assignedEntry.User,
+				UserDetails: mappedUserDetails,
 			},
 			Intel: event.IntelDeliveryAttemptCreatedIntel{
 				ID:         intel.ID,

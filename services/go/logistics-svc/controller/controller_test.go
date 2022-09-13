@@ -259,6 +259,11 @@ func (m *StoreMock) RebuildAddressBookEntrySearch(ctx context.Context, tx pgx.Tx
 	return m.Called(ctx, tx).Error(0)
 }
 
+func (m *StoreMock) IntelDeliveryByIDAndLockOrWait(ctx context.Context, tx pgx.Tx, deliveryID uuid.UUID) (store.IntelDelivery, error) {
+	args := m.Called(ctx, tx, deliveryID)
+	return args.Get(0).(store.IntelDelivery), args.Error(1)
+}
+
 // NotifierMock mocks Notifier.
 type NotifierMock struct {
 	mock.Mock
@@ -285,8 +290,8 @@ func (m *NotifierMock) NotifyIntelDeliveryCreated(ctx context.Context, tx pgx.Tx
 }
 
 func (m *NotifierMock) NotifyIntelDeliveryAttemptCreated(ctx context.Context, tx pgx.Tx, created store.IntelDeliveryAttempt,
-	delivery store.IntelDelivery, assignment store.IntelAssignment, intel store.Intel) error {
-	return m.Called(ctx, tx, created, delivery, assignment, intel).Error(0)
+	delivery store.IntelDelivery, assignment store.IntelAssignment, assignedEntry store.AddressBookEntryDetailed, intel store.Intel) error {
+	return m.Called(ctx, tx, created, delivery, assignment, assignedEntry, intel).Error(0)
 }
 
 func (m *NotifierMock) NotifyIntelDeliveryAttemptStatusUpdated(ctx context.Context, tx pgx.Tx, attempt store.IntelDeliveryAttempt) error {
