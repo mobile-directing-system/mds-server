@@ -7,10 +7,10 @@ replace github.com/mobile-directing-system/mds-server/services/go/shared => ../s
 require (
 	github.com/doug-martin/goqu/v9 v9.18.0
 	github.com/gin-gonic/gin v1.8.0
-	github.com/gofrs/uuid v4.0.0+incompatible
+	github.com/gofrs/uuid v4.3.0+incompatible
 	github.com/jackc/pgx/v4 v4.16.1
-	github.com/lefinal/meh v1.5.2
-	github.com/lefinal/nulls v1.2.3
+	github.com/lefinal/meh v1.6.0
+	github.com/lefinal/nulls v1.6.0
 	github.com/mobile-directing-system/mds-server/services/go/shared v0.0.0-00010101000000-000000000000
 	github.com/stretchr/testify v1.8.0
 	go.uber.org/zap v1.21.0

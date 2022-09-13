@@ -78,7 +78,25 @@ func (suite *ControllerUpdateUserSuite) SetupTest() {
 		ID:       testutil.NewUUIDV4(),
 		Username: "cook",
 		IsAdmin:  false,
+		IsActive: true,
 	}
+}
+
+func (suite *ControllerUpdateUserSuite) TestSessionTokenDeleteFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.updateUser.IsActive = false
+	suite.ctrl.Store.On("DeleteSessionTokensByUser", timeout, tx, suite.updateUser.ID).
+		Return(errors.New("sad life"))
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.UpdateUser(timeout, tx, suite.updateUser)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
 }
 
 func (suite *ControllerUpdateUserSuite) TestStoreUpdateFail() {
@@ -185,69 +203,4 @@ func (suite *ControllerUpdateUserPassByUserIDSuite) TestOK() {
 
 func TestController_UpdateUserPassByUserID(t *testing.T) {
 	suite.Run(t, new(ControllerUpdateUserPassByUserIDSuite))
-}
-
-// ControllerDeleteUserByIDSuite tests Controller.DeleteUserByID.
-type ControllerDeleteUserByIDSuite struct {
-	suite.Suite
-	ctrl   *ControllerMock
-	userID uuid.UUID
-}
-
-func (suite *ControllerDeleteUserByIDSuite) SetupTest() {
-	suite.ctrl = NewMockController()
-	suite.userID = testutil.NewUUIDV4()
-}
-
-func (suite *ControllerDeleteUserByIDSuite) TestSessionTokenDeleteFail() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	tx := &testutil.DBTx{}
-	suite.ctrl.Store.On("DeleteSessionTokensByUser", timeout, tx, suite.userID).
-		Return(errors.New("sad life"))
-	defer suite.ctrl.Store.AssertExpectations(suite.T())
-
-	go func() {
-		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, tx, suite.userID)
-		suite.Error(err, "should fail")
-	}()
-
-	wait()
-}
-
-func (suite *ControllerDeleteUserByIDSuite) TestStoreDeleteFail() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	tx := &testutil.DBTx{}
-	suite.ctrl.Store.On("DeleteSessionTokensByUser", timeout, tx, suite.userID).Return(nil)
-	suite.ctrl.Store.On("DeleteUserByID", timeout, tx, suite.userID).
-		Return(errors.New("sad life"))
-	defer suite.ctrl.Store.AssertExpectations(suite.T())
-
-	go func() {
-		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, tx, suite.userID)
-		suite.Error(err, "should fail")
-	}()
-
-	wait()
-}
-
-func (suite *ControllerDeleteUserByIDSuite) TestOK() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	tx := &testutil.DBTx{}
-	suite.ctrl.Store.On("DeleteSessionTokensByUser", timeout, tx, suite.userID).Return(nil)
-	suite.ctrl.Store.On("DeleteUserByID", timeout, tx, suite.userID).Return(nil)
-	defer suite.ctrl.Store.AssertExpectations(suite.T())
-
-	go func() {
-		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, tx, suite.userID)
-		suite.NoError(err, "should not fail")
-	}()
-
-	wait()
-}
-
-func TestController_DeleteUserByID(t *testing.T) {
-	suite.Run(t, new(ControllerDeleteUserByIDSuite))
 }

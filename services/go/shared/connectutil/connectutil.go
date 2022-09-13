@@ -3,10 +3,12 @@ package connectutil
 import (
 	"context"
 	"github.com/lefinal/meh"
+	"github.com/lefinal/meh/mehlog"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/logging"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"net"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -21,7 +23,8 @@ func AwaitHostReachable(ctx context.Context, host string) error {
 	for {
 		err := AssureHostReachable(host)
 		if err != nil {
-			logging.DebugLogger().Debug("awaiting host reachable", zap.String("host", host), zap.Error(err))
+			mehlog.LogToLevel(logging.DebugLogger(), zap.DebugLevel, meh.Wrap(err, "await host reachable",
+				meh.Details{"host": host}))
 			// Wait.
 			select {
 			case <-ctx.Done():
@@ -34,16 +37,26 @@ func AwaitHostReachable(ctx context.Context, host string) error {
 	}
 }
 
+//goland:noinspection HttpUrlsUsage
+var urlPrefixes = []string{"https://", "http://", "wss://", "ws://"}
+
 // AssureHostReachable checks if the given host is reachable with a timeout of 3
 // seconds.
 func AssureHostReachable(host string) error {
-	host = strings.TrimPrefix(host, "http://")
-	host = strings.TrimPrefix(host, "https://")
-	host = strings.TrimPrefix(host, "ws://")
-	host = strings.TrimPrefix(host, "wss://")
+	for _, prefix := range urlPrefixes {
+		if !strings.HasPrefix(host, prefix) {
+			continue
+		}
+		u, err := url.Parse(host)
+		if err != nil {
+			return meh.NewInternalErrFromErr(err, "parse host", meh.Details{"was": host})
+		}
+		host = u.Host
+	}
+	// Dial.
 	conn, err := net.DialTimeout("tcp", host, 3*time.Second)
 	if err != nil {
-		return meh.Wrap(err, "dial tcp", nil)
+		return meh.Wrap(err, "dial tcp", meh.Details{"host": host})
 	}
 	err = conn.Close()
 	if err != nil {

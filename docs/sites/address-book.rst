@@ -50,6 +50,7 @@ Response (201):
             "username": "<associated_username>",
             "first_name": "<associated_user_first_name>",
             "last_name": "<associated_user_last_name>"
+            "is_active": true
         }
     }
 
@@ -105,7 +106,8 @@ Response:
             "id": "<associated_user_id>",
             "username": "<associated_username>",
             "first_name": "<associated_user_first_name>",
-            "last_name": "<associated_user_last_name>"
+            "last_name": "<associated_user_last_name>",
+            "is_active": true
         }
     }
 
@@ -129,7 +131,8 @@ Entry payload:
             "id": "<associated_user_id>",
             "username": "<associated_username>",
             "first_name": "<associated_user_first_name>",
-            "last_name": "<associated_user_last_name>"
+            "last_name": "<associated_user_last_name>",
+            "is_active": true
         }
     }
 
@@ -144,6 +147,34 @@ Additionally, query parameters can be applied in order to filter entries:
 - ``for_operation=<operation_id>``: Only include entries for the operation with the given id or global ones.
 - ``exclude_global=true``: Exclude entries with have no operation assigned.
 - ``visible_by=<user_id>``: Only include entries, being visible to the user with the given id. If the :ref:`permission.logistics.address-book.entry.view.any` permission is not granted, this will have no effect, as the requesting users id is used here by default.
+- ``include_for_inactive_users=false``: Includes entries, associated with inactive users.
+
+:ref:`Search <http-api.search>` allows using these filters as well and is available via:
+
+`GET /address-book/entries/search`
+
+Entry payload:
+
+.. code-block:: json
+
+    {
+        "id": "<entry_id>"
+        "label": "<public_entry_label>",
+        "description": "<additional_information>",
+        "operation": "<optional_operation_id>",
+        "user": "<optional_user_id>"
+        "user_details": {
+            "id": "<associated_user_id>",
+            "username": "<associated_username>",
+            "first_name": "<associated_user_first_name>",
+            "last_name": "<associated_user_last_name>",
+            "is_active": true
+        }
+    }
+
+The search index can be rebuilt via:
+
+`POST /address-book/entries/search/rebuild`
 
 Channels in General
 ===================
@@ -159,8 +190,8 @@ Currently, the following channel types are supported, but not all implemented:
 - **Email** (`email`): Send an email and await a response.
 - **Forward to Group** (`forward-to-group`): Forward intel to members of a group. This will use the first available address book entry for each member.
 - **Forward to User** (`forward-to-user`): Forward intel to a user. This will use the first available address book entry for the user.
+- **In-App Notification** (`in-app-notification`): Send an in-app notification via the MDS application and await it being read.
 - **Phone Call** (`phone-call`): Call the recipient.
-- **Push** (`push`): Send a push notification via the MDS application and await it being read.
 - **Radio** (`radio`): Forward to a radio operator, that transmits the intel over radio.
 
 Each channel holds additional details, based on the type.
@@ -211,6 +242,12 @@ For **Phone Call** channel:
 
 The phone number is expected to be in :e-164:`E.164 <>` format.
 
+For **In-App Notification** channel:
+
+.. code-block:: json
+
+    {}
+
 For **Radio** channel:
 
 .. code-block:: json
@@ -230,7 +267,6 @@ Setting channels for global entries or ones, being associated to other users tha
 
     [
         {
-            "id": "<optional_channel_id>",
             "entry": "<entry_id>",
             "label": "<label>",
             "type": "<channel_type>",
@@ -242,9 +278,8 @@ Setting channels for global entries or ones, being associated to other users tha
     ]
 
 This is a list of channels, that will be set.
-
-The ``id``-field allows setting the old channel id, if it was only changed.
-In case of ongoing deliveries, this will avoid retrying all channels because of knowing, which failed or are currently delivering.
+Keep in mind that updating channels will restart all ongoing deliveries.
+So if delivery was already tried over an old channel and failed or timed out, it will be tried again.
 
 Retrieving channels
 ===================

@@ -6,7 +6,6 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/lefinal/meh"
 	"github.com/mobile-directing-system/mds-server/services/go/logistics-svc/store"
-	"golang.org/x/sync/errgroup"
 )
 
 // CreateGroup creates the given store.Group.
@@ -50,20 +49,14 @@ func (c *Controller) DeleteGroupByID(ctx context.Context, tx pgx.Tx, groupID uui
 		channelsByEntry[affectedEntryID] = channels
 	}
 	// Notify about updated channels.
-	var eg errgroup.Group
 	for entryID, channels := range channelsByEntry {
-		eID := entryID
-		chs := channels
-		eg.Go(func() error {
-			err := c.Notifier.NotifyAddressBookEntryChannelsUpdated(ctx, tx, eID, chs)
-			if err != nil {
-				return meh.Wrap(err, "notify channels updated", meh.Details{
-					"entry_id": eID,
-					"channels": chs,
-				})
-			}
-			return nil
-		})
+		err := c.Notifier.NotifyAddressBookEntryChannelsUpdated(ctx, tx, entryID, channels)
+		if err != nil {
+			return meh.Wrap(err, "notify channels updated", meh.Details{
+				"entry_id": entryID,
+				"channels": channels,
+			})
+		}
 	}
-	return eg.Wait()
+	return nil
 }

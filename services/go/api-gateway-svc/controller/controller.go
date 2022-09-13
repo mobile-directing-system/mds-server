@@ -51,8 +51,6 @@ type Store interface {
 	UpdateUser(ctx context.Context, tx pgx.Tx, user store.User) error
 	// UpdateUserPassByUserID updates the password for the user with the given id.
 	UpdateUserPassByUserID(ctx context.Context, tx pgx.Tx, userID uuid.UUID, newPass []byte) error
-	// DeleteUserByID deletes the user with the given id.
-	DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error
 	// UpdatePermissionsByUser updates the permissions for the user with the given
 	// id.
 	UpdatePermissionsByUser(ctx context.Context, tx pgx.Tx, userID uuid.UUID, permissions []permission.Permission) error

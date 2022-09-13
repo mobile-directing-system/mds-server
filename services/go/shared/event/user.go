@@ -19,6 +19,8 @@ type UserCreated struct {
 	IsAdmin bool `json:"is_admin"`
 	// Pass is the hashed password for the user.
 	Pass []byte `json:"pass"`
+	// IsActive describes whether the user is active.
+	IsActive bool `json:"is_active"`
 }
 
 // TypeUserUpdated is used when a user was updated.
@@ -36,6 +38,8 @@ type UserUpdated struct {
 	LastName string `json:"last_name"`
 	// IsAdmin describes whether the user is an admin.
 	IsAdmin bool `json:"is_admin"`
+	// IsActive describes whether the user is active.
+	IsActive bool `json:"is_active"`
 }
 
 // TypeUserPassUpdated is used when a user updates its password.
@@ -47,13 +51,4 @@ type UserPassUpdated struct {
 	User uuid.UUID `json:"user"`
 	// NewPass is the new password.
 	NewPass []byte `json:"new_pass"`
-}
-
-// TypeUserDeleted is used when a user was deleted.
-const TypeUserDeleted Type = "user-deleted"
-
-// UserDeleted is the value for TypeUserDeleted.
-type UserDeleted struct {
-	// ID of the user that was deleted.
-	ID uuid.UUID `json:"id"`
 }

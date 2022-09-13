@@ -50,10 +50,6 @@ func (m *StoreMock) CreateUser(ctx context.Context, tx pgx.Tx, userID uuid.UUID)
 	return m.Called(ctx, tx, userID).Error(0)
 }
 
-func (m *StoreMock) DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error {
-	return m.Called(ctx, tx, userID).Error(0)
-}
-
 func (m *StoreMock) PermissionsByUser(ctx context.Context, tx pgx.Tx, userID uuid.UUID) ([]store.Permission, error) {
 	args := m.Called(ctx, tx, userID)
 	var p []store.Permission

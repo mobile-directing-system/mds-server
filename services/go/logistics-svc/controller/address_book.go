@@ -5,9 +5,13 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v4"
 	"github.com/lefinal/meh"
+	"github.com/lefinal/meh/mehlog"
 	"github.com/mobile-directing-system/mds-server/services/go/logistics-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pgutil"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/search"
+	"go.uber.org/zap"
+	"time"
 )
 
 // AddressBookEntryByID retrieves the store.AddressBookEntryDetailed with the
@@ -140,4 +144,45 @@ func (c *Controller) DeleteAddressBookEntryByID(ctx context.Context, entryID uui
 		return meh.Wrap(err, "run in tx", nil)
 	}
 	return nil
+}
+
+// SearchAddressBookEntries searches for address book entries with the given
+// store.AddressBookEntryFilters and search.Params.
+func (c *Controller) SearchAddressBookEntries(ctx context.Context, entryFilters store.AddressBookEntryFilters,
+	searchParams search.Params) (search.Result[store.AddressBookEntryDetailed], error) {
+	var result search.Result[store.AddressBookEntryDetailed]
+	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
+		var err error
+		result, err = c.Store.SearchAddressBookEntries(ctx, tx, entryFilters, searchParams)
+		if err != nil {
+			return meh.Wrap(err, "search address book entries in store", meh.Details{
+				"entry_filters": entryFilters,
+				"search_params": searchParams,
+			})
+		}
+		return nil
+	})
+	if err != nil {
+		return search.Result[store.AddressBookEntryDetailed]{}, meh.Wrap(err, "run in tx", nil)
+	}
+	return result, nil
+}
+
+// RebuildAddressBookEntrySearch rebuilds the address-book-entry-search.
+func (c *Controller) RebuildAddressBookEntrySearch(ctx context.Context) {
+	c.Logger.Debug("rebuilding address-book-entry-search...")
+	start := time.Now()
+	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
+		err := c.Store.RebuildAddressBookEntrySearch(ctx, tx)
+		if err != nil {
+			return meh.Wrap(err, "rebuild address-book-entry-search in store", nil)
+		}
+		return nil
+	})
+	if err != nil {
+		err = meh.Wrap(err, "run in tx", nil)
+		mehlog.Log(c.Logger, err)
+		return
+	}
+	c.Logger.Debug("address-book-entry-search rebuilt", zap.Duration("took", time.Since(start)))
 }

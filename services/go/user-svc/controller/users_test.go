@@ -132,6 +132,7 @@ func (suite *ControllerUpdateUserSuite) SetupTest() {
 		FirstName: "high",
 		LastName:  "preserve",
 		IsAdmin:   false,
+		IsActive:  true,
 	}
 }
 
@@ -142,7 +143,7 @@ func (suite *ControllerUpdateUserSuite) TestTxFail() {
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, false)
+		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, false, false)
 		suite.Error(err, "should fail")
 	}()
 
@@ -160,7 +161,7 @@ func (suite *ControllerUpdateUserSuite) TestRetrieveFromStoreFail() {
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, false)
+		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, false, false)
 		suite.Error(err, "should fail")
 		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not have committed tx")
 	}()
@@ -181,7 +182,7 @@ func (suite *ControllerUpdateUserSuite) TestAdminChangeNotAllowed() {
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, false)
+		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, false, false)
 		suite.Error(err, "should fail")
 		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not have committed tx")
 	}()
@@ -201,7 +202,7 @@ func (suite *ControllerUpdateUserSuite) TestForbiddenAdminUsernameChange() {
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, false)
+		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, false, false)
 		suite.Error(err, "should fail")
 		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not have committed tx")
 	}()
@@ -221,7 +222,7 @@ func (suite *ControllerUpdateUserSuite) TestForbiddenAdminUsernameChangeWithAllo
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, true)
+		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, true, false)
 		suite.Error(err, "should fail")
 		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not have committed tx")
 	}()
@@ -243,7 +244,7 @@ func (suite *ControllerUpdateUserSuite) TestForbiddenAdminChange() {
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, false)
+		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, false, false)
 		suite.Error(err, "should fail")
 		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not have committed tx")
 	}()
@@ -265,13 +266,81 @@ func (suite *ControllerUpdateUserSuite) TestForbiddenSetAdminToNonAdminWithAllow
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, true)
+		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, true, false)
 		suite.Error(err, "should fail")
 		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not have committed tx")
 	}()
 
 	<-timeout.Done()
 	suite.NotEqual(context.DeadlineExceeded, timeout.Err(), "should not time out")
+}
+
+func (suite *ControllerUpdateUserSuite) TestForbiddenAdminDisable() {
+	timeout, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	suite.updateUser.Username = adminUsername
+	suite.updateUser.IsActive = false
+	suite.updateUser.IsAdmin = true
+	originalUser := suite.updateUser
+	originalUser.IsAdmin = true
+	originalUser.IsActive = true
+	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
+	suite.ctrl.Store.On("UserByID", timeout, suite.ctrl.DB.Tx[0], suite.updateUser.ID).Return(originalUser, nil)
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, false, false)
+		suite.Error(err, "should fail")
+		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not have committed tx")
+	}()
+
+	<-timeout.Done()
+	suite.NotEqual(context.DeadlineExceeded, timeout.Err(), "should not time out")
+}
+
+func (suite *ControllerUpdateUserSuite) TestForbiddenAdminDisableWithAllow() {
+	timeout, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	suite.updateUser.Username = adminUsername
+	suite.updateUser.IsActive = false
+	suite.updateUser.IsAdmin = true
+	originalUser := suite.updateUser
+	originalUser.IsAdmin = true
+	originalUser.IsActive = true
+	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
+	suite.ctrl.Store.On("UserByID", timeout, suite.ctrl.DB.Tx[0], suite.updateUser.ID).Return(originalUser, nil)
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, true, false)
+		suite.Error(err, "should fail")
+		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not have committed tx")
+	}()
+
+	<-timeout.Done()
+	suite.NotEqual(context.DeadlineExceeded, timeout.Err(), "should not time out")
+}
+
+func (suite *ControllerUpdateUserSuite) TestForbiddenActiveStateChange() {
+	timeout, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	originalUser := suite.updateUser
+	originalUser.IsActive = !suite.updateUser.IsActive
+	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
+	suite.ctrl.Store.On("UserByID", timeout, suite.ctrl.DB.Tx[0], suite.updateUser.ID).Return(originalUser, nil)
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, false, false)
+		suite.Error(err, "should fail")
+		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not have committed tx")
+	}()
+
+	<-timeout.Done()
+	suite.NotEqual(context.DeadlineExceeded, timeout.Err(), "should not timeout")
 }
 
 func (suite *ControllerUpdateUserSuite) TestStoreUpdateFail() {
@@ -286,7 +355,7 @@ func (suite *ControllerUpdateUserSuite) TestStoreUpdateFail() {
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, false)
+		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, false, false)
 		suite.Error(err, "should fail")
 		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not have committed tx")
 	}()
@@ -309,7 +378,7 @@ func (suite *ControllerUpdateUserSuite) TestNotifyFail() {
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, false)
+		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, false, false)
 		suite.Error(err, "should fail")
 		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not have committed tx")
 	}()
@@ -333,7 +402,30 @@ func (suite *ControllerUpdateUserSuite) TestOKSetAdmin() {
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, true)
+		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, true, false)
+		suite.NoError(err, "should not fail")
+		suite.True(suite.ctrl.DB.Tx[0].IsCommitted, "should have committed tx")
+	}()
+
+	<-timeout.Done()
+	suite.NotEqual(context.DeadlineExceeded, timeout.Err(), "should not fail")
+}
+
+func (suite *ControllerUpdateUserSuite) TestOKSetActiveState() {
+	timeout, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	originalUser := suite.updateUser
+	originalUser.IsActive = !suite.updateUser.IsActive
+	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
+	suite.ctrl.Store.On("UserByID", timeout, suite.ctrl.DB.Tx[0], suite.updateUser.ID).Return(originalUser, nil)
+	suite.ctrl.Store.On("UpdateUser", timeout, suite.ctrl.DB.Tx[0], suite.updateUser).Return(nil)
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+	suite.ctrl.Notifier.On("NotifyUserUpdated", timeout, suite.ctrl.DB.Tx[0], suite.updateUser).Return(nil)
+	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, false, true)
 		suite.NoError(err, "should not fail")
 		suite.True(suite.ctrl.DB.Tx[0].IsCommitted, "should have committed tx")
 	}()
@@ -357,7 +449,7 @@ func (suite *ControllerUpdateUserSuite) TestOKSetNonAdmin() {
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, true)
+		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, true, false)
 		suite.NoError(err, "should not fail")
 		suite.True(suite.ctrl.DB.Tx[0].IsCommitted, "should have committed tx")
 	}()
@@ -380,7 +472,7 @@ func (suite *ControllerUpdateUserSuite) TestOK() {
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, false)
+		err := suite.ctrl.Ctrl.UpdateUser(timeout, suite.updateUser, false, false)
 		suite.NoError(err, "should not fail")
 		suite.True(suite.ctrl.DB.Tx[0].IsCommitted, "should have committed tx")
 	}()
@@ -489,13 +581,25 @@ func TestController_UpdateUserPassByUserID(t *testing.T) {
 // ControllerDeleteUserByIDSuite tests Controller.DeleteUserByID.
 type ControllerDeleteUserByIDSuite struct {
 	suite.Suite
-	ctrl   *ControllerMock
-	userID uuid.UUID
+	ctrl              *ControllerMock
+	userID            uuid.UUID
+	sampleUser        store.User
+	sampleUpdatedUser store.User
 }
 
 func (suite *ControllerDeleteUserByIDSuite) SetupTest() {
 	suite.ctrl = NewMockController()
 	suite.userID = testutil.NewUUIDV4()
+	suite.sampleUser = store.User{
+		ID:        testutil.NewUUIDV4(),
+		Username:  "nothing",
+		FirstName: "overflow",
+		LastName:  "sadden",
+		IsAdmin:   false,
+		IsActive:  true,
+	}
+	suite.sampleUpdatedUser = suite.sampleUser
+	suite.sampleUpdatedUser.IsActive = false
 }
 
 func (suite *ControllerDeleteUserByIDSuite) TestTxFail() {
@@ -505,7 +609,7 @@ func (suite *ControllerDeleteUserByIDSuite) TestTxFail() {
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, suite.userID)
+		err := suite.ctrl.Ctrl.SetUserInactiveByID(timeout, suite.userID)
 		suite.Error(err, "should fail")
 	}()
 
@@ -523,7 +627,7 @@ func (suite *ControllerDeleteUserByIDSuite) TestStoreRetrievalFail() {
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, suite.userID)
+		err := suite.ctrl.Ctrl.SetUserInactiveByID(timeout, suite.userID)
 		suite.Error(err, "should fail")
 		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not have committed tx")
 	}()
@@ -534,19 +638,18 @@ func (suite *ControllerDeleteUserByIDSuite) TestStoreRetrievalFail() {
 
 // TestDeleteAdmin assures that the admin user is not deleted.
 func (suite *ControllerDeleteUserByIDSuite) TestDeleteAdmin() {
+	original := suite.sampleUpdatedUser
+	original.Username = adminUsername
 	timeout, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
 	suite.ctrl.Store.On("UserByID", timeout, suite.ctrl.DB.Tx[0], suite.userID).
-		Return(store.User{
-			ID:       suite.userID,
-			Username: adminUsername,
-		}, nil)
+		Return(original, nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, suite.userID)
+		err := suite.ctrl.Ctrl.SetUserInactiveByID(timeout, suite.userID)
 		suite.Error(err, "should fail")
 	}()
 
@@ -559,14 +662,14 @@ func (suite *ControllerDeleteUserByIDSuite) TestStoreDeleteFail() {
 	defer cancel()
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
 	suite.ctrl.Store.On("UserByID", timeout, suite.ctrl.DB.Tx[0], suite.userID).
-		Return(store.User{ID: suite.userID}, nil)
-	suite.ctrl.Store.On("DeleteUserByID", timeout, suite.ctrl.DB.Tx[0], suite.userID).
+		Return(suite.sampleUpdatedUser, nil)
+	suite.ctrl.Store.On("UpdateUser", timeout, suite.ctrl.DB.Tx[0], suite.sampleUpdatedUser).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, suite.userID)
+		err := suite.ctrl.Ctrl.SetUserInactiveByID(timeout, suite.userID)
 		suite.Error(err, "should fail")
 		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not have committed tx")
 	}()
@@ -580,15 +683,17 @@ func (suite *ControllerDeleteUserByIDSuite) TestNotifyFail() {
 	defer cancel()
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
 	suite.ctrl.Store.On("UserByID", timeout, suite.ctrl.DB.Tx[0], suite.userID).
-		Return(store.User{ID: suite.userID}, nil)
-	suite.ctrl.Store.On("DeleteUserByID", timeout, suite.ctrl.DB.Tx[0], suite.userID).Return(nil)
+		Return(suite.sampleUpdatedUser, nil)
+	suite.ctrl.Store.On("UpdateUser", timeout, suite.ctrl.DB.Tx[0], suite.sampleUpdatedUser).
+		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyUserDeleted", timeout, suite.ctrl.DB.Tx[0], suite.userID).Return(errors.New("sad life"))
+	suite.ctrl.Notifier.On("NotifyUserUpdated", timeout, suite.ctrl.DB.Tx[0], suite.sampleUpdatedUser).
+		Return(errors.New("sad life"))
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, suite.userID)
+		err := suite.ctrl.Ctrl.SetUserInactiveByID(timeout, suite.userID)
 		suite.Error(err, "should fail")
 		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not have committed tx")
 	}()
@@ -602,15 +707,17 @@ func (suite *ControllerDeleteUserByIDSuite) TestOK() {
 	defer cancel()
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
 	suite.ctrl.Store.On("UserByID", timeout, suite.ctrl.DB.Tx[0], suite.userID).
-		Return(store.User{ID: suite.userID}, nil)
-	suite.ctrl.Store.On("DeleteUserByID", timeout, suite.ctrl.DB.Tx[0], suite.userID).Return(nil)
+		Return(suite.sampleUpdatedUser, nil)
+	suite.ctrl.Store.On("UpdateUser", timeout, suite.ctrl.DB.Tx[0], suite.sampleUpdatedUser).
+		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyUserDeleted", timeout, suite.ctrl.DB.Tx[0], suite.userID).Return(nil)
+	suite.ctrl.Notifier.On("NotifyUserUpdated", timeout, suite.ctrl.DB.Tx[0], suite.sampleUpdatedUser).
+		Return(nil)
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteUserByID(timeout, suite.userID)
+		err := suite.ctrl.Ctrl.SetUserInactiveByID(timeout, suite.userID)
 		suite.NoError(err, "should not fail")
 		suite.True(suite.ctrl.DB.Tx[0].IsCommitted, "should have committed tx")
 	}()
@@ -699,13 +806,17 @@ func TestController_UserByID(t *testing.T) {
 // ControllerUsersSuite tests Controller.Users.
 type ControllerUsersSuite struct {
 	suite.Suite
-	ctrl   *ControllerMock
-	params pagination.Params
+	ctrl          *ControllerMock
+	sampleParams  pagination.Params
+	sampleFilters store.UserFilters
 }
 
 func (suite *ControllerUsersSuite) SetupTest() {
 	suite.ctrl = NewMockController()
-	suite.params = pagination.Params{
+	suite.sampleFilters = store.UserFilters{
+		IncludeInactive: true,
+	}
+	suite.sampleParams = pagination.Params{
 		Offset:         89,
 		OrderBy:        nulls.NewString("hi"),
 		OrderDirection: "desc",
@@ -719,7 +830,7 @@ func (suite *ControllerUsersSuite) TestTxFail() {
 
 	go func() {
 		defer cancel()
-		_, err := suite.ctrl.Ctrl.Users(timeout, suite.params)
+		_, err := suite.ctrl.Ctrl.Users(timeout, suite.sampleFilters, suite.sampleParams)
 		suite.Error(err, "should fail")
 	}()
 
@@ -731,13 +842,13 @@ func (suite *ControllerUsersSuite) TestStoreRetrievalFail() {
 	timeout, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("Users", timeout, suite.ctrl.DB.Tx[0], suite.params).
+	suite.ctrl.Store.On("Users", timeout, suite.ctrl.DB.Tx[0], suite.sampleFilters, suite.sampleParams).
 		Return(pagination.Paginated[store.User]{}, errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		_, err := suite.ctrl.Ctrl.Users(timeout, suite.params)
+		_, err := suite.ctrl.Ctrl.Users(timeout, suite.sampleFilters, suite.sampleParams)
 		suite.Error(err, "should fail")
 	}()
 
@@ -746,7 +857,7 @@ func (suite *ControllerUsersSuite) TestStoreRetrievalFail() {
 }
 
 func (suite *ControllerUsersSuite) TestOK() {
-	paginated := pagination.NewPaginated(suite.params, []store.User{
+	paginated := pagination.NewPaginated(suite.sampleParams, []store.User{
 		{
 			ID:        testutil.NewUUIDV4(),
 			Username:  "society",
@@ -765,12 +876,12 @@ func (suite *ControllerUsersSuite) TestOK() {
 	timeout, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("Users", timeout, suite.ctrl.DB.Tx[0], suite.params).Return(paginated, nil)
+	suite.ctrl.Store.On("Users", timeout, suite.ctrl.DB.Tx[0], suite.sampleFilters, suite.sampleParams).Return(paginated, nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		got, err := suite.ctrl.Ctrl.Users(timeout, suite.params)
+		got, err := suite.ctrl.Ctrl.Users(timeout, suite.sampleFilters, suite.sampleParams)
 		suite.Require().NoError(err, "should not fail")
 		suite.Equal(paginated, got, "should return correct result")
 	}()
@@ -786,13 +897,17 @@ func TestController_Users(t *testing.T) {
 // ControllerSearchUsersSuite tests Controller.SearchUsers.
 type ControllerSearchUsersSuite struct {
 	suite.Suite
-	ctrl         *ControllerMock
-	sampleParams search.Params
-	sampleUsers  []store.User
+	ctrl          *ControllerMock
+	sampleFilters store.UserFilters
+	sampleParams  search.Params
+	sampleUsers   []store.User
 }
 
 func (suite *ControllerSearchUsersSuite) SetupTest() {
 	suite.ctrl = NewMockController()
+	suite.sampleFilters = store.UserFilters{
+		IncludeInactive: true,
+	}
 	suite.sampleParams = search.Params{
 		Query:  "freedom",
 		Offset: 734,
@@ -823,7 +938,7 @@ func (suite *ControllerSearchUsersSuite) TestTxFail() {
 
 	go func() {
 		defer cancel()
-		_, err := suite.ctrl.Ctrl.SearchUsers(timeout, suite.sampleParams)
+		_, err := suite.ctrl.Ctrl.SearchUsers(timeout, suite.sampleFilters, suite.sampleParams)
 		suite.Error(err, "should fail")
 	}()
 
@@ -834,13 +949,13 @@ func (suite *ControllerSearchUsersSuite) TestStoreSearchFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	defer cancel()
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("SearchUsers", timeout, suite.ctrl.DB.Tx[0], suite.sampleParams).
+	suite.ctrl.Store.On("SearchUsers", timeout, suite.ctrl.DB.Tx[0], suite.sampleFilters, suite.sampleParams).
 		Return(search.Result[store.User]{}, errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		_, err := suite.ctrl.Ctrl.SearchUsers(timeout, suite.sampleParams)
+		_, err := suite.ctrl.Ctrl.SearchUsers(timeout, suite.sampleFilters, suite.sampleParams)
 		suite.Error(err, "should fail")
 	}()
 
@@ -851,13 +966,13 @@ func (suite *ControllerSearchUsersSuite) TestOK() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	defer cancel()
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("SearchUsers", timeout, suite.ctrl.DB.Tx[0], suite.sampleParams).
+	suite.ctrl.Store.On("SearchUsers", timeout, suite.ctrl.DB.Tx[0], suite.sampleFilters, suite.sampleParams).
 		Return(search.Result[store.User]{Hits: suite.sampleUsers}, nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		got, err := suite.ctrl.Ctrl.SearchUsers(timeout, suite.sampleParams)
+		got, err := suite.ctrl.Ctrl.SearchUsers(timeout, suite.sampleFilters, suite.sampleParams)
 		suite.Require().NoError(err, "should not fail")
 		suite.Equal(suite.sampleUsers, got.Hits, "should return correct result")
 	}()

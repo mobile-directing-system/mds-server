@@ -41,6 +41,7 @@ func (c *Controller) AssureAdminUser(ctx context.Context) error {
 				FirstName: "Admin",
 				LastName:  "Admin",
 				IsAdmin:   true,
+				IsActive:  true,
 			},
 			Pass: adminPassHashed,
 		}

@@ -33,7 +33,6 @@ var operationSearchIndexConfig = search.IndexConfig{
 	Searchable: []search.Attribute{
 		operationSearchAttrTitle,
 		operationSearchAttrDescription,
-		operationSearchAttrID,
 	},
 	Filterable: []search.Attribute{
 		operationSearchAttrStartTS,
@@ -283,13 +282,13 @@ func (m *Mall) SearchOperations(ctx context.Context, tx pgx.Tx, operationFilters
 	var filters [][]string
 	if operationFilters.OnlyOngoing {
 		filters = append(filters, []string{
-			fmt.Sprintf("start_ts <= %d", time.Now().UTC().UnixNano()),
-			fmt.Sprintf("end_ts >= %d", time.Now().UTC().UnixNano()),
+			fmt.Sprintf("%s <= %d", operationSearchAttrStartTS, time.Now().UTC().UnixNano()),
+			fmt.Sprintf("%s >= %d", operationSearchAttrEndTS, time.Now().UTC().UnixNano()),
 		})
 	}
 	if !operationFilters.IncludeArchived {
 		filters = append(filters, []string{
-			"is_archived = false",
+			fmt.Sprintf("%s = false", operationSearchAttrIsArchived),
 		})
 	}
 	if operationFilters.ForUser.Valid {

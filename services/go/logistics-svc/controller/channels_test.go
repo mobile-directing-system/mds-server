@@ -9,7 +9,6 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
-	"math/rand"
 	"testing"
 	"time"
 )
@@ -175,18 +174,13 @@ func TestController_ChannelsByAddressBookEntry(t *testing.T) {
 // Controller.UpdateChannelsByAddressBookEntry.
 type ControllerUpdateChannelsByAddressBookEntrySuite struct {
 	suite.Suite
-	ctrl             *ControllerMock
-	sampleEntryID    uuid.UUID
-	entry            store.AddressBookEntryDetailed
-	channelsToDelete []store.Channel
-	channelsToUpdate []store.Channel
-	channelsToCreate []store.Channel
-	// oldChannels holds channels from channelsToDelete and channelsToUpdate.
-	oldChannels []store.Channel
-	// newChannels holds channels from channelsToUpdate and channelsToCreate.
-	newChannels []store.Channel
-	// finalChannels is the final list of channels after update has completed.
-	finalChannels []store.Channel
+	ctrl            *ControllerMock
+	sampleEntryID   uuid.UUID
+	entry           store.AddressBookEntryDetailed
+	oldChannels     []store.Channel
+	oldChannelIDs   []uuid.UUID
+	newChannels     []store.Channel
+	updatedChannels []store.Channel
 }
 
 func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) genChannel(id uuid.UUID) store.Channel {
@@ -209,38 +203,19 @@ func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) SetupTest() {
 		},
 		UserDetails: nulls.JSONNullable[store.User]{},
 	}
-	suite.channelsToDelete = make([]store.Channel, 16)
-	for i := range suite.channelsToDelete {
-		suite.channelsToDelete[i] = suite.genChannel(testutil.NewUUIDV4())
+	for i := 0; i < 32; i++ {
+		suite.oldChannels = append(suite.oldChannels, suite.genChannel(testutil.NewUUIDV4()))
+		suite.newChannels = append(suite.newChannels, suite.genChannel(uuid.Nil))
 	}
-	suite.channelsToUpdate = make([]store.Channel, 16)
-	for i := range suite.channelsToUpdate {
-		suite.channelsToUpdate[i] = suite.genChannel(testutil.NewUUIDV4())
+	suite.oldChannelIDs = make([]uuid.UUID, 0, len(suite.oldChannels))
+	for _, oldChannel := range suite.oldChannels {
+		suite.oldChannelIDs = append(suite.oldChannelIDs, oldChannel.ID)
 	}
-	suite.channelsToCreate = make([]store.Channel, 16)
-	for i := range suite.channelsToCreate {
-		suite.channelsToCreate[i] = suite.genChannel(uuid.UUID{})
+	suite.updatedChannels = make([]store.Channel, 0, len(suite.newChannels))
+	for _, newChannel := range suite.newChannels {
+		newChannel.ID = testutil.NewUUIDV4()
+		suite.updatedChannels = append(suite.updatedChannels, newChannel)
 	}
-	suite.oldChannels = make([]store.Channel, 0, len(suite.channelsToDelete)+len(suite.channelsToUpdate))
-	suite.oldChannels = append(suite.oldChannels, suite.channelsToDelete...)
-	suite.oldChannels = append(suite.oldChannels, suite.channelsToUpdate...)
-	rand.Shuffle(len(suite.oldChannels), func(i, j int) {
-		suite.oldChannels[i], suite.oldChannels[j] = suite.oldChannels[j], suite.oldChannels[i]
-	})
-	suite.newChannels = make([]store.Channel, 0, len(suite.channelsToUpdate)+len(suite.channelsToCreate))
-	suite.newChannels = append(suite.newChannels, suite.channelsToUpdate...)
-	suite.newChannels = append(suite.newChannels, suite.channelsToCreate...)
-	rand.Shuffle(len(suite.newChannels), func(i, j int) {
-		suite.newChannels[i], suite.newChannels[j] = suite.newChannels[j], suite.newChannels[i]
-	})
-	suite.finalChannels = make([]store.Channel, 0, len(suite.newChannels))
-	suite.finalChannels = append(suite.finalChannels, suite.newChannels...)
-	for i := range suite.finalChannels {
-		suite.finalChannels[i].ID = testutil.NewUUIDV4()
-	}
-	rand.Shuffle(len(suite.finalChannels), func(i, j int) {
-		suite.finalChannels[i], suite.finalChannels[j] = suite.finalChannels[j], suite.finalChannels[i]
-	})
 }
 
 func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestTxFail() {
@@ -267,6 +242,7 @@ func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestRetrieveAddres
 		defer cancel()
 		err := suite.ctrl.Ctrl.UpdateChannelsByAddressBookEntry(timeout, suite.sampleEntryID, suite.newChannels, uuid.NullUUID{})
 		suite.Error(err, "should fail")
+		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
 	}()
 
 	wait()
@@ -286,6 +262,7 @@ func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestLimitToUserGlo
 			nulls.NewUUID(testutil.NewUUIDV4()))
 		suite.Require().Error(err, "should fail")
 		suite.Equal(meh.ErrForbidden, meh.ErrorCode(err), "should return correct error code")
+		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
 	}()
 
 	wait()
@@ -305,6 +282,7 @@ func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestLimitToUserFor
 			nulls.NewUUID(testutil.NewUUIDV4()))
 		suite.Require().Error(err, "should fail")
 		suite.Equal(meh.ErrForbidden, meh.ErrorCode(err), "should return correct error code")
+		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
 	}()
 
 	wait()
@@ -323,129 +301,20 @@ func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestRetrieveOldCha
 		defer cancel()
 		err := suite.ctrl.Ctrl.UpdateChannelsByAddressBookEntry(timeout, suite.sampleEntryID, suite.newChannels, uuid.NullUUID{})
 		suite.Error(err, "should fail")
+		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
 	}()
 
 	wait()
 }
 
-func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestDuplicateChannelIDs() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.newChannels = append(suite.newChannels, suite.newChannels...)
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID, uuid.NullUUID{}).
-		Return(suite.entry, nil)
-	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID).
-		Return(suite.oldChannels, nil)
-	defer suite.ctrl.Store.AssertExpectations(suite.T())
-
-	go func() {
-		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateChannelsByAddressBookEntry(timeout, suite.sampleEntryID, suite.newChannels, uuid.NullUUID{})
-		suite.Error(err, "should fail")
-	}()
-
-	wait()
-}
-
-func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestUnknownChannel() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.newChannels[0].ID = testutil.NewUUIDV4()
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID, uuid.NullUUID{}).
-		Return(suite.entry, nil)
-	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID).
-		Return(suite.oldChannels, nil)
-	defer suite.ctrl.Store.AssertExpectations(suite.T())
-
-	go func() {
-		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateChannelsByAddressBookEntry(timeout, suite.sampleEntryID, suite.newChannels, uuid.NullUUID{})
-		suite.Error(err, "should fail")
-	}()
-
-	wait()
-}
-
-func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestDeleteChannelFail() {
+func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestRetrieveAssociatedDeliveryAttemptsFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
 	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID, uuid.NullUUID{}).
 		Return(suite.entry, nil)
 	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID).
 		Return(suite.oldChannels, nil)
-	suite.ctrl.Store.On("DeleteChannelWithDetailsByID", timeout, suite.ctrl.DB.Tx[0], mock.Anything, mock.Anything).
-		Return(errors.New("sad life"))
-	defer suite.ctrl.Store.AssertExpectations(suite.T())
-
-	go func() {
-		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateChannelsByAddressBookEntry(timeout, suite.sampleEntryID, suite.newChannels, uuid.NullUUID{})
-		suite.Error(err, "should fail")
-	}()
-
-	wait()
-}
-
-func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestCreateChannelFail() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID, uuid.NullUUID{}).
-		Return(suite.entry, nil)
-	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID).
-		Return(suite.oldChannels, nil)
-	suite.ctrl.Store.On("DeleteChannelWithDetailsByID", timeout, suite.ctrl.DB.Tx[0], mock.Anything, mock.Anything).
-		Return(nil)
-	suite.ctrl.Store.On("CreateChannelWithDetails", timeout, suite.ctrl.DB.Tx[0], mock.Anything).
-		Return(errors.New("sad life"))
-	defer suite.ctrl.Store.AssertExpectations(suite.T())
-
-	go func() {
-		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateChannelsByAddressBookEntry(timeout, suite.sampleEntryID, suite.newChannels, uuid.NullUUID{})
-		suite.Error(err, "should fail")
-	}()
-
-	wait()
-}
-
-func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestUpdateChannelFail() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID, uuid.NullUUID{}).
-		Return(suite.entry, nil)
-	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID).
-		Return(suite.oldChannels, nil)
-	suite.ctrl.Store.On("DeleteChannelWithDetailsByID", timeout, suite.ctrl.DB.Tx[0], mock.Anything, mock.Anything).
-		Return(nil)
-	suite.ctrl.Store.On("CreateChannelWithDetails", timeout, suite.ctrl.DB.Tx[0], mock.Anything).
-		Return(nil)
-	suite.ctrl.Store.On("UpdateChannelWithDetails", timeout, suite.ctrl.DB.Tx[0], mock.Anything).
-		Return(errors.New("sad life"))
-	defer suite.ctrl.Store.AssertExpectations(suite.T())
-
-	go func() {
-		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateChannelsByAddressBookEntry(timeout, suite.sampleEntryID, suite.newChannels, uuid.NullUUID{})
-		suite.Error(err, "should fail")
-	}()
-
-	wait()
-}
-
-func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestRetrieveFinalUpdatedChannelsFail() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
-	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID, uuid.NullUUID{}).
-		Return(suite.entry, nil)
-	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID).
-		Return(suite.oldChannels, nil).Once()
-	suite.ctrl.Store.On("DeleteChannelWithDetailsByID", timeout, suite.ctrl.DB.Tx[0], mock.Anything, mock.Anything).
-		Return(nil)
-	suite.ctrl.Store.On("CreateChannelWithDetails", timeout, suite.ctrl.DB.Tx[0], mock.Anything).
-		Return(nil)
-	suite.ctrl.Store.On("UpdateChannelWithDetails", timeout, suite.ctrl.DB.Tx[0], mock.Anything).
-		Return(nil)
-	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], mock.Anything).
+	suite.ctrl.Store.On("ActiveIntelDeliveryAttemptsByChannelsAndLockOrWait", timeout, suite.ctrl.DB.Tx[0], suite.oldChannelIDs).
 		Return(nil, errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
@@ -453,35 +322,197 @@ func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestRetrieveFinalU
 		defer cancel()
 		err := suite.ctrl.Ctrl.UpdateChannelsByAddressBookEntry(timeout, suite.sampleEntryID, suite.newChannels, uuid.NullUUID{})
 		suite.Error(err, "should fail")
+		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
 	}()
 
 	wait()
 }
 
-func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestNotifyFail() {
+func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestNotifyAboutAffectedAttemptFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	activeAttempt := store.IntelDeliveryAttempt{
+		ID:        testutil.NewUUIDV4(),
+		Delivery:  testutil.NewUUIDV4(),
+		Channel:   testutil.NewUUIDV4(),
+		CreatedAt: time.Now().UTC(),
+		IsActive:  true,
+		Status:    store.IntelDeliveryStatusDelivering,
+		StatusTS:  time.Now().UTC(),
+		Note:      nulls.NewString("material"),
+	}
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
 	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID, uuid.NullUUID{}).
 		Return(suite.entry, nil)
 	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID).
 		Return(suite.oldChannels, nil)
-	suite.ctrl.Store.On("DeleteChannelWithDetailsByID", timeout, suite.ctrl.DB.Tx[0], mock.Anything, mock.Anything).
-		Return(nil)
-	suite.ctrl.Store.On("CreateChannelWithDetails", timeout, suite.ctrl.DB.Tx[0], mock.Anything).
-		Return(nil)
-	suite.ctrl.Store.On("UpdateChannelWithDetails", timeout, suite.ctrl.DB.Tx[0], mock.Anything).
-		Return(nil)
-	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], mock.Anything).
-		Return(suite.newChannels, nil)
+	suite.ctrl.Store.On("ActiveIntelDeliveryAttemptsByChannelsAndLockOrWait", timeout, suite.ctrl.DB.Tx[0], suite.oldChannelIDs).
+		Return([]store.IntelDeliveryAttempt{activeAttempt}, nil)
+	suite.ctrl.Notifier.On("NotifyIntelDeliveryAttemptStatusUpdated", timeout, suite.ctrl.DB.Tx[0], mock.Anything).
+		Return(errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyAddressBookEntryChannelsUpdated", timeout, suite.ctrl.DB.Tx[0], mock.Anything, mock.Anything).
-		Return(errors.New("sad lifei"))
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
 		err := suite.ctrl.Ctrl.UpdateChannelsByAddressBookEntry(timeout, suite.sampleEntryID, suite.newChannels, uuid.NullUUID{})
 		suite.Error(err, "should fail")
+		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestDeleteDeliveryAttemptsFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	activeAttempt := store.IntelDeliveryAttempt{
+		ID:        testutil.NewUUIDV4(),
+		Delivery:  testutil.NewUUIDV4(),
+		Channel:   testutil.NewUUIDV4(),
+		CreatedAt: time.Now().UTC(),
+		IsActive:  true,
+		Status:    store.IntelDeliveryStatusDelivering,
+		StatusTS:  time.Now().UTC(),
+		Note:      nulls.NewString("material"),
+	}
+	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
+	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID, uuid.NullUUID{}).
+		Return(suite.entry, nil)
+	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID).
+		Return(suite.oldChannels, nil)
+	suite.ctrl.Store.On("ActiveIntelDeliveryAttemptsByChannelsAndLockOrWait", timeout, suite.ctrl.DB.Tx[0], suite.oldChannelIDs).
+		Return([]store.IntelDeliveryAttempt{activeAttempt}, nil)
+	suite.ctrl.Notifier.On("NotifyIntelDeliveryAttemptStatusUpdated", timeout, suite.ctrl.DB.Tx[0], mock.Anything).
+		Return(nil)
+	suite.ctrl.Store.On("DeleteIntelDeliveryAttemptsByChannel", timeout, suite.ctrl.DB.Tx[0], mock.Anything).
+		Return(errors.New("sad life"))
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.UpdateChannelsByAddressBookEntry(timeout, suite.sampleEntryID, suite.newChannels, uuid.NullUUID{})
+		suite.Error(err, "should fail")
+		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestUpdateChannelsFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
+	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID, uuid.NullUUID{}).
+		Return(suite.entry, nil)
+	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID).
+		Return(suite.oldChannels, nil)
+	suite.ctrl.Store.On("ActiveIntelDeliveryAttemptsByChannelsAndLockOrWait", timeout, suite.ctrl.DB.Tx[0], suite.oldChannelIDs).
+		Return(nil, nil)
+	suite.ctrl.Store.On("DeleteIntelDeliveryAttemptsByChannel", timeout, suite.ctrl.DB.Tx[0], mock.Anything).
+		Return(nil)
+	suite.ctrl.Store.On("UpdateChannelsByEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID, suite.newChannels).
+		Return(errors.New("sad life"))
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.UpdateChannelsByAddressBookEntry(timeout, suite.sampleEntryID, suite.newChannels, uuid.NullUUID{})
+		suite.Error(err, "should fail")
+		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestRetrieveFinalChannelsFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
+	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID, uuid.NullUUID{}).
+		Return(suite.entry, nil).Once()
+	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID).
+		Return(suite.oldChannels, nil).Once()
+	suite.ctrl.Store.On("ActiveIntelDeliveryAttemptsByChannelsAndLockOrWait", timeout, suite.ctrl.DB.Tx[0], suite.oldChannelIDs).
+		Return(nil, nil)
+	suite.ctrl.Store.On("DeleteIntelDeliveryAttemptsByChannel", timeout, suite.ctrl.DB.Tx[0], mock.Anything).
+		Return(nil)
+	suite.ctrl.Store.On("UpdateChannelsByEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID, suite.newChannels).
+		Return(nil).Once()
+	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID).
+		Return(nil, errors.New("sad life")).Once()
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.UpdateChannelsByAddressBookEntry(timeout, suite.sampleEntryID, suite.newChannels, uuid.NullUUID{})
+		suite.Error(err, "should fail")
+		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestNotifyAboutUpdatedChannelsFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
+	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID, uuid.NullUUID{}).
+		Return(suite.entry, nil).Once()
+	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID).
+		Return(suite.oldChannels, nil).Once()
+	suite.ctrl.Store.On("ActiveIntelDeliveryAttemptsByChannelsAndLockOrWait", timeout, suite.ctrl.DB.Tx[0], suite.oldChannelIDs).
+		Return(nil, nil)
+	suite.ctrl.Store.On("DeleteIntelDeliveryAttemptsByChannel", timeout, suite.ctrl.DB.Tx[0], mock.Anything).
+		Return(nil)
+	suite.ctrl.Store.On("UpdateChannelsByEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID, suite.newChannels).
+		Return(nil).Once()
+	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID).
+		Return(suite.updatedChannels, nil).Once()
+	suite.ctrl.Notifier.On("NotifyAddressBookEntryChannelsUpdated", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID, suite.updatedChannels).
+		Return(errors.New("sad life"))
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.UpdateChannelsByAddressBookEntry(timeout, suite.sampleEntryID, suite.newChannels, uuid.NullUUID{})
+		suite.Error(err, "should fail")
+		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestLookAfterAffectedDeliveriesFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	affectedDelivery := testutil.NewUUIDV4()
+	attempt := store.IntelDeliveryAttempt{Delivery: affectedDelivery}
+	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
+	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID, uuid.NullUUID{}).
+		Return(suite.entry, nil).Once()
+	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID).
+		Return(suite.oldChannels, nil).Once()
+	suite.ctrl.Store.On("ActiveIntelDeliveryAttemptsByChannelsAndLockOrWait", timeout, suite.ctrl.DB.Tx[0], suite.oldChannelIDs).
+		Return([]store.IntelDeliveryAttempt{attempt}, nil)
+	suite.ctrl.Notifier.On("NotifyIntelDeliveryAttemptStatusUpdated", timeout, suite.ctrl.DB.Tx[0], mock.Anything).
+		Return(nil)
+	suite.ctrl.Store.On("DeleteIntelDeliveryAttemptsByChannel", timeout, suite.ctrl.DB.Tx[0], mock.Anything).
+		Return(nil)
+	suite.ctrl.Store.On("UpdateChannelsByEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID, suite.newChannels).
+		Return(nil).Once()
+	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID).
+		Return(suite.updatedChannels, nil).Once()
+	suite.ctrl.Notifier.On("NotifyAddressBookEntryChannelsUpdated", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID, suite.updatedChannels).
+		Return(nil)
+	suite.ctrl.Store.On("IntelDeliveryByID", timeout, suite.ctrl.DB.Tx[0], affectedDelivery).
+		Return(store.IntelDelivery{}, errors.New("sad life"))
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.UpdateChannelsByAddressBookEntry(timeout, suite.sampleEntryID, suite.newChannels, uuid.NullUUID{})
+		suite.Error(err, "should fail")
+		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
 	}()
 
 	wait()
@@ -489,42 +520,49 @@ func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestNotifyFail() {
 
 func (suite *ControllerUpdateChannelsByAddressBookEntrySuite) TestOK() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	affectedDeliveries := []uuid.UUID{
+		testutil.NewUUIDV4(),
+		testutil.NewUUIDV4(),
+		testutil.NewUUIDV4(),
+	}
+	attempts := make([]store.IntelDeliveryAttempt, 0, len(affectedDeliveries))
+	for _, delivery := range affectedDeliveries {
+		attempts = append(attempts, store.IntelDeliveryAttempt{
+			ID:       testutil.NewUUIDV4(),
+			Delivery: delivery,
+		})
+	}
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
 	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID, uuid.NullUUID{}).
 		Return(suite.entry, nil).Once()
 	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID).
 		Return(suite.oldChannels, nil).Once()
-	// Channels to delete.
-	for i := range suite.channelsToDelete {
-		channel := suite.channelsToDelete[i]
-		suite.ctrl.Store.On("DeleteChannelWithDetailsByID", timeout, suite.ctrl.DB.Tx[0], channel.ID, channel.Type).
+	suite.ctrl.Store.On("ActiveIntelDeliveryAttemptsByChannelsAndLockOrWait", timeout, suite.ctrl.DB.Tx[0], suite.oldChannelIDs).
+		Return(attempts, nil)
+	suite.ctrl.Notifier.On("NotifyIntelDeliveryAttemptStatusUpdated", timeout, suite.ctrl.DB.Tx[0], mock.Anything).
+		Return(nil).Times(len(attempts))
+	for _, oldChannelID := range suite.oldChannelIDs {
+		suite.ctrl.Store.On("DeleteIntelDeliveryAttemptsByChannel", timeout, suite.ctrl.DB.Tx[0], oldChannelID).
 			Return(nil).Once()
 	}
-	// Channels to create.
-	for i := range suite.channelsToCreate {
-		channel := suite.channelsToCreate[i]
-		suite.ctrl.Store.On("CreateChannelWithDetails", timeout, suite.ctrl.DB.Tx[0], channel).
-			Return(nil).Once()
-	}
-	// Channels to update.
-	for i := range suite.channelsToUpdate {
-		channel := suite.channelsToUpdate[i]
-		suite.ctrl.Store.On("UpdateChannelWithDetails", timeout, suite.ctrl.DB.Tx[0], channel).
-			Return(nil).Once()
-	}
+	suite.ctrl.Store.On("UpdateChannelsByEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID, suite.newChannels).
+		Return(nil).Once()
 	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID).
-		Return(suite.finalChannels, nil).Once()
+		Return(suite.updatedChannels, nil).Once()
+	suite.ctrl.Notifier.On("NotifyAddressBookEntryChannelsUpdated", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID, suite.updatedChannels).
+		Return(nil).Once()
+	for _, affectedDelivery := range affectedDeliveries {
+		suite.ctrl.Store.On("IntelDeliveryByID", timeout, suite.ctrl.DB.Tx[0], affectedDelivery).
+			Return(store.IntelDelivery{IsActive: false}, nil).Once()
+	}
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	suite.ctrl.Notifier.On("NotifyAddressBookEntryChannelsUpdated", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntryID, suite.finalChannels).
-		Return(nil)
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.UpdateChannelsByAddressBookEntry(timeout, suite.sampleEntryID, suite.newChannels,
-			nulls.NewUUID(suite.entry.User.UUID))
+		err := suite.ctrl.Ctrl.UpdateChannelsByAddressBookEntry(timeout, suite.sampleEntryID, suite.newChannels, uuid.NullUUID{})
 		suite.NoError(err, "should not fail")
-		suite.True(suite.ctrl.DB.Tx[0].IsCommitted, "should commit")
+		suite.True(suite.ctrl.DB.Tx[0].IsCommitted, "should commit tx")
 	}()
 
 	wait()

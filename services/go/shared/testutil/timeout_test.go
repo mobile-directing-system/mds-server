@@ -24,7 +24,7 @@ type NewTimeoutSuite struct {
 
 func (suite *NewTimeoutSuite) SetupTest() {
 	suite.failer = &TestFailerMock{}
-	suite.timeout = 5 * time.Millisecond
+	suite.timeout = 100 * time.Millisecond
 }
 
 func (suite *NewTimeoutSuite) TestTimeout() {

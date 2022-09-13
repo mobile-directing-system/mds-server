@@ -23,20 +23,3 @@ func (m *Mall) CreateUser(ctx context.Context, tx pgx.Tx, userID uuid.UUID) erro
 	}
 	return nil
 }
-
-// DeleteUserByID deletes the user with the given id.
-func (m *Mall) DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error {
-	q, _, err := goqu.Delete(goqu.T("users")).
-		Where(goqu.C("id").Eq(userID)).ToSQL()
-	if err != nil {
-		return meh.NewInternalErrFromErr(err, "query to sql", nil)
-	}
-	result, err := tx.Exec(ctx, q)
-	if err != nil {
-		return mehpg.NewQueryDBErr(err, "exec query", q)
-	}
-	if result.RowsAffected() == 0 {
-		return meh.NewNotFoundErr("not found", nil)
-	}
-	return nil
-}

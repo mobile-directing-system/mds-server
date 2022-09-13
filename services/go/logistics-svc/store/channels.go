@@ -77,12 +77,8 @@ type channelOperator interface {
 	getChannelDetailsByChannel(ctx context.Context, tx pgx.Tx, channelID uuid.UUID) (ChannelDetails, error)
 }
 
-// TODO: maybe adjust channel operators to provide some way of querying with multiple ids?
-
 // TODO: If entry is a user-entry, forbid setting label manually (or changing)
 //  as this should always be the user's first- and lastname.
-
-// TODO: addressbuch sollte später auch routing machen.
 
 // ChannelsByAddressBookEntry retrieves all channels for the address book entry
 // with the given id.
@@ -278,40 +274,26 @@ func (m *Mall) CreateChannelWithDetails(ctx context.Context, tx pgx.Tx, channel 
 	return nil
 }
 
-// UpdateChannelWithDetails updates the given Channel with its details.
-//
-// Warning: No entry existence checks are performed!
-func (m *Mall) UpdateChannelWithDetails(ctx context.Context, tx pgx.Tx, channel Channel) error {
-	// Set details.
-	operator, ok := m.channelOperators[channel.Type]
-	if !ok {
-		return meh.NewInternalErr("missing channel operator", meh.Details{"channel_type": channel.Type})
-	}
-	err := operator.setChannelDetailsByChannel(ctx, tx, channel.ID, channel.Details)
+// UpdateChannelsByEntry deletes old channels for the given entry and creates
+// the new given ones.
+func (m *Mall) UpdateChannelsByEntry(ctx context.Context, tx pgx.Tx, entryID uuid.UUID, newChannels []Channel) error {
+	oldChannels, err := m.ChannelsByAddressBookEntry(ctx, tx, entryID)
 	if err != nil {
-		return meh.Wrap(err, "set channel details", meh.Details{
-			"channel_id":      channel.ID,
-			"channel_details": channel.Details,
-		})
+		return meh.Wrap(err, "channels by address book entry", meh.Details{"entry_id": entryID})
 	}
-	// Update channel itself.
-	q, _, err := m.dialect.Update(goqu.T("channels")).Set(goqu.Record{
-		"entry":          channel.Entry,
-		"label":          channel.Label,
-		"type":           channel.Type,
-		"priority":       channel.Priority,
-		"min_importance": channel.MinImportance,
-		"timeout":        channel.Timeout,
-	}).Where(goqu.C("id").Eq(channel.ID)).ToSQL()
-	if err != nil {
-		return meh.NewInternalErrFromErr(err, "query to sql", nil)
+	// Delete old channels.
+	for _, oldChannel := range oldChannels {
+		err = m.DeleteChannelWithDetailsByID(ctx, tx, oldChannel.ID, oldChannel.Type)
+		if err != nil {
+			return meh.Wrap(err, "delete channel with details by id", meh.Details{"channel_id": oldChannel.ID})
+		}
 	}
-	result, err := tx.Exec(ctx, q)
-	if err != nil {
-		return mehpg.NewQueryDBErr(err, "exec query", q)
-	}
-	if result.RowsAffected() == 0 {
-		return meh.NewInternalErr("channel must exist but did not", nil)
+	// Create new channels.
+	for _, newChannel := range newChannels {
+		err = m.CreateChannelWithDetails(ctx, tx, newChannel)
+		if err != nil {
+			return meh.Wrap(err, "create channel with details", meh.Details{"new_channel": newChannel})
+		}
 	}
 	return nil
 }

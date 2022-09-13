@@ -18,6 +18,8 @@ type User struct {
 	Username string `json:"username"`
 	// IsAdmin describes whether the user is an admin.
 	IsAdmin bool `json:"isAdmin"`
+	// IsActive describes whether the user is active.
+	IsActive bool `json:"isActive"`
 }
 
 // UserWithPass holds an User with the hashed password.
@@ -62,6 +64,7 @@ func (m *Mall) UserWithPassByUsername(ctx context.Context, tx pgx.Tx, username s
 		Select(goqu.C("id"),
 			goqu.C("username"),
 			goqu.C("is_admin"),
+			goqu.C("is_active"),
 			goqu.C("pass")).
 		Where(goqu.C("username").Eq(username)).ToSQL()
 	if err != nil {
@@ -81,6 +84,7 @@ func (m *Mall) UserWithPassByUsername(ctx context.Context, tx pgx.Tx, username s
 	err = rows.Scan(&user.ID,
 		&user.Username,
 		&user.IsAdmin,
+		&user.IsActive,
 		&user.Pass)
 	if err != nil {
 		return UserWithPass{}, mehpg.NewScanRowsErr(err, "scan row", q)
@@ -95,6 +99,7 @@ func (m *Mall) UserWithPassByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID
 		Select(goqu.C("id"),
 			goqu.C("username"),
 			goqu.C("is_admin"),
+			goqu.C("is_active"),
 			goqu.C("pass")).
 		Where(goqu.C("id").Eq(userID)).ToSQL()
 	if err != nil {
@@ -114,6 +119,7 @@ func (m *Mall) UserWithPassByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID
 	err = rows.Scan(&user.ID,
 		&user.Username,
 		&user.IsAdmin,
+		&user.IsActive,
 		&user.Pass)
 	if err != nil {
 		return UserWithPass{}, mehpg.NewScanRowsErr(err, "scan row", q)
@@ -125,10 +131,11 @@ func (m *Mall) UserWithPassByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID
 func (m *Mall) CreateUser(ctx context.Context, tx pgx.Tx, user UserWithPass) error {
 	// Build query.
 	q, _, err := goqu.Insert(goqu.T("users")).Rows(goqu.Record{
-		"id":       user.ID,
-		"username": user.Username,
-		"is_admin": user.IsAdmin,
-		"pass":     user.Pass,
+		"id":        user.ID,
+		"username":  user.Username,
+		"is_admin":  user.IsAdmin,
+		"is_active": user.IsActive,
+		"pass":      user.Pass,
 	}).ToSQL()
 	if err != nil {
 		return meh.NewInternalErrFromErr(err, "query to sql", nil)
@@ -145,8 +152,9 @@ func (m *Mall) CreateUser(ctx context.Context, tx pgx.Tx, user UserWithPass) err
 func (m *Mall) UpdateUser(ctx context.Context, tx pgx.Tx, user User) error {
 	// Build query.
 	q, _, err := goqu.Update(goqu.T("users")).Set(goqu.Record{
-		"username": user.Username,
-		"is_admin": user.IsAdmin,
+		"username":  user.Username,
+		"is_admin":  user.IsAdmin,
+		"is_active": user.IsActive,
 	}).Where(goqu.C("id").Eq(user.ID)).ToSQL()
 	if err != nil {
 		return meh.NewInternalErrFromErr(err, "query to sql", nil)
@@ -169,26 +177,6 @@ func (m *Mall) UpdateUserPassByUserID(ctx context.Context, tx pgx.Tx, userID uui
 	q, _, err := goqu.Update(goqu.T("users")).Set(goqu.Record{
 		"pass": newPass,
 	}).Where(goqu.C("id").Eq(userID)).ToSQL()
-	if err != nil {
-		return meh.NewInternalErrFromErr(err, "query to sql", nil)
-	}
-	// Exec.
-	result, err := tx.Exec(ctx, q)
-	if err != nil {
-		return mehpg.NewQueryDBErr(err, "exec query", q)
-	}
-	// Assure found.
-	if result.RowsAffected() == 0 {
-		return meh.NewNotFoundErr("user not found", nil)
-	}
-	return nil
-}
-
-// DeleteUserByID deletes the user with the given id.
-func (m *Mall) DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error {
-	// Build query.
-	q, _, err := goqu.Delete(goqu.T("users")).
-		Where(goqu.C("id").Eq(userID)).ToSQL()
 	if err != nil {
 		return meh.NewInternalErrFromErr(err, "query to sql", nil)
 	}

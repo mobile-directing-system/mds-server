@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"fmt"
 	"github.com/doug-martin/goqu/v9"
 	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v4"
@@ -19,6 +20,7 @@ const userSearchAttrID search.Attribute = "id"
 const userSearchAttrUsername search.Attribute = "username"
 const userSearchAttrFirstName search.Attribute = "first_name"
 const userSearchAttrLastName search.Attribute = "last_name"
+const userSearchAttrIsActive search.Attribute = "is_active"
 
 var userSearchIndexConfig = search.IndexConfig{
 	PrimaryKey: userSearchAttrID,
@@ -26,10 +28,11 @@ var userSearchIndexConfig = search.IndexConfig{
 		userSearchAttrUsername,
 		userSearchAttrFirstName,
 		userSearchAttrLastName,
-		userSearchAttrID,
 	},
-	Filterable: nil,
-	Sortable:   nil,
+	Filterable: []search.Attribute{
+		userSearchAttrIsActive,
+	},
+	Sortable: nil,
 }
 
 // User contains all stored user information.
@@ -44,6 +47,9 @@ type User struct {
 	LastName string
 	// IsAdmin describes whether the User is an administrator.
 	IsAdmin bool
+	// IsActive describes whether the user is active or not. Used instead of
+	// deleting users.
+	IsActive bool
 }
 
 // Validate assures that Username, FirstName and LastName are not empty.
@@ -68,6 +74,7 @@ func documentFromUser(u User) search.Document {
 		userSearchAttrUsername:  u.Username,
 		userSearchAttrFirstName: u.FirstName,
 		userSearchAttrLastName:  u.LastName,
+		userSearchAttrIsActive:  u.IsActive,
 	}
 }
 
@@ -100,7 +107,8 @@ func (m *Mall) UserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) (User,
 			goqu.C("username"),
 			goqu.C("first_name"),
 			goqu.C("last_name"),
-			goqu.C("is_admin")).
+			goqu.C("is_admin"),
+			goqu.C("is_active")).
 		Where(goqu.C("id").Eq(userID)).ToSQL()
 	if err != nil {
 		return User{}, meh.NewInternalErrFromErr(err, "query to sql", nil)
@@ -120,7 +128,8 @@ func (m *Mall) UserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) (User,
 		&user.Username,
 		&user.FirstName,
 		&user.LastName,
-		&user.IsAdmin)
+		&user.IsAdmin,
+		&user.IsActive)
 	if err != nil {
 		return User{}, mehpg.NewScanRowsErr(err, "scan row", q)
 	}
@@ -135,7 +144,8 @@ func (m *Mall) UserByUsername(ctx context.Context, tx pgx.Tx, username string) (
 			goqu.C("username"),
 			goqu.C("first_name"),
 			goqu.C("last_name"),
-			goqu.C("is_admin")).
+			goqu.C("is_admin"),
+			goqu.C("is_active")).
 		Where(goqu.C("username").Eq(username)).ToSQL()
 	if err != nil {
 		return User{}, meh.NewInternalErrFromErr(err, "query to sql", nil)
@@ -155,23 +165,35 @@ func (m *Mall) UserByUsername(ctx context.Context, tx pgx.Tx, username string) (
 		&user.Username,
 		&user.FirstName,
 		&user.LastName,
-		&user.IsAdmin)
+		&user.IsAdmin,
+		&user.IsActive)
 	if err != nil {
 		return User{}, mehpg.NewScanRowsErr(err, "scan row", q)
 	}
 	return user, nil
 }
 
+// UserFilters for user retrieval.
+type UserFilters struct {
+	// IncludeInactive includes inactive users.
+	IncludeInactive bool
+}
+
 // Users retrieves all known users.
-func (m *Mall) Users(ctx context.Context, tx pgx.Tx, params pagination.Params) (pagination.Paginated[User], error) {
+func (m *Mall) Users(ctx context.Context, tx pgx.Tx, filters UserFilters, params pagination.Params) (pagination.Paginated[User], error) {
 	// Build query.
-	q, _, err := pagination.QueryToSQLWithPagination(m.dialect.From(goqu.T("users")).
+	qb := m.dialect.From(goqu.T("users")).
 		Select(goqu.C("id"),
 			goqu.C("username"),
 			goqu.C("first_name"),
 			goqu.C("last_name"),
-			goqu.C("is_admin")).
-		Order(goqu.C("username").Asc()), params, pagination.FieldMap{
+			goqu.C("is_admin"),
+			goqu.C("is_active")).
+		Order(goqu.C("username").Asc())
+	if !filters.IncludeInactive {
+		qb.Where(goqu.C("is_active").IsTrue())
+	}
+	q, _, err := pagination.QueryToSQLWithPagination(qb, params, pagination.FieldMap{
 		"username":   goqu.C("username"),
 		"first_name": goqu.C("first_name"),
 		"last_name":  goqu.C("last_name"),
@@ -196,6 +218,7 @@ func (m *Mall) Users(ctx context.Context, tx pgx.Tx, params pagination.Params) (
 			&user.FirstName,
 			&user.LastName,
 			&user.IsAdmin,
+			&user.IsActive,
 			&total)
 		if err != nil {
 			return pagination.Paginated[User]{}, mehpg.NewScanRowsErr(err, "scan row", q)
@@ -214,6 +237,7 @@ func (m *Mall) CreateUser(ctx context.Context, tx pgx.Tx, user UserWithPass) (Us
 		"last_name":  user.LastName,
 		"is_admin":   user.IsAdmin,
 		"pass":       user.Pass,
+		"is_active":  user.IsActive,
 	}).Returning(goqu.C("id")).ToSQL()
 	if err != nil {
 		return User{}, meh.NewInternalErrFromErr(err, "query to sql", nil)
@@ -252,6 +276,7 @@ func (m *Mall) UpdateUser(ctx context.Context, tx pgx.Tx, user User) error {
 		"first_name": user.FirstName,
 		"last_name":  user.LastName,
 		"is_admin":   user.IsAdmin,
+		"is_active":  user.IsActive,
 	}).Where(goqu.C("id").Eq(user.ID)).ToSQL()
 	if err != nil {
 		return meh.NewInternalErrFromErr(err, "query to sql", nil)
@@ -268,30 +293,6 @@ func (m *Mall) UpdateUser(ctx context.Context, tx pgx.Tx, user User) error {
 	err = m.searchClient.SafeAddOrUpdateDocument(ctx, tx, userSearchIndex, documentFromUser(user))
 	if err != nil {
 		return meh.Wrap(err, "safe add or update in search", nil)
-	}
-	return nil
-}
-
-// DeleteUserByID deletes the user with the given id.
-func (m *Mall) DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error {
-	// Build query.
-	q, _, err := m.dialect.Delete(goqu.T("users")).
-		Where(goqu.C("id").Eq(userID)).ToSQL()
-	if err != nil {
-		return meh.NewInternalErrFromErr(err, "query to sql", nil)
-	}
-	// Exec.
-	result, err := tx.Exec(ctx, q)
-	if err != nil {
-		return mehpg.NewQueryDBErr(err, "exec query", q)
-	}
-	if result.RowsAffected() == 0 {
-		return meh.NewNotFoundErr("user not found", nil)
-	}
-	// Delete from search.
-	err = m.searchClient.SafeDeleteDocumentByUUID(ctx, tx, userSearchIndex, userID)
-	if err != nil {
-		return meh.Wrap(err, "safe delete in search", nil)
 	}
 	return nil
 }
@@ -318,9 +319,17 @@ func (m *Mall) UpdateUserPassByUserID(ctx context.Context, tx pgx.Tx, userID uui
 }
 
 // SearchUsers searches for users with the given search.Params.
-func (m *Mall) SearchUsers(ctx context.Context, tx pgx.Tx, searchParams search.Params) (search.Result[User], error) {
+func (m *Mall) SearchUsers(ctx context.Context, tx pgx.Tx, filters UserFilters, searchParams search.Params) (search.Result[User], error) {
 	// Search.
-	resultUUIDs, err := search.UUIDSearch(m.searchClient, userSearchIndex, searchParams, search.Request{})
+	var searchFilters [][]string
+	if !filters.IncludeInactive {
+		searchFilters = append(searchFilters, []string{
+			fmt.Sprintf("%s = true", userSearchAttrIsActive),
+		})
+	}
+	resultUUIDs, err := search.UUIDSearch(m.searchClient, userSearchIndex, searchParams, search.Request{
+		Filter: searchFilters,
+	})
 	if err != nil {
 		return search.Result[User]{}, meh.Wrap(err, "search uuids", meh.Details{
 			"index":  userSearchIndex,
@@ -333,7 +342,8 @@ func (m *Mall) SearchUsers(ctx context.Context, tx pgx.Tx, searchParams search.P
 			goqu.I("users.username"),
 			goqu.I("users.first_name"),
 			goqu.I("users.last_name"),
-			goqu.I("users.is_admin")), goqu.I("users.id"), resultUUIDs.Hits).ToSQL()
+			goqu.I("users.is_admin"),
+			goqu.I("users.is_active")), goqu.I("users.id"), resultUUIDs.Hits).ToSQL()
 	if err != nil {
 		return search.Result[User]{}, meh.NewInternalErrFromErr(err, "query to sql", nil)
 	}
@@ -351,7 +361,8 @@ func (m *Mall) SearchUsers(ctx context.Context, tx pgx.Tx, searchParams search.P
 			&user.Username,
 			&user.FirstName,
 			&user.LastName,
-			&user.IsAdmin)
+			&user.IsAdmin,
+			&user.IsActive)
 		if err != nil {
 			return search.Result[User]{}, mehpg.NewScanRowsErr(err, "scan row", q)
 		}

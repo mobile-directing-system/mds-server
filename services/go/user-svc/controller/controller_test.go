@@ -54,8 +54,8 @@ func (m *StoreMock) UserByUsername(ctx context.Context, tx pgx.Tx, username stri
 	return args.Get(0).(store.User), args.Error(1)
 }
 
-func (m *StoreMock) Users(ctx context.Context, tx pgx.Tx, params pagination.Params) (pagination.Paginated[store.User], error) {
-	args := m.Called(ctx, tx, params)
+func (m *StoreMock) Users(ctx context.Context, tx pgx.Tx, filters store.UserFilters, params pagination.Params) (pagination.Paginated[store.User], error) {
+	args := m.Called(ctx, tx, filters, params)
 	return args.Get(0).(pagination.Paginated[store.User]), args.Error(1)
 }
 
@@ -76,8 +76,9 @@ func (m *StoreMock) UpdateUserPassByUserID(ctx context.Context, tx pgx.Tx, userI
 	return m.Called(ctx, tx, userID, pass).Error(0)
 }
 
-func (m *StoreMock) SearchUsers(ctx context.Context, tx pgx.Tx, searchParams search.Params) (search.Result[store.User], error) {
-	args := m.Called(ctx, tx, searchParams)
+func (m *StoreMock) SearchUsers(ctx context.Context, tx pgx.Tx, filters store.UserFilters,
+	searchParams search.Params) (search.Result[store.User], error) {
+	args := m.Called(ctx, tx, filters, searchParams)
 	return args.Get(0).(search.Result[store.User]), args.Error(1)
 }
 

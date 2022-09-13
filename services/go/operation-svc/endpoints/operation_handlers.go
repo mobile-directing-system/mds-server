@@ -103,14 +103,11 @@ func storeOperationFromPublic(public publicOperation) store.Operation {
 
 // publicUser is the public representation of store.User.
 type publicUser struct {
-	// ID identifies the user.
-	ID uuid.UUID `json:"id"`
-	// Username for logging in.
-	Username string `json:"username"`
-	// FirstName of the user.
-	FirstName string `json:"first_name"`
-	// LastName of the user.
-	LastName string `json:"last_name"`
+	ID        uuid.UUID `json:"id"`
+	Username  string    `json:"username"`
+	FirstName string    `json:"first_name"`
+	LastName  string    `json:"last_name"`
+	IsActive  bool      `json:"is_active"`
 }
 
 // publicUserFromStore converts a store.User to publicUser.
@@ -120,6 +117,7 @@ func publicUserFromStore(s store.User) publicUser {
 		Username:  s.Username,
 		FirstName: s.FirstName,
 		LastName:  s.LastName,
+		IsActive:  s.IsActive,
 	}
 }
 

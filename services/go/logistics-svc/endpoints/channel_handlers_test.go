@@ -31,12 +31,12 @@ type storeChannelFromPublicSuite struct {
 }
 
 func (suite *storeChannelFromPublicSuite) SetupTest() {
-	details := publicPushChannelDetails{}
+	details := publicInAppNotificationChannelDetails{}
 	suite.samplePublicChannel = publicChannel{
 		ID:            testutil.NewUUIDV4(),
 		Entry:         testutil.NewUUIDV4(),
 		Label:         "flavor",
-		Type:          string(store.ChannelTypePush),
+		Type:          string(store.ChannelTypeInAppNotification),
 		Priority:      900,
 		MinImportance: 210,
 		Details:       testutil.MarshalJSONMust(details),
@@ -49,7 +49,7 @@ func (suite *storeChannelFromPublicSuite) SetupTest() {
 		Type:          store.ChannelType(suite.samplePublicChannel.Type),
 		Priority:      suite.samplePublicChannel.Priority,
 		MinImportance: suite.samplePublicChannel.MinImportance,
-		Details:       storePushChannelDetailsFromPublic(details),
+		Details:       storeInAppNotificationChannelDetailsFromPublic(details),
 		Timeout:       suite.samplePublicChannel.Timeout,
 	}
 }
@@ -163,10 +163,10 @@ func Test_storePhoneCallChannelDetailsFromPublic(t *testing.T) {
 	testStoreChannelDetailsFromPublic(t, store.ChannelTypePhoneCall, p, s)
 }
 
-func Test_storePushChannelDetailsFromPublic(t *testing.T) {
-	p := publicPushChannelDetails{}
-	s := store.PushChannelDetails{}
-	testStoreChannelDetailsFromPublic(t, store.ChannelTypePush, p, s)
+func Test_storeInAppNotificationChannelDetailsFromPublic(t *testing.T) {
+	p := publicInAppNotificationChannelDetails{}
+	s := store.InAppNotificationChannelDetails{}
+	testStoreChannelDetailsFromPublic(t, store.ChannelTypeInAppNotification, p, s)
 }
 
 func Test_storeRadioChannelDetailsFromPublic(t *testing.T) {
@@ -187,12 +187,12 @@ type publicChannelFromStoreSuite struct {
 }
 
 func (suite *publicChannelFromStoreSuite) SetupTest() {
-	details := store.PushChannelDetails{}
+	details := store.InAppNotificationChannelDetails{}
 	suite.sampleStoreChannel = store.Channel{
 		ID:            testutil.NewUUIDV4(),
 		Entry:         testutil.NewUUIDV4(),
 		Label:         "flavor",
-		Type:          store.ChannelTypePush,
+		Type:          store.ChannelTypeInAppNotification,
 		Priority:      900,
 		MinImportance: 210,
 		Details:       details,
@@ -322,10 +322,10 @@ func Test_publicPhoneCallChannelDetailsFromStore(t *testing.T) {
 	testPublicChannelDetailsFromStore(t, store.ChannelTypePhoneCall, p, s)
 }
 
-func Test_publicPushChannelDetailsFromStore(t *testing.T) {
-	p := store.PushChannelDetails{}
-	s := publicPushChannelDetails{}
-	testPublicChannelDetailsFromStore(t, store.ChannelTypePush, p, s)
+func Test_publicInAppNotificationChannelDetailsFromStore(t *testing.T) {
+	p := store.InAppNotificationChannelDetails{}
+	s := publicInAppNotificationChannelDetails{}
+	testPublicChannelDetailsFromStore(t, store.ChannelTypeInAppNotification, p, s)
 }
 
 func Test_publicRadioChannelDetailsFromStore(t *testing.T) {
@@ -368,10 +368,10 @@ func (suite *handleUpdateChannelsByAddressBookEntrySuite) SetupTest() {
 			ID:            testutil.NewUUIDV4(),
 			Entry:         suite.sampleEntryID,
 			Label:         "quarter",
-			Type:          string(store.ChannelTypePush),
+			Type:          string(store.ChannelTypeInAppNotification),
 			Priority:      966,
 			MinImportance: 292,
-			Details:       testutil.MarshalJSONMust(publicPushChannelDetails{}),
+			Details:       testutil.MarshalJSONMust(publicInAppNotificationChannelDetails{}),
 			Timeout:       386,
 		},
 		{

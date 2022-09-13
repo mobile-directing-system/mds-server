@@ -30,6 +30,14 @@ profiles:
           context: ./
           docker:
             dockerfile: services/go/logistics-svc/Dockerfile
+        - image: mds-intelligence-svc
+          context: ./
+          docker:
+            dockerfile: services/go/intelligence-svc/Dockerfile
+        - image: mds-in-app-notifier-svc
+          context: ./
+          docker:
+            dockerfile: services/go/in-app-notifier-svc/Dockerfile
         - image: mds-operation-svc
           context: ./
           docker:
@@ -42,6 +50,10 @@ profiles:
           context: ./
           docker:
             dockerfile: services/go/user-svc/Dockerfile
+        - image: mds-ws-hub-svc
+          context: ./
+          docker:
+            dockerfile: services/go/ws-hub-svc/Dockerfile
     deploy:
       kubectl:
         manifests:
@@ -59,6 +71,9 @@ profiles:
           - k8s/520_mds-operation-svc.yaml
           - k8s/521_mds-group-svc.yaml
           - k8s/530_mds-logistics-svc.yaml
+          - k8s/531_mds-intelligence-svc.yaml
+          - k8s/540_mds-in-app-notifier-svc.yaml
           - k8s/811_public-ingress.yaml
           - k8s/821_internal-ingress.yaml
+          - k8s/830_mds-ws-hub-svc.yaml
 

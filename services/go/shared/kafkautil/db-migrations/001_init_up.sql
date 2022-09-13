@@ -46,5 +46,5 @@ create index __message_outbox_status_ix on __message_outbox (status)
 
 -- Create ascending index for id as we will always choose the next oldest one for sending.
 
-create index __message_outbox_id_desc_idx on __message_outbox (id asc)
+create index __message_outbox_id_desc_ix on __message_outbox (id asc)
     where status != 200

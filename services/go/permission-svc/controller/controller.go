@@ -23,10 +23,6 @@ type Store interface {
 	AssureUserExists(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error
 	// CreateUser creates a user with the given id.
 	CreateUser(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error
-	// DeleteUserByID deletes the user with the given id.
-	//
-	// Warning: Keep in mind, that the user must not have any permissions assigned!
-	DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error
 	// PermissionsByUser retrieves the store.Permission list for the user with the
 	// given id.
 	PermissionsByUser(ctx context.Context, tx pgx.Tx, userID uuid.UUID) ([]store.Permission, error)

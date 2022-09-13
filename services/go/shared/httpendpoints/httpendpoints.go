@@ -14,6 +14,20 @@ import (
 	"time"
 )
 
+type noResponseWrapper struct {
+	wrapped error
+}
+
+func (w noResponseWrapper) Error() string {
+	return w.wrapped.Error()
+}
+
+// NoResponse is used in HandlerFunc for marking the given error as log-only.
+// This omits sending an error response to the requester.
+func NoResponse(err error) error {
+	return noResponseWrapper{wrapped: err}
+}
+
 // NewEngine returns a gin.Engine with preconfigured request-debug-logger.
 func NewEngine(logger *zap.Logger) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
@@ -104,8 +118,27 @@ func GinHandlerFunc(logger *zap.Logger, secret string, fn HandlerFunc) gin.Handl
 		// Call handler.
 		err = fn(c, token)
 		if err != nil {
+			if wrapped, ok := err.(noResponseWrapper); ok {
+				err = meh.ApplyDetails(wrapped.wrapped, meh.Details{"_no_response": true})
+				mehhttp.LogAndRespondError(logger, &noopWriter{}, c.Request, err)
+				return
+			}
 			mehgin.LogAndRespondError(logger, c, meh.ApplyDetails(err, meh.Details{"token": token}))
 			return
 		}
 	}
+}
+
+type noopWriter struct {
+}
+
+func (w noopWriter) Header() http.Header {
+	return http.Header{}
+}
+
+func (w noopWriter) Write(bytes []byte) (int, error) {
+	return len(bytes), nil
+}
+
+func (w noopWriter) WriteHeader(_ int) {
 }

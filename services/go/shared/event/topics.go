@@ -4,21 +4,24 @@ package event
 // avoid common mistakes and misusage.
 type Topic string
 
-// AuthTopic is the Kafka topic for all events related to authentication.
-const AuthTopic Topic = "core.auth.0"
-
-// GroupsTopic is the Kafka topic for groups.
-const GroupsTopic Topic = "orga.groups.0"
-
-// AddressBookTopic is the Kafka topic for the address book.
-const AddressBookTopic Topic = "logistics.address-book.0"
-
-// OperationsTopic is the Kafka topic for all events related to operation
-// management.
-const OperationsTopic Topic = "operations.operations.0"
-
-// PermissionsTopic is the Kafka topic for all events related to permissions.
-const PermissionsTopic Topic = "core.permissions.0"
-
-// UsersTopic is the Kafka topic to write user events to.
-const UsersTopic Topic = "core.users.0"
+const (
+	// AuthTopic is the Kafka topic for all events related to authentication.
+	AuthTopic Topic = "core.auth.0"
+	// GroupsTopic is the Kafka topic for groups.
+	GroupsTopic Topic = "orga.groups.0"
+	// AddressBookTopic is the Kafka topic for the address book.
+	AddressBookTopic Topic = "logistics.address-book.0"
+	// OperationsTopic is the Kafka topic for all events related to operation
+	// management.
+	OperationsTopic Topic = "operations.operations.0"
+	// PermissionsTopic is the Kafka topic for all events related to permissions.
+	PermissionsTopic Topic = "core.permissions.0"
+	// UsersTopic is the Kafka topic to write user events to.
+	UsersTopic Topic = "core.users.0"
+	// IntelTopic is the Kafka topic for intel.
+	IntelTopic = "intelligence.intel.0"
+	// IntelDeliveriesTopic is the Kafka topic for delivering intel.
+	IntelDeliveriesTopic Topic = "logistics.intel-delivery.0"
+	// InAppNotificationsTopic is the Kafka topic for in-app-notifications.
+	InAppNotificationsTopic Topic = "notifications.in-app.0"
+)

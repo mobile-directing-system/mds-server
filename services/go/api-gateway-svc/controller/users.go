@@ -19,6 +19,13 @@ func (c *Controller) CreateUser(ctx context.Context, tx pgx.Tx, user store.UserW
 
 // UpdateUser updates the given store.User in the Store.
 func (c *Controller) UpdateUser(ctx context.Context, tx pgx.Tx, user store.User) error {
+	if !user.IsActive {
+		// Invalidate sessions.
+		err := c.Store.DeleteSessionTokensByUser(ctx, tx, user.ID)
+		if err != nil {
+			return meh.Wrap(err, "delete session tokens for user in store", meh.Details{"user_id": user.ID})
+		}
+	}
 	// Update in store.
 	err := c.Store.UpdateUser(ctx, tx, user)
 	if err != nil {
@@ -39,22 +46,6 @@ func (c *Controller) UpdateUserPassByUserID(ctx context.Context, tx pgx.Tx, user
 	err = c.Store.UpdateUserPassByUserID(ctx, tx, userID, newPass)
 	if err != nil {
 		return meh.Wrap(err, "update user pass by user id in store", meh.Details{"user_id": userID})
-	}
-	return nil
-}
-
-// DeleteUserByID deletes the user with the given id in the store and notifies
-// via Notifier.NotifyUserDeleted.
-func (c *Controller) DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error {
-	// Invalidate sessions.
-	err := c.Store.DeleteSessionTokensByUser(ctx, tx, userID)
-	if err != nil {
-		return meh.Wrap(err, "delete session tokens for user in store", meh.Details{"user_id": userID})
-	}
-	// Delete in store.
-	err = c.Store.DeleteUserByID(ctx, tx, userID)
-	if err != nil {
-		return meh.Wrap(err, "delete user by id in store", meh.Details{"user_id": userID})
 	}
 	return nil
 }

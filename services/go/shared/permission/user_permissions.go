@@ -15,15 +15,15 @@ func CreateUser() Matcher {
 	}
 }
 
-// DeleteUserPermissionName for DeleteUser.
-const DeleteUserPermissionName Name = "user.delete"
+// SetUserActiveStatePermission for SetUserActiveState.
+const SetUserActiveStatePermission Name = "user.set-active-state"
 
-// DeleteUser allows deletion of users.
-func DeleteUser() Matcher {
+// SetUserActiveState allows setting the active-state of users.
+func SetUserActiveState() Matcher {
 	return Matcher{
-		Name: "delete-user",
+		Name: "set-user-active-state",
 		MatchFn: func(granted map[Name]Permission) (bool, error) {
-			_, ok := granted[DeleteUserPermissionName]
+			_, ok := granted[SetUserActiveStatePermission]
 			return ok, nil
 		},
 	}

@@ -5,8 +5,12 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/mobile-directing-system/mds-server/services/go/logistics-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/search"
 	"github.com/stretchr/testify/mock"
+	"time"
 )
+
+const timeout = 5 * time.Second
 
 // StoreMock mocks Store.
 type StoreMock struct {
@@ -47,4 +51,22 @@ func (m *StoreMock) ChannelsByAddressBookEntry(ctx context.Context, entryID uuid
 	var channels []store.Channel
 	channels, _ = args.Get(0).([]store.Channel)
 	return channels, args.Error(1)
+}
+
+func (m *StoreMock) SearchAddressBookEntries(ctx context.Context, filters store.AddressBookEntryFilters,
+	searchParams search.Params) (search.Result[store.AddressBookEntryDetailed], error) {
+	args := m.Called(ctx, filters, searchParams)
+	return args.Get(0).(search.Result[store.AddressBookEntryDetailed]), args.Error(1)
+}
+
+func (m *StoreMock) RebuildAddressBookEntrySearch(ctx context.Context) {
+	m.Called(ctx)
+}
+
+func (m *StoreMock) MarkIntelDeliveryAsDelivered(ctx context.Context, deliveryID uuid.UUID, by uuid.NullUUID) error {
+	return m.Called(ctx, deliveryID, by).Error(0)
+}
+
+func (m *StoreMock) MarkIntelDeliveryAttemptAsDelivered(ctx context.Context, attemptID uuid.UUID, by uuid.NullUUID) error {
+	return m.Called(ctx, attemptID, by).Error(0)
 }

@@ -16,9 +16,6 @@ type Handler interface {
 	CreateOperation(ctx context.Context, tx pgx.Tx, operationID uuid.UUID) error
 	// CreateUser creates the user with the given id.
 	CreateUser(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error
-	// DeleteUserByID deletes the user with the given id and notfies of updated
-	// groups.
-	DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error
 	// UpdateOperationMembersByOperation updates the members for the operation with
 	// the given id.
 	UpdateOperationMembersByOperation(ctx context.Context, tx pgx.Tx, operationID uuid.UUID, newMembers []uuid.UUID) error
@@ -85,8 +82,6 @@ func (p *Port) handleUsersTopic(ctx context.Context, tx pgx.Tx, handler Handler,
 	switch message.EventType {
 	case event.TypeUserCreated:
 		return meh.NilOrWrap(p.handleUserCreated(ctx, tx, handler, message), "handle user created", nil)
-	case event.TypeUserDeleted:
-		return meh.NilOrWrap(p.handleUserDeleted(ctx, tx, handler, message), "handle user deleted", nil)
 	}
 	return nil
 }
@@ -101,20 +96,6 @@ func (p *Port) handleUserCreated(ctx context.Context, tx pgx.Tx, handler Handler
 	err = handler.CreateUser(ctx, tx, userCreatedEvent.ID)
 	if err != nil {
 		return meh.Wrap(err, "create user", meh.Details{"user_id": userCreatedEvent.ID})
-	}
-	return nil
-}
-
-// handleUserDeleted handles an event.TypeUserDeleted event.
-func (p *Port) handleUserDeleted(ctx context.Context, tx pgx.Tx, handler Handler, message kafkautil.InboundMessage) error {
-	var userDeletedEvent event.UserDeleted
-	err := json.Unmarshal(message.RawValue, &userDeletedEvent)
-	if err != nil {
-		return meh.NewInternalErrFromErr(err, "unmarshal event", meh.Details{"raw": string(message.RawValue)})
-	}
-	err = handler.DeleteUserByID(ctx, tx, userDeletedEvent.ID)
-	if err != nil {
-		return meh.Wrap(err, "delete user", meh.Details{"user_id": userDeletedEvent.ID})
 	}
 	return nil
 }

@@ -63,7 +63,8 @@ func (m *Mall) OperationMembersByOperation(ctx context.Context, tx pgx.Tx, opera
 		Select(goqu.I("users.id"),
 			goqu.I("users.username"),
 			goqu.I("users.first_name"),
-			goqu.I("users.last_name")).
+			goqu.I("users.last_name"),
+			goqu.I("users.is_active")).
 		Where(goqu.I("operation_members.operation").Eq(operationID)).
 		Order(goqu.I("users.last_name").Asc(), goqu.I("users.first_name").Asc()).ToSQL()
 	if err != nil {
@@ -82,7 +83,8 @@ func (m *Mall) OperationMembersByOperation(ctx context.Context, tx pgx.Tx, opera
 		err = rows.Scan(&user.ID,
 			&user.Username,
 			&user.FirstName,
-			&user.LastName)
+			&user.LastName,
+			&user.IsActive)
 		if err != nil {
 			return nil, mehpg.NewScanRowsErr(err, "scan row", q)
 		}

@@ -23,6 +23,7 @@ func (port *Port) NotifyUserCreated(ctx context.Context, tx pgx.Tx, user store.U
 			LastName:  user.LastName,
 			IsAdmin:   user.IsAdmin,
 			Pass:      user.Pass,
+			IsActive:  user.IsActive,
 		},
 	})
 	if err != nil {
@@ -43,6 +44,7 @@ func (port *Port) NotifyUserUpdated(ctx context.Context, tx pgx.Tx, user store.U
 			FirstName: user.FirstName,
 			LastName:  user.LastName,
 			IsAdmin:   user.IsAdmin,
+			IsActive:  user.IsActive,
 		},
 	})
 	if err != nil {
@@ -60,22 +62,6 @@ func (port *Port) NotifyUserPassUpdated(ctx context.Context, tx pgx.Tx, userID u
 		Value: event.UserPassUpdated{
 			User:    userID,
 			NewPass: newPass,
-		},
-	})
-	if err != nil {
-		return meh.Wrap(err, "write kafka messages", nil)
-	}
-	return nil
-}
-
-// NotifyUserDeleted creates an event.TypeUserDeleted event.
-func (port *Port) NotifyUserDeleted(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error {
-	err := port.writer.AddOutboxMessages(ctx, tx, kafkautil.OutboundMessage{
-		Topic:     event.UsersTopic,
-		Key:       userID.String(),
-		EventType: event.TypeUserDeleted,
-		Value: event.UserDeleted{
-			ID: userID,
 		},
 	})
 	if err != nil {

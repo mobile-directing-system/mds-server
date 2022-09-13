@@ -30,10 +30,6 @@ func (m *HandlerMock) UpdateUser(ctx context.Context, tx pgx.Tx, user store.User
 	return m.Called(ctx, tx, user).Error(0)
 }
 
-func (m *HandlerMock) DeleteUserByID(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error {
-	return m.Called(ctx, tx, userID).Error(0)
-}
-
 func (m *HandlerMock) CreateGroup(ctx context.Context, tx pgx.Tx, create store.Group) error {
 	return m.Called(ctx, tx, create).Error(0)
 }
@@ -58,6 +54,19 @@ func (m *HandlerMock) UpdateOperationMembersByOperation(ctx context.Context, tx 
 	return m.Called(ctx, tx, operationID, newMembers).Error(0)
 }
 
+func (m *HandlerMock) CreateIntel(ctx context.Context, tx pgx.Tx, create store.Intel) error {
+	return m.Called(ctx, tx, create).Error(0)
+}
+
+func (m *HandlerMock) InvalidateIntelByID(ctx context.Context, tx pgx.Tx, intelID uuid.UUID) error {
+	return m.Called(ctx, tx, intelID).Error(0)
+}
+
+func (m *HandlerMock) UpdateIntelDeliveryAttemptStatusForActive(ctx context.Context, tx pgx.Tx, attemptID uuid.UUID,
+	newStatus store.IntelDeliveryStatus, newNote nulls.String) error {
+	return m.Called(ctx, tx, attemptID, newStatus, newNote).Error(0)
+}
+
 // portHandleUserCreatedSuite tests Port.handleUserCreated.
 type portHandleUserCreatedSuite struct {
 	suite.Suite
@@ -77,12 +86,14 @@ func (suite *portHandleUserCreatedSuite) SetupTest() {
 		LastName:  "glad",
 		IsAdmin:   true,
 		Pass:      nil,
+		IsActive:  true,
 	}
 	suite.sampleCreate = store.User{
 		ID:        suite.sampleEvent.ID,
 		Username:  suite.sampleEvent.Username,
 		FirstName: suite.sampleEvent.FirstName,
 		LastName:  suite.sampleEvent.LastName,
+		IsActive:  true,
 	}
 }
 
@@ -223,78 +234,6 @@ func (suite *portHandleUserUpdatedSuite) TestOK() {
 
 func TestPort_handleUserUpdated(t *testing.T) {
 	suite.Run(t, new(portHandleUserUpdatedSuite))
-}
-
-// portHandleUserDeletedSuite tests Port.handleUserDeleted.
-type portHandleUserDeletedSuite struct {
-	suite.Suite
-	handler     *HandlerMock
-	port        *PortMock
-	sampleEvent event.UserDeleted
-}
-
-func (suite *portHandleUserDeletedSuite) SetupTest() {
-	suite.handler = &HandlerMock{}
-	suite.port = newMockPort()
-	suite.sampleEvent = event.UserDeleted{
-		ID: testutil.NewUUIDV4(),
-	}
-}
-
-func (suite *portHandleUserDeletedSuite) handle(ctx context.Context, tx pgx.Tx, rawValue json.RawMessage) error {
-	return suite.port.Port.HandlerFn(suite.handler)(ctx, tx, kafkautil.InboundMessage{
-		Topic:     event.UsersTopic,
-		EventType: event.TypeUserDeleted,
-		RawValue:  rawValue,
-	})
-}
-
-func (suite *portHandleUserDeletedSuite) TestBadEventValue() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	tx := &testutil.DBTx{}
-
-	go func() {
-		defer cancel()
-		err := suite.handle(timeout, tx, json.RawMessage(`{invalid`))
-		suite.Error(err, "should fail")
-	}()
-
-	wait()
-}
-
-func (suite *portHandleUserDeletedSuite) TestDeleteFail() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	tx := &testutil.DBTx{}
-	suite.handler.On("DeleteUserByID", timeout, tx, suite.sampleEvent.ID).
-		Return(errors.New("sad life"))
-	defer suite.handler.AssertExpectations(suite.T())
-
-	go func() {
-		defer cancel()
-		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
-		suite.Error(err, "should fail")
-	}()
-
-	wait()
-}
-
-func (suite *portHandleUserDeletedSuite) TestOK() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	tx := &testutil.DBTx{}
-	suite.handler.On("DeleteUserByID", timeout, tx, suite.sampleEvent.ID).Return(nil)
-	defer suite.handler.AssertExpectations(suite.T())
-
-	go func() {
-		defer cancel()
-		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
-		suite.NoError(err, "should not fail")
-	}()
-
-	wait()
-}
-
-func TestPort_handleUserDeleted(t *testing.T) {
-	suite.Run(t, new(portHandleUserDeletedSuite))
 }
 
 // portHandleGroupCreatedSuite tests Port.handleGroupCreated.
@@ -797,4 +736,345 @@ func (suite *portHandleOperationMembersUpdatedSuite) TestOK() {
 
 func TestPort_handleOperationMembersUpdated(t *testing.T) {
 	suite.Run(t, new(portHandleOperationMembersUpdatedSuite))
+}
+
+// portHandleIntelCreatedSuite tests Port.handleIntelCreated.
+type portHandleIntelCreatedSuite struct {
+	suite.Suite
+	handler      *HandlerMock
+	port         *PortMock
+	sampleEvent  event.IntelCreated
+	sampleCreate store.Intel
+}
+
+func (suite *portHandleIntelCreatedSuite) SetupTest() {
+	suite.handler = &HandlerMock{}
+	suite.port = newMockPort()
+	suite.sampleEvent = event.IntelCreated{
+		ID:         testutil.NewUUIDV4(),
+		CreatedAt:  time.Date(2022, 9, 1, 11, 53, 45, 0, time.UTC),
+		CreatedBy:  testutil.NewUUIDV4(),
+		Operation:  testutil.NewUUIDV4(),
+		Type:       event.IntelTypePlaintextMessage,
+		Content:    json.RawMessage(`{"hello":"world"}`),
+		SearchText: nulls.NewString("Hello World!"),
+		Importance: 286,
+		IsValid:    true,
+		Assignments: []event.IntelAssignment{
+			{
+				ID: testutil.NewUUIDV4(),
+				To: testutil.NewUUIDV4(),
+			},
+			{
+				ID: testutil.NewUUIDV4(),
+				To: testutil.NewUUIDV4(),
+			},
+		},
+	}
+	suite.sampleCreate = store.Intel{
+		ID:         suite.sampleEvent.ID,
+		CreatedAt:  suite.sampleEvent.CreatedAt,
+		CreatedBy:  suite.sampleEvent.CreatedBy,
+		Operation:  suite.sampleEvent.Operation,
+		Type:       store.IntelType(suite.sampleEvent.Type),
+		Content:    suite.sampleEvent.Content,
+		SearchText: suite.sampleEvent.SearchText,
+		Importance: suite.sampleEvent.Importance,
+		IsValid:    suite.sampleEvent.IsValid,
+		Assignments: []store.IntelAssignment{
+			{
+				ID:    suite.sampleEvent.Assignments[0].ID,
+				Intel: suite.sampleEvent.ID,
+				To:    suite.sampleEvent.Assignments[0].To,
+			},
+			{
+				ID:    suite.sampleEvent.Assignments[1].ID,
+				Intel: suite.sampleEvent.ID,
+				To:    suite.sampleEvent.Assignments[1].To,
+			},
+		},
+	}
+}
+
+func (suite *portHandleIntelCreatedSuite) handle(ctx context.Context, tx pgx.Tx, rawValue json.RawMessage) error {
+	return suite.port.Port.HandlerFn(suite.handler)(ctx, tx, kafkautil.InboundMessage{
+		Topic:     event.IntelTopic,
+		EventType: event.TypeIntelCreated,
+		RawValue:  rawValue,
+	})
+}
+
+func (suite *portHandleIntelCreatedSuite) TestBadEventValue() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, json.RawMessage(`{invalid`))
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *portHandleIntelCreatedSuite) TestCreateFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.handler.On("CreateIntel", timeout, tx, suite.sampleCreate).
+		Return(errors.New("sad life"))
+	defer suite.handler.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *portHandleIntelCreatedSuite) TestOK() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.handler.On("CreateIntel", timeout, tx, suite.sampleCreate).Return(nil)
+	defer suite.handler.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
+		suite.NoError(err, "should not fail")
+	}()
+
+	wait()
+}
+
+func TestPort_handleIntelCreatedSuite(t *testing.T) {
+	suite.Run(t, new(portHandleIntelCreatedSuite))
+}
+
+// portHandleIntelInvalidatedSuite tests Port.handleIntelInvalidated.
+type portHandleIntelInvalidatedSuite struct {
+	suite.Suite
+	handler     *HandlerMock
+	port        *PortMock
+	sampleEvent event.IntelInvalidated
+}
+
+func (suite *portHandleIntelInvalidatedSuite) SetupTest() {
+	suite.handler = &HandlerMock{}
+	suite.port = newMockPort()
+	suite.sampleEvent = event.IntelInvalidated{
+		ID: testutil.NewUUIDV4(),
+		By: testutil.NewUUIDV4(),
+	}
+}
+
+func (suite *portHandleIntelInvalidatedSuite) handle(ctx context.Context, tx pgx.Tx, rawValue json.RawMessage) error {
+	return suite.port.Port.HandlerFn(suite.handler)(ctx, tx, kafkautil.InboundMessage{
+		Topic:     event.IntelTopic,
+		EventType: event.TypeIntelInvalidated,
+		RawValue:  rawValue,
+	})
+}
+
+func (suite *portHandleIntelInvalidatedSuite) TestBadEventValue() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, json.RawMessage(`{invalid`))
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *portHandleIntelInvalidatedSuite) TestInvalidateFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.handler.On("InvalidateIntelByID", timeout, tx, suite.sampleEvent.ID).
+		Return(errors.New("sad life"))
+	defer suite.handler.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *portHandleIntelInvalidatedSuite) TestOK() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.handler.On("InvalidateIntelByID", timeout, tx, suite.sampleEvent.ID).Return(nil)
+	defer suite.handler.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
+		suite.NoError(err, "should not fail")
+	}()
+
+	wait()
+}
+
+func TestPort_handleIntelInvalidatedSuite(t *testing.T) {
+	suite.Run(t, new(portHandleIntelInvalidatedSuite))
+}
+
+// portHandleInAppNotificationForIntelPendingSuite tests
+// Port.handleInAppNotificationForIntelPending.
+type portHandleInAppNotificationForIntelPendingSuite struct {
+	suite.Suite
+	handler     *HandlerMock
+	port        *PortMock
+	sampleEvent event.InAppNotificationForIntelPending
+}
+
+func (suite *portHandleInAppNotificationForIntelPendingSuite) SetupTest() {
+	suite.handler = &HandlerMock{}
+	suite.port = newMockPort()
+	suite.sampleEvent = event.InAppNotificationForIntelPending{
+		Attempt: testutil.NewUUIDV4(),
+		Since:   time.Date(2022, 9, 8, 13, 58, 39, 0, time.UTC),
+	}
+}
+
+func (suite *portHandleInAppNotificationForIntelPendingSuite) handle(ctx context.Context, tx pgx.Tx, rawValue json.RawMessage) error {
+	return suite.port.Port.HandlerFn(suite.handler)(ctx, tx, kafkautil.InboundMessage{
+		Topic:     event.InAppNotificationsTopic,
+		EventType: event.TypeInAppNotificationForIntelPending,
+		RawValue:  rawValue,
+	})
+}
+
+func (suite *portHandleInAppNotificationForIntelPendingSuite) TestBadEventValue() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, json.RawMessage(`{invalid`))
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *portHandleInAppNotificationForIntelPendingSuite) TestUpdateStatusFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.handler.On("UpdateIntelDeliveryAttemptStatusForActive", timeout, tx, suite.sampleEvent.Attempt,
+		store.IntelDeliveryStatusAwaitingDelivery, mock.Anything).
+		Return(errors.New("sad life"))
+	defer suite.handler.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *portHandleInAppNotificationForIntelPendingSuite) TestOK() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.handler.On("UpdateIntelDeliveryAttemptStatusForActive", timeout, tx, suite.sampleEvent.Attempt,
+		store.IntelDeliveryStatusAwaitingDelivery, mock.Anything).
+		Return(nil)
+	defer suite.handler.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
+		suite.NoError(err, "should not fail")
+	}()
+
+	wait()
+}
+
+func TestPort_handleInAppNotificationForIntelPendingSuite(t *testing.T) {
+	suite.Run(t, new(portHandleInAppNotificationForIntelPendingSuite))
+}
+
+// portHandleInAppNotificationForIntelSentSuite tests
+// Port.handleInAppNotificationForIntelSent.
+type portHandleInAppNotificationForIntelSentSuite struct {
+	suite.Suite
+	handler     *HandlerMock
+	port        *PortMock
+	sampleEvent event.InAppNotificationForIntelSent
+}
+
+func (suite *portHandleInAppNotificationForIntelSentSuite) SetupTest() {
+	suite.handler = &HandlerMock{}
+	suite.port = newMockPort()
+	suite.sampleEvent = event.InAppNotificationForIntelSent{
+		Attempt: testutil.NewUUIDV4(),
+		SentAt:  time.Date(2022, 9, 8, 13, 59, 39, 0, time.UTC),
+	}
+}
+
+func (suite *portHandleInAppNotificationForIntelSentSuite) handle(ctx context.Context, tx pgx.Tx, rawValue json.RawMessage) error {
+	return suite.port.Port.HandlerFn(suite.handler)(ctx, tx, kafkautil.InboundMessage{
+		Topic:     event.InAppNotificationsTopic,
+		EventType: event.TypeInAppNotificationForIntelSent,
+		RawValue:  rawValue,
+	})
+}
+
+func (suite *portHandleInAppNotificationForIntelSentSuite) TestBadEventValue() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, json.RawMessage(`{invalid`))
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *portHandleInAppNotificationForIntelSentSuite) TestUpdateStatusFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.handler.On("UpdateIntelDeliveryAttemptStatusForActive", timeout, tx, suite.sampleEvent.Attempt,
+		store.IntelDeliveryStatusAwaitingAck, mock.Anything).
+		Return(errors.New("sad life"))
+	defer suite.handler.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *portHandleInAppNotificationForIntelSentSuite) TestOK() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.handler.On("UpdateIntelDeliveryAttemptStatusForActive", timeout, tx, suite.sampleEvent.Attempt,
+		store.IntelDeliveryStatusAwaitingAck, mock.Anything).
+		Return(nil)
+	defer suite.handler.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
+		suite.NoError(err, "should not fail")
+	}()
+
+	wait()
+}
+
+func TestPort_handleInAppNotificationForIntelSentSuite(t *testing.T) {
+	suite.Run(t, new(portHandleInAppNotificationForIntelSentSuite))
 }

@@ -76,14 +76,14 @@ const (
 	// AddressBookEntryChannelTypeForwardToUser is used for forwarding to another
 	// user.
 	AddressBookEntryChannelTypeForwardToUser AddressBookEntryChannelType = "forward-to-user"
+	// AddressBookEntryChannelTypeInAppNotification is used for notifying via in-app
+	// notifications, similar to push-notifications.
+	AddressBookEntryChannelTypeInAppNotification AddressBookEntryChannelType = "in-app-notification"
 	// AddressBookEntryChannelTypePhoneCall is used for communicating via phone
 	// calls.
 	AddressBookEntryChannelTypePhoneCall AddressBookEntryChannelType = "phone-call"
 	// AddressBookEntryChannelTypeRadio is used for communicating via radio.
 	AddressBookEntryChannelTypeRadio AddressBookEntryChannelType = "radio"
-	// AddressBookEntryChannelTypePush is used for sending a push message via the
-	// MDS application.
-	AddressBookEntryChannelTypePush AddressBookEntryChannelType = "push"
 )
 
 // AddressBookEntryDirectChannelDetails holds channel details for
@@ -114,6 +114,11 @@ type AddressBookEntryForwardToUserChannelDetails struct {
 	ForwardToUser []uuid.UUID `json:"forward_to_user"`
 }
 
+// AddressBookEntryInAppNotificationChannelDetails holds channel details for
+// AddressBookEntryChannelTypeInAppNotification.
+type AddressBookEntryInAppNotificationChannelDetails struct {
+}
+
 // AddressBookEntryPhoneCallChannelDetails holds channel details for
 // AddressBookEntryChannelTypePhoneCall.
 type AddressBookEntryPhoneCallChannelDetails struct {
@@ -127,11 +132,6 @@ type AddressBookEntryRadioChannelDetails struct {
 	// Info holds any free-text information until radio communication is further
 	// specified.
 	Info string `json:"info"`
-}
-
-// AddressBookEntryPushChannelDetails holds channel details for
-// AddressBookEntryChannelTypePush.
-type AddressBookEntryPushChannelDetails struct {
 }
 
 // TypeAddressBookEntryChannelsUpdated is used when the channels for an address

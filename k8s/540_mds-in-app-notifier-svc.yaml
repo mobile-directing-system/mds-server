@@ -1,0 +1,134 @@
+# Database config.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mds-in-app-notifier-svc-postgres-config
+  labels:
+    app: mds-in-app-notifier-svc-postgres
+data:
+  POSTGRES_DB: mds-in-app-notifier-svc
+  POSTGRES_USER: mds
+  POSTGRES_PASSWORD: mds
+  PGDATA: /var/lib/postgresql/data/pgdata
+---
+# Database pvc.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mds-in-app-notifier-svc-postgres-pvc
+  labels:
+    app: mds-in-app-notifier-svc-postgres
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+---
+# Database service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mds-in-app-notifier-svc-postgres-service
+  labels:
+    app: mds-in-app-notifier-svc-postgres-service
+spec:
+  ports:
+    - port: 5432
+  selector:
+    app: mds-in-app-notifier-svc-postgres
+---
+# Database deployment.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mds-in-app-notifier-svc-postgres-deployment
+spec:
+  serviceName: mds-in-app-notifier-svc-postgres-service
+  selector:
+    matchLabels:
+      app: mds-in-app-notifier-svc-postgres
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mds-in-app-notifier-svc-postgres
+    spec:
+      containers:
+        - name: mds-in-app-notifier-svc-postgres
+          image: postgres:14.2
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: mds-in-app-notifier-svc-postgres-config
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data/pgdata
+              name: postgres-data
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: mds-in-app-notifier-svc-postgres-pvc
+---
+# In-app-notifier svc config.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mds-in-app-notifier-svc-config
+  labels:
+    app: mds-in-app-notifier-svc
+data:
+  MDS_DB_CONN_STRING: postgresql://mds:mds@mds-in-app-notifier-svc-postgres-service/mds-in-app-notifier-svc
+  MDS_KAFKA_ADDR: kafka-cluster-kafka-bootstrap.kafka:9092
+  MDS_SERVE_ADDR: :8080
+  MDS_LOG_LEVEL: debug
+---
+# In-app-notifier svc service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mds-in-app-notifier-svc-service
+spec:
+  selector:
+    app: mds-in-app-notifier-svc
+  ports:
+    - port: 3000
+      targetPort: 8080
+---
+# In-app-notifier svc deployment.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mds-in-app-notifier-svc-deployment
+spec:
+  serviceName: mds-in-app-notifier-svc-service
+  selector:
+    matchLabels:
+      app: mds-in-app-notifier-svc
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mds-in-app-notifier-svc
+      annotations:
+        reloader.stakater.com/auto: "true"
+    spec:
+      containers:
+        - name: mds-in-app-notifier-svc
+          image: mds-in-app-notifier-svc
+          envFrom:
+            - configMapRef:
+                name: mds-in-app-notifier-svc-config
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              port: 31234
+              path: /livez
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              port: 31234
+              path: /readyz
+            timeoutSeconds: 5
