@@ -207,15 +207,30 @@ Intel can be any type of information flowing in the system.</p>
 <p>Intel is always associated with an operation and creators and viewers must be member of that operation.</p>
 <section id="intel-types">
 <h2>Intel types<a class="headerlink" href="#intel-types" title="Permalink to this headline">#</a></h2>
+<section id="analog-radio-message">
+<h3>analog-radio-message<a class="headerlink" href="#analog-radio-message" title="Permalink to this headline">#</a></h3>
+<p>Used for radio messages, received via analog radio.</p>
+<p>Content:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;channel&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;channel_over_which_received&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="s2">&quot;callsign&quot;</span><span class="w"> </span><span class="s2">&quot;&lt;sender_callsign&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;head&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;message_head&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;message_content&gt;&quot;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+<p>The fields <code class="docutils literal notranslate"><span class="pre">callsign</span></code> and <code class="docutils literal notranslate"><span class="pre">content</span></code> must not be empty.</p>
+</section>
 <section id="plaintext-message">
 <h3>plaintext-message<a class="headerlink" href="#plaintext-message" title="Permalink to this headline">#</a></h3>
 <p>Used for plaintext content.</p>
-<p>Options:</p>
+<p>Content:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;content&gt;&quot;</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
+<p>The <code class="docutils literal notranslate"><span class="pre">text</span></code>-field must not be empty.</p>
 </section>
 </section>
 <section id="create-intel">
@@ -365,6 +380,7 @@ When the source was an actual attempt, it should be confirmed via:</p>
             <ul>
 <li><a class="reference internal" href="#">Intelligence</a><ul>
 <li><a class="reference internal" href="#intel-types">Intel types</a><ul>
+<li><a class="reference internal" href="#analog-radio-message">analog-radio-message</a></li>
 <li><a class="reference internal" href="#plaintext-message">plaintext-message</a></li>
 </ul>
 </li>
