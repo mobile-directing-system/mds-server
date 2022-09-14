@@ -5,6 +5,7 @@ import (
 	"github.com/lefinal/meh"
 	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/intelligence-svc/store"
+	"strings"
 )
 
 type searchTextGenerator func(contentRaw json.RawMessage) (nulls.String, error)
@@ -26,6 +27,8 @@ func newSearchTextGeneratorWithUnmarshal[T any](gen func(content T) (nulls.Strin
 func (c *Controller) genSearchText(create store.CreateIntel) (nulls.String, error) {
 	var generator searchTextGenerator
 	switch create.Type {
+	case store.IntelTypeAnalogRadioMessage:
+		generator = newSearchTextGeneratorWithUnmarshal(genSearchTextForAnalogRadioMessage)
 	case store.IntelTypePlaintextMessage:
 		generator = newSearchTextGeneratorWithUnmarshal(genSearchTextForPlaintextMessage)
 	default:
@@ -45,4 +48,14 @@ func (c *Controller) genSearchText(create store.CreateIntel) (nulls.String, erro
 // store.IntelTypePlaintextMessage.
 func genSearchTextForPlaintextMessage(content store.IntelTypePlaintextMessageContent) (nulls.String, error) {
 	return nulls.NewString(content.Text), nil
+}
+
+// genSearchTextForAnalogRadioMessage generates the search-text for intel with
+// store.IntelTypeAnalogRadioMessage.
+func genSearchTextForAnalogRadioMessage(content store.IntelTypeAnalogRadioMessageContent) (nulls.String, error) {
+	var sb strings.Builder
+	sb.WriteString(content.Callsign)
+	sb.WriteString(" ")
+	sb.WriteString(content.Content)
+	return nulls.NewString(sb.String()), nil
 }

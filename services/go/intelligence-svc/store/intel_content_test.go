@@ -11,6 +11,48 @@ import (
 	"testing"
 )
 
+// IntelTypeAnalogRadioMessageContentValidateSuite tests
+// IntelTypeAnalogRadioMessageContent.Validate.
+type IntelTypeAnalogRadioMessageContentValidateSuite struct {
+	suite.Suite
+	contentOK IntelTypeAnalogRadioMessageContent
+}
+
+func (suite *IntelTypeAnalogRadioMessageContentValidateSuite) SetupTest() {
+	suite.contentOK = IntelTypeAnalogRadioMessageContent{
+		Channel:  "tonight",
+		Callsign: "politics",
+		Head:     "humble",
+		Content:  "sympathy",
+	}
+}
+
+func (suite *IntelTypeAnalogRadioMessageContentValidateSuite) TestMissingCallsign() {
+	content := suite.contentOK
+	content.Callsign = ""
+	report, err := content.Validate()
+	suite.Require().NoError(err, "should not fail")
+	suite.False(report.IsOK(), "report should not be ok")
+}
+
+func (suite *IntelTypeAnalogRadioMessageContentValidateSuite) TestMissingContent() {
+	content := suite.contentOK
+	content.Content = ""
+	report, err := content.Validate()
+	suite.Require().NoError(err, "should not fail")
+	suite.False(report.IsOK(), "report should not be ok")
+}
+
+func (suite *IntelTypeAnalogRadioMessageContentValidateSuite) TestOK() {
+	report, err := suite.contentOK.Validate()
+	suite.Require().NoError(err, "should not fail")
+	suite.True(report.IsOK(), "report should be ok")
+}
+
+func TestIntelTypeAnalogRadioMessageContent_Validate(t *testing.T) {
+	suite.Run(t, new(IntelTypeAnalogRadioMessageContentValidateSuite))
+}
+
 // IntelTypePlaintextMessageContentValidateSuite tests
 // IntelTypePlaintextMessageContent.Validate.
 type IntelTypePlaintextMessageContentValidateSuite struct {
@@ -24,7 +66,7 @@ func (suite *IntelTypePlaintextMessageContentValidateSuite) SetupTest() {
 	}
 }
 
-func (suite *IntelTypePlaintextMessageContentValidateSuite) TestMissingTest() {
+func (suite *IntelTypePlaintextMessageContentValidateSuite) TestMissingText() {
 	content := suite.contentOK
 	content.Text = ""
 	report, err := content.Validate()

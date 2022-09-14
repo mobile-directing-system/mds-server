@@ -19,16 +19,35 @@ import (
 // publicIntelType is the public representation of store.IntelType.
 type publicIntelType string
 
+// Public representations of store.IntelType.
 const (
-	intelTypePlainTextMessage publicIntelType = "plaintext-message"
+	intelTypeAnalogRadioMessage publicIntelType = "analog-radio-message"
+	intelTypePlaintextMessage   publicIntelType = "plaintext-message"
 )
+
+// pITAnalogRadioMessageContent is the public representation of
+// store.IntelTypeAnalogRadioMessageContent for intelTypeAnalogRadioMessage.
+type pITAnalogRadioMessageContent struct {
+	Channel  string `json:"channel"`
+	Callsign string `json:"callsign"`
+	Head     string `json:"head"`
+	Content  string `json:"content"`
+}
+
+// pITPlaintextMessageContent is the public representation of
+// store.IntelTypePlaintextMessageContent for intelTypePlaintextMessage.
+type pITPlaintextMessageContent struct {
+	Text string `json:"text"`
+}
 
 // publicIntelTypeFromStore converts store.IntelType to publicIntelType. If no
 // mapping was found, a meh.ErrInternal is returned.
 func publicIntelTypeFromStore(s store.IntelType) (publicIntelType, error) {
 	switch s {
+	case store.IntelTypeAnalogRadioMessage:
+		return intelTypeAnalogRadioMessage, nil
 	case store.IntelTypePlaintextMessage:
-		return intelTypePlainTextMessage, nil
+		return intelTypePlaintextMessage, nil
 	default:
 		return "", meh.NewInternalErr("unsupported type", meh.Details{"type": s})
 	}
@@ -38,11 +57,112 @@ func publicIntelTypeFromStore(s store.IntelType) (publicIntelType, error) {
 // mapping was found, a meh.ErrBadInput is returned.
 func storeIntelTypeFromPublic(p publicIntelType) (store.IntelType, error) {
 	switch p {
-	case intelTypePlainTextMessage:
+	case intelTypeAnalogRadioMessage:
+		return store.IntelTypeAnalogRadioMessage, nil
+	case intelTypePlaintextMessage:
 		return store.IntelTypePlaintextMessage, nil
 	default:
 		return "", meh.NewBadInputErr("unsupported type", meh.Details{"type": p})
 	}
+}
+
+// intelContentMapper unmarshals the given raw message, calls the mapper
+// function and marshals back as JSON.
+func intelContentMapper[From any, To any](mapFn func(From) (To, error)) func(s json.RawMessage) (json.RawMessage, error) {
+	return func(s json.RawMessage) (json.RawMessage, error) {
+		var f From
+		err := json.Unmarshal(s, &f)
+		if err != nil {
+			return nil, meh.NewInternalErrFromErr(err, "unmarshal message content", meh.Details{"raw": string(s)})
+		}
+		mapped, err := mapFn(f)
+		if err != nil {
+			return nil, meh.Wrap(err, "map fn", meh.Details{"from": f})
+		}
+		toRaw, err := json.Marshal(mapped)
+		if err != nil {
+			return nil, meh.NewInternalErrFromErr(err, "marshal mapped", nil)
+		}
+		return toRaw, nil
+	}
+}
+
+// publicIntelContentFromStore maps the content from store.Intel to its
+// event-representation.
+func publicIntelContentFromStore(sType store.IntelType, sContentRaw json.RawMessage) (json.RawMessage, error) {
+	var mapper func(s json.RawMessage) (json.RawMessage, error)
+	switch sType {
+	case store.IntelTypeAnalogRadioMessage:
+		mapper = intelContentMapper(pITAnalogRadioMessageContentFromStore)
+	case store.IntelTypePlaintextMessage:
+		mapper = intelContentMapper(pITPlaintextMessageContentFromStore)
+	}
+	if mapper == nil {
+		return nil, meh.NewInternalErr("no intel-content-mapper", meh.Details{"intel_type": sType})
+	}
+	mappedRaw, err := mapper(sContentRaw)
+	if err != nil {
+		return nil, meh.Wrap(err, "mapper fn", nil)
+	}
+	return mappedRaw, nil
+}
+
+// storeIntelContentFromPublic maps the content from publicIntel to its
+// store-representation.
+func storeIntelContentFromPublic(pType publicIntelType, pContentRaw json.RawMessage) (json.RawMessage, error) {
+	var mapper func(s json.RawMessage) (json.RawMessage, error)
+	switch pType {
+	case intelTypeAnalogRadioMessage:
+		mapper = intelContentMapper(sITAnalogRadioMessageContentFromPublic)
+	case intelTypePlaintextMessage:
+		mapper = intelContentMapper(sITPlaintextMessageContentFromPublic)
+	}
+	if mapper == nil {
+		return nil, meh.NewInternalErr("no intel-content-mapper", meh.Details{"intel_type": pType})
+	}
+	mappedRaw, err := mapper(pContentRaw)
+	if err != nil {
+		return nil, meh.Wrap(err, "mapper fn", nil)
+	}
+	return mappedRaw, nil
+}
+
+// pITAnalogRadioMessageContentFromStore maps
+// store.IntelTypeAnalogRadioMessageContent to pITAnalogRadioMessageContent.
+func pITAnalogRadioMessageContentFromStore(s store.IntelTypeAnalogRadioMessageContent) (pITAnalogRadioMessageContent, error) {
+	return pITAnalogRadioMessageContent{
+		Channel:  s.Channel,
+		Callsign: s.Callsign,
+		Head:     s.Head,
+		Content:  s.Content,
+	}, nil
+}
+
+// sITAnalogRadioMessageContentFromPublic maps pITAnalogRadioMessageContent to
+// store.IntelTypeAnalogRadioMessageContent.
+func sITAnalogRadioMessageContentFromPublic(s pITAnalogRadioMessageContent) (store.IntelTypeAnalogRadioMessageContent, error) {
+	return store.IntelTypeAnalogRadioMessageContent{
+		Channel:  s.Channel,
+		Callsign: s.Callsign,
+		Head:     s.Head,
+		Content:  s.Content,
+	}, nil
+}
+
+// pITPlaintextMessageContentFromStore maps
+// store.IntelTypePlaintextMessageContent to pITPlaintextMessageContent.
+func pITPlaintextMessageContentFromStore(s store.IntelTypePlaintextMessageContent) (pITPlaintextMessageContent, error) {
+	return pITPlaintextMessageContent{
+		Text: s.Text,
+	}, nil
+}
+
+// sITPlaintextMessageContentFromPublic maps pITPlaintextMessageContent to
+// store.IntelTypePlaintextMessageContent.
+func sITPlaintextMessageContentFromPublic(p pITPlaintextMessageContent) (store.IntelTypePlaintextMessageContent, error) {
+	return store.IntelTypePlaintextMessageContent{
+		Text: p.Text,
+	}, nil
 }
 
 // publicCreateIntel is the public representation of store.CreateIntel.
@@ -66,11 +186,18 @@ func storeCreateIntelFromPublic(createdBy uuid.UUID, p publicCreateIntel) (store
 	if err != nil {
 		return store.CreateIntel{}, meh.Wrap(err, "store intel type from public", meh.Details{"type": p.Type})
 	}
+	intelContent, err := storeIntelContentFromPublic(p.Type, p.Content)
+	if err != nil {
+		return store.CreateIntel{}, meh.Wrap(err, "map intel-content", meh.Details{
+			"intel_type":    p.Type,
+			"intel_content": string(p.Content),
+		})
+	}
 	return store.CreateIntel{
 		CreatedBy:   createdBy,
 		Operation:   p.Operation,
 		Type:        intelType,
-		Content:     p.Content,
+		Content:     intelContent,
 		Importance:  p.Importance,
 		Assignments: storeIntelAssignmentsFromPublic(uuid.UUID{}, p.Assignments),
 	}, nil
@@ -110,13 +237,20 @@ func publicIntelFromStore(s store.Intel) (publicIntel, error) {
 	if err != nil {
 		return publicIntel{}, meh.Wrap(err, "public intel type from store", meh.Details{"type": s.Type})
 	}
+	intelContent, err := publicIntelContentFromStore(s.Type, s.Content)
+	if err != nil {
+		return publicIntel{}, meh.Wrap(err, "map intel-content", meh.Details{
+			"intel_type":    s.Type,
+			"intel_content": string(s.Content),
+		})
+	}
 	return publicIntel{
 		ID:          s.ID,
 		CreatedAt:   s.CreatedAt,
 		CreatedBy:   s.CreatedBy,
 		Operation:   s.Operation,
 		Type:        intelType,
-		Content:     s.Content,
+		Content:     intelContent,
 		SearchText:  s.SearchText,
 		Importance:  s.Importance,
 		IsValid:     s.IsValid,

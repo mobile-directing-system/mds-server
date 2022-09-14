@@ -10,12 +10,16 @@ import (
 	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/intelligence-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/auth"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/permission"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 )
@@ -58,7 +62,7 @@ func (suite *handleCreateIntelSuite) SetupTest() {
 	}
 	suite.samplePublicCreate = publicCreateIntel{
 		Operation: testutil.NewUUIDV4(),
-		Type:      intelTypePlainTextMessage,
+		Type:      intelTypePlaintextMessage,
 		Content:   json.RawMessage(`{"text":"hello"}`),
 		Assignments: []publicIntelAssignment{
 			{
@@ -116,7 +120,7 @@ func (suite *handleCreateIntelSuite) SetupTest() {
 		CreatedAt:  suite.sampleStoreCreated.CreatedAt,
 		CreatedBy:  suite.sampleStoreCreated.CreatedBy,
 		Operation:  suite.sampleStoreCreated.Operation,
-		Type:       intelTypePlainTextMessage,
+		Type:       intelTypePlaintextMessage,
 		Content:    suite.sampleStoreCreated.Content,
 		SearchText: suite.sampleStoreCreated.SearchText,
 		IsValid:    true,
@@ -374,12 +378,14 @@ func (suite *handleGetIntelByIDSuite) SetupTest() {
 	}
 	suite.sampleID = testutil.NewUUIDV4()
 	suite.sampleStoreIntel = store.Intel{
-		ID:         suite.sampleID,
-		CreatedAt:  time.Now().UTC(),
-		CreatedBy:  testutil.NewUUIDV4(),
-		Operation:  testutil.NewUUIDV4(),
-		Type:       store.IntelTypePlaintextMessage,
-		Content:    json.RawMessage(`null`),
+		ID:        suite.sampleID,
+		CreatedAt: time.Now().UTC(),
+		CreatedBy: testutil.NewUUIDV4(),
+		Operation: testutil.NewUUIDV4(),
+		Type:      store.IntelTypePlaintextMessage,
+		Content: testutil.MarshalJSONMust(store.IntelTypePlaintextMessageContent{
+			Text: "Hello World!",
+		}),
 		SearchText: nulls.NewString("Hello World!"),
 		IsValid:    true,
 		Assignments: []store.IntelAssignment{
@@ -396,12 +402,14 @@ func (suite *handleGetIntelByIDSuite) SetupTest() {
 		},
 	}
 	suite.samplePublicIntel = publicIntel{
-		ID:         suite.sampleID,
-		CreatedAt:  suite.sampleStoreIntel.CreatedAt,
-		CreatedBy:  suite.sampleStoreIntel.CreatedBy,
-		Operation:  suite.sampleStoreIntel.Operation,
-		Type:       intelTypePlainTextMessage,
-		Content:    json.RawMessage(`null`),
+		ID:        suite.sampleID,
+		CreatedAt: suite.sampleStoreIntel.CreatedAt,
+		CreatedBy: suite.sampleStoreIntel.CreatedBy,
+		Operation: suite.sampleStoreIntel.Operation,
+		Type:      intelTypePlaintextMessage,
+		Content: testutil.MarshalJSONMust(event.IntelTypePlaintextMessageContent{
+			Text: "Hello World!",
+		}),
 		SearchText: nulls.NewString("Hello World!"),
 		IsValid:    true,
 		Assignments: []publicIntelAssignment{
@@ -503,4 +511,92 @@ func (suite *handleGetIntelByIDSuite) TestOK() {
 
 func Test_handleGetIntelByID(t *testing.T) {
 	suite.Run(t, new(handleGetIntelByIDSuite))
+}
+
+func Test_publicIntelContentFromStore(t *testing.T) {
+	testutil.TestMapperWithConstExtraction(t, func(from store.IntelType) (string, error) {
+		// Assure that the type is known.
+		_, err := publicIntelContentFromStore(from, json.RawMessage(`{}`))
+		if err != nil {
+			if strings.Contains(err.Error(), "no intel-content-mapper") {
+				return "", err
+			}
+			if strings.Contains(err.Error(), "mapper fn") {
+				return "", nil
+			}
+		}
+		return "", nil
+	}, "../store/intel_content.go", nulls.String{})
+}
+
+func Test_storeIntelContentFromPublic(t *testing.T) {
+	testutil.TestMapperWithConstExtraction(t, func(from publicIntelType) (string, error) {
+		// Assure that the type is known.
+		_, err := storeIntelContentFromPublic(from, json.RawMessage(`{}`))
+		if err != nil {
+			if strings.Contains(err.Error(), "no intel-content-mapper") {
+				return "", err
+			}
+			if strings.Contains(err.Error(), "mapper fn") {
+				return "", nil
+			}
+		}
+		return "", nil
+	}, "./intel_handlers.go", nulls.NewString("intelType"))
+}
+
+func Test_pITAnalogRadioMessageContentFromStore(t *testing.T) {
+	s := store.IntelTypeAnalogRadioMessageContent{
+		Channel:  "except",
+		Callsign: "passage",
+		Head:     "redden",
+		Content:  "hope",
+	}
+	p, err := pITAnalogRadioMessageContentFromStore(s)
+	require.NoError(t, err, "should not fail")
+	assert.Equal(t, pITAnalogRadioMessageContent{
+		Channel:  s.Channel,
+		Callsign: s.Callsign,
+		Head:     s.Head,
+		Content:  s.Content,
+	}, p, "should return correct value")
+}
+
+func Test_sITAnalogRadioMessageContentFromPublic(t *testing.T) {
+	p := pITAnalogRadioMessageContent{
+		Channel:  "except",
+		Callsign: "passage",
+		Head:     "redden",
+		Content:  "hope",
+	}
+	s, err := sITAnalogRadioMessageContentFromPublic(p)
+	require.NoError(t, err, "should not fail")
+	assert.Equal(t, store.IntelTypeAnalogRadioMessageContent{
+		Channel:  p.Channel,
+		Callsign: p.Callsign,
+		Head:     p.Head,
+		Content:  p.Content,
+	}, s, "should return correct value")
+}
+
+func Test_pITPlaintextMessageContentFromStore(t *testing.T) {
+	s := store.IntelTypePlaintextMessageContent{
+		Text: "cap",
+	}
+	p, err := pITPlaintextMessageContentFromStore(s)
+	require.NoError(t, err, "should not fail")
+	assert.Equal(t, pITPlaintextMessageContent{
+		Text: s.Text,
+	}, p, "should return correct value")
+}
+
+func Test_sITPlaintextMessageContentFromPublic(t *testing.T) {
+	p := pITPlaintextMessageContent{
+		Text: "cotton",
+	}
+	s, err := sITPlaintextMessageContentFromPublic(p)
+	require.NoError(t, err, "should not fail")
+	assert.Equal(t, store.IntelTypePlaintextMessageContent{
+		Text: p.Text,
+	}, s, "should return correct value")
 }
