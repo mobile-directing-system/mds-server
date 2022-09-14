@@ -8,12 +8,15 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/kafkautil"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"strings"
 	"testing"
 )
 
-func Test_intelTypeFromStore(t *testing.T) {
-	testutil.TestMapperWithConstExtraction(t, intelTypeFromStore, "../store/intel_content.go", nulls.String{})
+func Test_mapIntelTypeFromStore(t *testing.T) {
+	testutil.TestMapperWithConstExtraction(t, mapIntelTypeFromStore, "../store/intel_content.go", nulls.String{})
 }
 
 // PortNotifyIntelCreatedSuite tests Port.NotifyIntelCreated.
@@ -29,11 +32,13 @@ func (suite *PortNotifyIntelCreatedSuite) SetupTest() {
 	suite.port = newMockPort()
 	suite.tx = &testutil.DBTx{}
 	suite.sampleCreated = store.Intel{
-		ID:         testutil.NewUUIDV4(),
-		CreatedBy:  testutil.NewUUIDV4(),
-		Operation:  testutil.NewUUIDV4(),
-		Type:       store.IntelTypePlaintextMessage,
-		Content:    json.RawMessage(`null`),
+		ID:        testutil.NewUUIDV4(),
+		CreatedBy: testutil.NewUUIDV4(),
+		Operation: testutil.NewUUIDV4(),
+		Type:      store.IntelTypePlaintextMessage,
+		Content: testutil.MarshalJSONMust(store.IntelTypePlaintextMessageContent{
+			Text: "Hello World!",
+		}),
 		SearchText: nulls.NewString("gold"),
 	}
 	suite.sampleCreated.Assignments = []store.IntelAssignment{
@@ -54,12 +59,14 @@ func (suite *PortNotifyIntelCreatedSuite) SetupTest() {
 			Key:       suite.sampleCreated.ID.String(),
 			EventType: event.TypeIntelCreated,
 			Value: event.IntelCreated{
-				ID:         suite.sampleCreated.ID,
-				CreatedAt:  suite.sampleCreated.CreatedAt,
-				CreatedBy:  suite.sampleCreated.CreatedBy,
-				Operation:  suite.sampleCreated.Operation,
-				Type:       event.IntelTypePlaintextMessage,
-				Content:    suite.sampleCreated.Content,
+				ID:        suite.sampleCreated.ID,
+				CreatedAt: suite.sampleCreated.CreatedAt,
+				CreatedBy: suite.sampleCreated.CreatedBy,
+				Operation: suite.sampleCreated.Operation,
+				Type:      event.IntelTypePlaintextMessage,
+				Content: testutil.MarshalJSONMust(event.IntelTypePlaintextMessageContent{
+					Text: "Hello World!",
+				}),
 				SearchText: suite.sampleCreated.SearchText,
 				IsValid:    suite.sampleCreated.IsValid,
 				Assignments: []event.IntelAssignment{
@@ -80,8 +87,7 @@ func (suite *PortNotifyIntelCreatedSuite) SetupTest() {
 
 func (suite *PortNotifyIntelCreatedSuite) TestUnsupportedIntelType() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.sampleCreated.Type = "3fD0ZRD"
-
+	suite.sampleCreated.Type = store.IntelType(testutil.NewUUIDV4().String())
 	go func() {
 		defer cancel()
 		err := suite.port.Port.NotifyIntelCreated(timeout, suite.tx, suite.sampleCreated)
@@ -178,4 +184,48 @@ func (suite *PortNotifyIntelInvalidatedSuite) TestOK() {
 
 func TestPort_NotifyIntelInvalidated(t *testing.T) {
 	suite.Run(t, new(PortNotifyIntelInvalidatedSuite))
+}
+
+func Test_mapIntelContentFromStore(t *testing.T) {
+	testutil.TestMapperWithConstExtraction(t, func(from store.IntelType) (string, error) {
+		// Assure that the type is known.
+		_, err := mapIntelContentFromStore(from, json.RawMessage(`{}`))
+		if err != nil {
+			if strings.Contains(err.Error(), "no intel-content-mapper") {
+				return "", err
+			}
+			if strings.Contains(err.Error(), "mapper fn") {
+				return "", nil
+			}
+		}
+		return "", nil
+	}, "../store/intel_content.go", nulls.String{})
+}
+
+func Test_mapIntelTypeAnalogRadioMessageContent(t *testing.T) {
+	s := store.IntelTypeAnalogRadioMessageContent{
+		Channel:  "except",
+		Callsign: "passage",
+		Head:     "redden",
+		Content:  "hope",
+	}
+	e, err := mapIntelTypeAnalogRadioMessageContent(s)
+	require.NoError(t, err, "should not fail")
+	assert.Equal(t, event.IntelTypeAnalogRadioMessageContent{
+		Channel:  s.Channel,
+		Callsign: s.Callsign,
+		Head:     s.Head,
+		Content:  s.Content,
+	}, e, "should return correct value")
+}
+
+func Test_mapIntelTypePlaintextMessageContent(t *testing.T) {
+	s := store.IntelTypePlaintextMessageContent{
+		Text: "learn",
+	}
+	e, err := mapIntelTypePlaintextMessageContent(s)
+	require.NoError(t, err, "should not fail")
+	assert.Equal(t, event.IntelTypePlaintextMessageContent{
+		Text: s.Text,
+	}, e, "should return correct value")
 }

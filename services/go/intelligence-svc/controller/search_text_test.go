@@ -40,3 +40,17 @@ func Test_genSearchTextForPlaintextMessage(t *testing.T) {
 	require.Truef(t, searchText.Valid, "should return search text")
 	assert.Contains(t, searchText.String, content.Text, "should contain the text")
 }
+
+func Test_genSearchTextForAnalogRadioMessage(t *testing.T) {
+	content := store.IntelTypeAnalogRadioMessageContent{
+		Channel:  "person",
+		Callsign: "chance",
+		Head:     "cottage",
+		Content:  "ahead",
+	}
+	searchText, err := genSearchTextForAnalogRadioMessage(content)
+	require.NoError(t, err, "should not fail")
+	require.Truef(t, searchText.Valid, "should return search text")
+	assert.Contains(t, searchText.String, content.Callsign, "should contain callsign")
+	assert.Contains(t, searchText.String, content.Content, "should contain content")
+}

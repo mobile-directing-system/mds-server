@@ -9,18 +9,38 @@ Intel is always associated with an operation and creators and viewers must be me
 Intel types
 ===========
 
+analog-radio-message
+^^^^^^^^^^^^^^^^^^^^
+
+Used for radio messages, received via analog radio.
+
+Content:
+
+.. code-block:: json
+
+    {
+        "channel": "<channel_over_which_received>",
+        "callsign" "<sender_callsign>",
+        "head": "<message_head>",
+        "content": "<message_content>"
+    }
+
+The fields ``callsign`` and ``content`` must not be empty.
+
 plaintext-message
 ^^^^^^^^^^^^^^^^^
 
 Used for plaintext content.
 
-Options:
+Content:
 
 .. code-block:: json
 
     {
         "text": "<content>"
     }
+
+The ``text``-field must not be empty.
 
 Create intel
 ============

@@ -7,6 +7,34 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/shared/entityvalidation"
 )
 
+// IntelTypeAnalogRadioMessage for received radio messages.
+const IntelTypeAnalogRadioMessage IntelType = "analog-radio-message"
+
+// IntelTypeAnalogRadioMessageContent is the content for intel with
+// IntelTypeAnalogRadioMessage.
+type IntelTypeAnalogRadioMessageContent struct {
+	// Channel used for radio communication.
+	Channel string
+	// Callsign of the sender.
+	Callsign string
+	// Head of the message.
+	Head string
+	// Content is the actual message content.
+	Content string
+}
+
+// Validate assures that Callsign and Content are set.
+func (mc IntelTypeAnalogRadioMessageContent) Validate() (entityvalidation.Report, error) {
+	report := entityvalidation.NewReport()
+	if mc.Callsign == "" {
+		report.AddError("missing callsign")
+	}
+	if mc.Content == "" {
+		report.AddError("missing content")
+	}
+	return report, nil
+}
+
 // IntelTypePlaintextMessage for simple plaintext messages.
 const IntelTypePlaintextMessage IntelType = "plaintext-message"
 
@@ -52,6 +80,8 @@ func validateCreateIntelTypeAndContent(intelType IntelType, contentRaw json.RawM
 	report := entityvalidation.NewReport()
 	var contentValidator intelContentValidator
 	switch intelType {
+	case IntelTypeAnalogRadioMessage:
+		contentValidator = validateIntelContent[IntelTypeAnalogRadioMessageContent]()
 	case IntelTypePlaintextMessage:
 		contentValidator = validateIntelContent[IntelTypePlaintextMessageContent]()
 	default:
