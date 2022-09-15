@@ -217,7 +217,7 @@ For **Forward to Group** channel:
 .. code-block:: json
 
     {
-        "forward_to_group": "<target_group_id>"
+        "forward_to_group": ["<target_group_id>"]
     }
 
 If the referenced group is deleted, this channel will automatically be deleted as well.
@@ -227,7 +227,7 @@ For **Forward to User** channel:
 .. code-block:: json
 
     {
-        "forward_to_user": "<target_user_id>"
+        "forward_to_user": ["<target_user_id>"]
     }
 
 If the referenced user is deleted, this channel will automatically be deleted as well.
