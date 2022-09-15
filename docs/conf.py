@@ -29,7 +29,8 @@ author = 'Yves Haas, Laurin Todt, Lennart Altenhof'
 # ones.
 extensions = [
     "sphinx.ext.duration",
-    "sphinx.ext.extlinks"
+    "sphinx.ext.extlinks",
+    'sphinxemoji.sphinxemoji',
 ]
 
 # Add external URLs.
