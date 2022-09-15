@@ -127,7 +127,7 @@ func (m *Mall) UpdateOperationMembersByOperation(ctx context.Context, tx pgx.Tx,
 	affectedEntries := make([]uuid.UUID, 0)
 	for affectedEntriesRows.Next() {
 		var entryID uuid.UUID
-		err = affectedEntriesRows.Scan(&affectedEntries)
+		err = affectedEntriesRows.Scan(&entryID)
 		if err != nil {
 			return mehpg.NewScanRowsErr(err, "scan affected-entries-row", affectedEntriesQuery)
 		}
