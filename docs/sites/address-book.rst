@@ -186,13 +186,13 @@ Each channel has a unique priority, timeout and minimum importance for intel.
 
 Currently, the following channel types are supported, but not all implemented:
 
-- **Direct** (`direct`): Use, if the recipient can be contacted directly, for example by talking.
-- **Email** (`email`): Send an email and await a response.
-- **Forward to Group** (`forward-to-group`): Forward intel to members of a group. This will use the first available address book entry for each member.
-- **Forward to User** (`forward-to-user`): Forward intel to a user. This will use the first available address book entry for the user.
+- (**Coming soon** |:rocket:|) **Direct** (`direct`): Use, if the recipient can be contacted directly, for example by talking.
+- (**Coming soon** |:rocket:|) **Email** (`email`): Send an email and await a response.
+- (**Coming soon** |:rocket:|) **Forward to Group** (`forward-to-group`): Forward intel to members of a group. This will use the first available address book entry for each member.
+- (**Coming soon** |:rocket:|) **Forward to User** (`forward-to-user`): Forward intel to a user. This will use the first available address book entry for the user.
 - **In-App Notification** (`in-app-notification`): Send an in-app notification via the MDS application and await it being read.
-- **Phone Call** (`phone-call`): Call the recipient.
-- **Radio** (`radio`): Forward to a radio operator, that transmits the intel over radio.
+- (**Coming soon** |:rocket:|) **Phone Call** (`phone-call`): Call the recipient.
+- (**Coming soon** |:rocket:|) **Radio** (`radio`): Forward to a radio operator, that transmits the intel over radio.
 
 Each channel holds additional details, based on the type.
 
