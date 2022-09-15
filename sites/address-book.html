@@ -357,13 +357,13 @@ A radio channel might forward intel to a radio operator, that calls the recipien
 Each channel has a unique priority, timeout and minimum importance for intel.</p>
 <p>Currently, the following channel types are supported, but not all implemented:</p>
 <ul class="simple">
-<li><p><strong>Direct</strong> (<cite>direct</cite>): Use, if the recipient can be contacted directly, for example by talking.</p></li>
-<li><p><strong>Email</strong> (<cite>email</cite>): Send an email and await a response.</p></li>
-<li><p><strong>Forward to Group</strong> (<cite>forward-to-group</cite>): Forward intel to members of a group. This will use the first available address book entry for each member.</p></li>
-<li><p><strong>Forward to User</strong> (<cite>forward-to-user</cite>): Forward intel to a user. This will use the first available address book entry for the user.</p></li>
+<li><p>(<strong>Coming soon</strong> 🚀) <strong>Direct</strong> (<cite>direct</cite>): Use, if the recipient can be contacted directly, for example by talking.</p></li>
+<li><p>(<strong>Coming soon</strong> 🚀) <strong>Email</strong> (<cite>email</cite>): Send an email and await a response.</p></li>
+<li><p>(<strong>Coming soon</strong> 🚀) <strong>Forward to Group</strong> (<cite>forward-to-group</cite>): Forward intel to members of a group. This will use the first available address book entry for each member.</p></li>
+<li><p>(<strong>Coming soon</strong> 🚀) <strong>Forward to User</strong> (<cite>forward-to-user</cite>): Forward intel to a user. This will use the first available address book entry for the user.</p></li>
 <li><p><strong>In-App Notification</strong> (<cite>in-app-notification</cite>): Send an in-app notification via the MDS application and await it being read.</p></li>
-<li><p><strong>Phone Call</strong> (<cite>phone-call</cite>): Call the recipient.</p></li>
-<li><p><strong>Radio</strong> (<cite>radio</cite>): Forward to a radio operator, that transmits the intel over radio.</p></li>
+<li><p>(<strong>Coming soon</strong> 🚀) <strong>Phone Call</strong> (<cite>phone-call</cite>): Call the recipient.</p></li>
+<li><p>(<strong>Coming soon</strong> 🚀) <strong>Radio</strong> (<cite>radio</cite>): Forward to a radio operator, that transmits the intel over radio.</p></li>
 </ul>
 <p>Each channel holds additional details, based on the type.</p>
 <p>For <strong>Direct</strong> channel:</p>
@@ -380,14 +380,14 @@ Each channel has a unique priority, timeout and minimum importance for intel.</p
 </div>
 <p>For <strong>Forward to Group</strong> channel:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;forward_to_group&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;target_group_id&gt;&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;forward_to_group&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;&lt;target_group_id&gt;&quot;</span><span class="p">]</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
 <p>If the referenced group is deleted, this channel will automatically be deleted as well.</p>
 <p>For <strong>Forward to User</strong> channel:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;forward_to_user&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;target_user_id&gt;&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;forward_to_user&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;&lt;target_user_id&gt;&quot;</span><span class="p">]</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
