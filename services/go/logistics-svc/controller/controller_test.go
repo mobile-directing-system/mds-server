@@ -139,10 +139,6 @@ func (m *StoreMock) UpdateChannelsByEntry(ctx context.Context, tx pgx.Tx, entryI
 	return m.Called(ctx, tx, entryID, newChannels).Error(0)
 }
 
-func (m *StoreMock) CreateIntel(ctx context.Context, tx pgx.Tx, create store.Intel) error {
-	return m.Called(ctx, tx, create).Error(0)
-}
-
 func (m *StoreMock) IntelByID(ctx context.Context, tx pgx.Tx, intelID uuid.UUID) (store.Intel, error) {
 	args := m.Called(ctx, tx, intelID)
 	return args.Get(0).(store.Intel), args.Error(1)
@@ -151,11 +147,6 @@ func (m *StoreMock) IntelByID(ctx context.Context, tx pgx.Tx, intelID uuid.UUID)
 func (m *StoreMock) CreateIntelDelivery(ctx context.Context, tx pgx.Tx, create store.IntelDelivery) (store.IntelDelivery, error) {
 	args := m.Called(ctx, tx, create)
 	return args.Get(0).(store.IntelDelivery), args.Error(1)
-}
-
-func (m *StoreMock) IntelAssignmentByID(ctx context.Context, tx pgx.Tx, assignmentID uuid.UUID) (store.IntelAssignment, error) {
-	args := m.Called(ctx, tx, assignmentID)
-	return args.Get(0).(store.IntelAssignment), args.Error(1)
 }
 
 func (m *StoreMock) IntelDeliveryByID(ctx context.Context, tx pgx.Tx, deliveryID uuid.UUID) (store.IntelDelivery, error) {
@@ -264,6 +255,41 @@ func (m *StoreMock) IntelDeliveryByIDAndLockOrWait(ctx context.Context, tx pgx.T
 	return args.Get(0).(store.IntelDelivery), args.Error(1)
 }
 
+func (m *StoreMock) CreateIntel(ctx context.Context, tx pgx.Tx, create store.CreateIntel) (store.Intel, error) {
+	args := m.Called(ctx, tx, create)
+	return args.Get(0).(store.Intel), args.Error(1)
+}
+
+func (m *StoreMock) SearchIntel(ctx context.Context, tx pgx.Tx, filters store.IntelFilters,
+	searchParams search.Params) (search.Result[store.Intel], error) {
+	args := m.Called(ctx, tx, filters, searchParams)
+	return args.Get(0).(search.Result[store.Intel]), args.Error(1)
+}
+
+func (m *StoreMock) IsUserOperationMember(ctx context.Context, tx pgx.Tx, userID uuid.UUID, operationID uuid.UUID) (bool, error) {
+	args := m.Called(ctx, tx, userID, operationID)
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *StoreMock) RebuildIntelSearch(ctx context.Context, tx pgx.Tx) error {
+	return m.Called(ctx, tx).Error(0)
+}
+
+func (m *StoreMock) UsersWithDeliveriesByIntel(ctx context.Context, tx pgx.Tx, intelID uuid.UUID) ([]uuid.UUID, error) {
+	args := m.Called(ctx, tx, intelID)
+	var users []uuid.UUID
+	if v := args.Get(0); v != nil {
+		users = v.([]uuid.UUID)
+	}
+	return users, args.Error(1)
+}
+
+func (m *StoreMock) Intel(ctx context.Context, tx pgx.Tx, filters store.IntelFilters,
+	paginationParams pagination.Params) (pagination.Paginated[store.Intel], error) {
+	args := m.Called(ctx, tx, filters, paginationParams)
+	return args.Get(0).(pagination.Paginated[store.Intel]), args.Error(1)
+}
+
 // NotifierMock mocks Notifier.
 type NotifierMock struct {
 	mock.Mock
@@ -290,8 +316,8 @@ func (m *NotifierMock) NotifyIntelDeliveryCreated(ctx context.Context, tx pgx.Tx
 }
 
 func (m *NotifierMock) NotifyIntelDeliveryAttemptCreated(ctx context.Context, tx pgx.Tx, created store.IntelDeliveryAttempt,
-	delivery store.IntelDelivery, assignment store.IntelAssignment, assignedEntry store.AddressBookEntryDetailed, intel store.Intel) error {
-	return m.Called(ctx, tx, created, delivery, assignment, assignedEntry, intel).Error(0)
+	delivery store.IntelDelivery, assignedEntry store.AddressBookEntryDetailed, intel store.Intel) error {
+	return m.Called(ctx, tx, created, delivery, assignedEntry, intel).Error(0)
 }
 
 func (m *NotifierMock) NotifyIntelDeliveryAttemptStatusUpdated(ctx context.Context, tx pgx.Tx, attempt store.IntelDeliveryAttempt) error {
@@ -301,4 +327,12 @@ func (m *NotifierMock) NotifyIntelDeliveryAttemptStatusUpdated(ctx context.Conte
 func (m *NotifierMock) NotifyIntelDeliveryStatusUpdated(ctx context.Context, tx pgx.Tx, deliveryID uuid.UUID, newIsActive bool,
 	newSuccess bool, newNote nulls.String) error {
 	return m.Called(ctx, tx, deliveryID, newIsActive, newSuccess, newNote).Error(0)
+}
+
+func (m *NotifierMock) NotifyIntelCreated(ctx context.Context, tx pgx.Tx, created store.Intel) error {
+	return m.Called(ctx, tx, created).Error(0)
+}
+
+func (m *NotifierMock) NotifyIntelInvalidated(ctx context.Context, tx pgx.Tx, intelID uuid.UUID, by uuid.UUID) error {
+	return m.Called(ctx, tx, intelID, by).Error(0)
 }

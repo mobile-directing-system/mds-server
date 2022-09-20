@@ -175,7 +175,10 @@ func (m *Mall) addOrUpdateAddressBookEntryInSearch(ctx context.Context, tx pgx.T
 	}
 	err = m.searchClient.SafeAddOrUpdateDocument(ctx, tx, abEntrySearchIndex, d)
 	if err != nil {
-		return meh.NilOrWrap(err, "safe add or update document in search", meh.Details{"new": d})
+		return meh.Wrap(err, "safe add or update document in search", meh.Details{
+			"index":        abEntrySearchIndex,
+			"new_document": d,
+		})
 	}
 	return nil
 }
@@ -612,4 +615,59 @@ func (m *Mall) RebuildAddressBookEntrySearch(ctx context.Context, tx pgx.Tx) err
 		return meh.Wrap(err, "safe rebuild index", nil)
 	}
 	return nil
+}
+
+// UsersWithDeliveriesByIntel retrieves all users having associated address book
+// entries with deliveries for the intel with the given id.
+func (m *Mall) UsersWithDeliveriesByIntel(ctx context.Context, tx pgx.Tx, intelID uuid.UUID) ([]uuid.UUID, error) {
+	q, _, err := m.dialect.From(goqu.T("intel_deliveries")).
+		InnerJoin(goqu.T("address_book_entries"),
+			goqu.On(goqu.I("address_book_entries.id").Eq(goqu.I("intel_deliveries.to")))).
+		Select(goqu.DISTINCT(goqu.I("address_book_entries.user"))).
+		Where(goqu.I("intel_deliveries.intel").Eq(intelID),
+			goqu.I("address_book_entries.user").IsNotNull()).ToSQL()
+	if err != nil {
+		return nil, meh.NewInternalErrFromErr(err, "query to sql", nil)
+	}
+	rows, err := tx.Query(ctx, q)
+	if err != nil {
+		return nil, mehpg.NewQueryDBErr(err, "query db", q)
+	}
+	defer rows.Close()
+	userIDs := make([]uuid.UUID, 0)
+	for rows.Next() {
+		var userID uuid.UUID
+		err = rows.Scan(&userID)
+		if err != nil {
+			return nil, mehpg.NewScanRowsErr(err, "scan row", q)
+		}
+		userIDs = append(userIDs, userID)
+	}
+	return userIDs, nil
+}
+
+// associatedUsersByAddressBookEntries retrieves a list of user ids, associated
+// with the given address book entries.
+func (m *Mall) associatedUsersByAddressBookEntries(ctx context.Context, tx pgx.Tx, entryIDs []uuid.UUID) ([]uuid.UUID, error) {
+	q, _, err := m.dialect.From(goqu.T("address_book_entries")).
+		Select(goqu.DISTINCT(goqu.C("user"))).
+		Where(goqu.C("id").In(entryIDs)).ToSQL()
+	if err != nil {
+		return nil, meh.NewInternalErrFromErr(err, "query to sql", nil)
+	}
+	rows, err := tx.Query(ctx, q)
+	if err != nil {
+		return nil, mehpg.NewQueryDBErr(err, "query db", q)
+	}
+	defer rows.Close()
+	users := make([]uuid.UUID, 0, len(entryIDs))
+	for rows.Next() {
+		var id uuid.UUID
+		err = rows.Scan(&id)
+		if err != nil {
+			return nil, mehpg.NewScanRowsErr(err, "scan row", q)
+		}
+		users = append(users, id)
+	}
+	return users, nil
 }

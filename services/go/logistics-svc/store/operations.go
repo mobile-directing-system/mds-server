@@ -204,3 +204,21 @@ func (m *Mall) OperationMembersByOperation(ctx context.Context, tx pgx.Tx, opera
 	rows.Close()
 	return members, nil
 }
+
+// IsUserOperationMember checks if the user with the given id is member of the
+// give operation.
+func (m *Mall) IsUserOperationMember(ctx context.Context, tx pgx.Tx, userID uuid.UUID, operationID uuid.UUID) (bool, error) {
+	q, _, err := m.dialect.From(goqu.T("operation_members")).
+		Select(goqu.C("user")).
+		Where(goqu.C("operation").Eq(operationID),
+			goqu.C("user").Eq(userID)).ToSQL()
+	if err != nil {
+		return false, meh.NewInternalErrFromErr(err, "query to sql", nil)
+	}
+	rows, err := tx.Query(ctx, q)
+	if err != nil {
+		return false, mehpg.NewQueryDBErr(err, "query db", q)
+	}
+	defer rows.Close()
+	return rows.Next(), nil
+}

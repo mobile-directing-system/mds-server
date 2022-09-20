@@ -70,3 +70,33 @@ func (m *StoreMock) MarkIntelDeliveryAsDelivered(ctx context.Context, deliveryID
 func (m *StoreMock) MarkIntelDeliveryAttemptAsDelivered(ctx context.Context, attemptID uuid.UUID, by uuid.NullUUID) error {
 	return m.Called(ctx, attemptID, by).Error(0)
 }
+
+func (m *StoreMock) SearchIntel(ctx context.Context, intelFilters store.IntelFilters, searchParams search.Params,
+	limitToUser uuid.NullUUID) (search.Result[store.Intel], error) {
+	args := m.Called(ctx, intelFilters, searchParams, limitToUser)
+	return args.Get(0).(search.Result[store.Intel]), args.Error(1)
+}
+
+func (m *StoreMock) CreateIntel(ctx context.Context, create store.CreateIntel) (store.Intel, error) {
+	args := m.Called(ctx, create)
+	return args.Get(0).(store.Intel), args.Error(1)
+}
+
+func (m *StoreMock) InvalidateIntelByID(ctx context.Context, intelID uuid.UUID, by uuid.UUID) error {
+	return m.Called(ctx, intelID, by).Error(0)
+}
+
+func (m *StoreMock) RebuildIntelSearch(ctx context.Context) {
+	m.Called(ctx)
+}
+
+func (m *StoreMock) IntelByID(ctx context.Context, intelID uuid.UUID, limitToUser uuid.NullUUID) (store.Intel, error) {
+	args := m.Called(ctx, intelID, limitToUser)
+	return args.Get(0).(store.Intel), args.Error(1)
+}
+
+func (m *StoreMock) Intel(ctx context.Context, filters store.IntelFilters, paginationParams pagination.Params,
+	limitToUser uuid.NullUUID) (pagination.Paginated[store.Intel], error) {
+	args := m.Called(ctx, filters, paginationParams, limitToUser)
+	return args.Get(0).(pagination.Paginated[store.Intel]), args.Error(1)
+}

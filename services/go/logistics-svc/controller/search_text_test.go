@@ -2,7 +2,7 @@ package controller
 
 import (
 	"github.com/lefinal/nulls"
-	"github.com/mobile-directing-system/mds-server/services/go/intelligence-svc/store"
+	"github.com/mobile-directing-system/mds-server/services/go/logistics-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

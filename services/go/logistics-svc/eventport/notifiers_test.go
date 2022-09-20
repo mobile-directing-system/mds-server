@@ -8,7 +8,10 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/kafkautil"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"strings"
 	"testing"
 	"time"
 )
@@ -623,6 +626,199 @@ func Test_eventIntelDeliveryStatusFromStore(t *testing.T) {
 	testutil.TestMapperWithConstExtractionFromDir(t, eventIntelDeliveryStatusFromStore, "../../shared/event", nulls.String{})
 }
 
+func Test_mapIntelTypeFromStore(t *testing.T) {
+	testutil.TestMapperWithConstExtraction(t, mapIntelTypeFromStore, "../store/intel_content.go", nulls.String{})
+}
+
+// PortNotifyIntelCreatedSuite tests Port.NotifyIntelCreated.
+type PortNotifyIntelCreatedSuite struct {
+	suite.Suite
+	port             *PortMock
+	tx               *testutil.DBTx
+	sampleCreated    store.Intel
+	expectedMessages []kafkautil.OutboundMessage
+}
+
+func (suite *PortNotifyIntelCreatedSuite) SetupTest() {
+	suite.port = newMockPort()
+	suite.tx = &testutil.DBTx{}
+	suite.sampleCreated = store.Intel{
+		ID:        testutil.NewUUIDV4(),
+		CreatedBy: testutil.NewUUIDV4(),
+		Operation: testutil.NewUUIDV4(),
+		Type:      store.IntelTypePlaintextMessage,
+		Content: testutil.MarshalJSONMust(store.IntelTypePlaintextMessageContent{
+			Text: "Hello World!",
+		}),
+		SearchText: nulls.NewString("gold"),
+	}
+	suite.expectedMessages = []kafkautil.OutboundMessage{
+		{
+			Topic:     event.IntelTopic,
+			Key:       suite.sampleCreated.ID.String(),
+			EventType: event.TypeIntelCreated,
+			Value: event.IntelCreated{
+				ID:        suite.sampleCreated.ID,
+				CreatedAt: suite.sampleCreated.CreatedAt,
+				CreatedBy: suite.sampleCreated.CreatedBy,
+				Operation: suite.sampleCreated.Operation,
+				Type:      event.IntelTypePlaintextMessage,
+				Content: testutil.MarshalJSONMust(event.IntelTypePlaintextMessageContent{
+					Text: "Hello World!",
+				}),
+				SearchText: suite.sampleCreated.SearchText,
+				IsValid:    suite.sampleCreated.IsValid,
+			},
+			Headers: nil,
+		},
+	}
+}
+
+func (suite *PortNotifyIntelCreatedSuite) TestUnsupportedIntelType() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.sampleCreated.Type = store.IntelType(testutil.NewUUIDV4().String())
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyIntelCreated(timeout, suite.tx, suite.sampleCreated)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *PortNotifyIntelCreatedSuite) TestWriteFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.port.recorder.WriteFail = true
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyIntelCreated(timeout, suite.tx, suite.sampleCreated)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *PortNotifyIntelCreatedSuite) TestOK() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyIntelCreated(timeout, suite.tx, suite.sampleCreated)
+		suite.Require().NoError(err, "should not fail")
+		suite.Equal(suite.expectedMessages, suite.port.recorder.Recorded, "should write correct messages")
+	}()
+
+	wait()
+}
+
+func TestPort_NotifyIntelCreated(t *testing.T) {
+	suite.Run(t, new(PortNotifyIntelCreatedSuite))
+}
+
+// PortNotifyIntelInvalidatedSuite tests Port.NotifyIntelInvalidated.
+type PortNotifyIntelInvalidatedSuite struct {
+	suite.Suite
+	port             *PortMock
+	tx               *testutil.DBTx
+	sampleID         uuid.UUID
+	sampleBy         uuid.UUID
+	expectedMessages []kafkautil.OutboundMessage
+}
+
+func (suite *PortNotifyIntelInvalidatedSuite) SetupTest() {
+	suite.port = newMockPort()
+	suite.tx = &testutil.DBTx{}
+	suite.sampleID = testutil.NewUUIDV4()
+	suite.sampleBy = testutil.NewUUIDV4()
+	suite.expectedMessages = []kafkautil.OutboundMessage{
+		{
+			Topic:     event.IntelTopic,
+			Key:       suite.sampleID.String(),
+			EventType: event.TypeIntelInvalidated,
+			Value: event.IntelInvalidated{
+				ID: suite.sampleID,
+				By: suite.sampleBy,
+			},
+			Headers: nil,
+		},
+	}
+}
+
+func (suite *PortNotifyIntelInvalidatedSuite) TestWriteFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.port.recorder.WriteFail = true
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyIntelInvalidated(timeout, suite.tx, suite.sampleID, suite.sampleBy)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *PortNotifyIntelInvalidatedSuite) TestOK() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+
+	go func() {
+		defer cancel()
+		err := suite.port.Port.NotifyIntelInvalidated(timeout, suite.tx, suite.sampleID, suite.sampleBy)
+		suite.Require().NoError(err, "should not fail")
+		suite.Equal(suite.expectedMessages, suite.port.recorder.Recorded, "should write correct messages")
+	}()
+
+	wait()
+}
+
+func TestPort_NotifyIntelInvalidated(t *testing.T) {
+	suite.Run(t, new(PortNotifyIntelInvalidatedSuite))
+}
+
+func Test_mapIntelContentFromStore(t *testing.T) {
+	testutil.TestMapperWithConstExtraction(t, func(from store.IntelType) (string, error) {
+		// Assure that the type is known.
+		_, err := mapIntelContentFromStore(from, json.RawMessage(`{}`))
+		if err != nil {
+			if strings.Contains(err.Error(), "no intel-content-mapper") {
+				return "", err
+			}
+			if strings.Contains(err.Error(), "mapper fn") {
+				return "", nil
+			}
+		}
+		return "", nil
+	}, "../store/intel_content.go", nulls.String{})
+}
+
+func Test_mapIntelTypeAnalogRadioMessageContent(t *testing.T) {
+	s := store.IntelTypeAnalogRadioMessageContent{
+		Channel:  "except",
+		Callsign: "passage",
+		Head:     "redden",
+		Content:  "hope",
+	}
+	e, err := mapIntelTypeAnalogRadioMessageContent(s)
+	require.NoError(t, err, "should not fail")
+	assert.Equal(t, event.IntelTypeAnalogRadioMessageContent{
+		Channel:  s.Channel,
+		Callsign: s.Callsign,
+		Head:     s.Head,
+		Content:  s.Content,
+	}, e, "should return correct value")
+}
+
+func Test_mapIntelTypePlaintextMessageContent(t *testing.T) {
+	s := store.IntelTypePlaintextMessageContent{
+		Text: "learn",
+	}
+	e, err := mapIntelTypePlaintextMessageContent(s)
+	require.NoError(t, err, "should not fail")
+	assert.Equal(t, event.IntelTypePlaintextMessageContent{
+		Text: s.Text,
+	}, e, "should return correct value")
+}
+
 // PortNotifyIntelDeliveryAttemptCreatedSuite tests
 // Port.NotifyIntelDeliveryAttemptCreated.
 type PortNotifyIntelDeliveryAttemptCreatedSuite struct {
@@ -631,7 +827,6 @@ type PortNotifyIntelDeliveryAttemptCreatedSuite struct {
 	tx                  *testutil.DBTx
 	sampleCreated       store.IntelDeliveryAttempt
 	sampleDelivery      store.IntelDelivery
-	sampleAssignment    store.IntelAssignment
 	sampleAssignedEntry store.AddressBookEntryDetailed
 	sampleIntel         store.Intel
 	expectedMessages    []kafkautil.OutboundMessage
@@ -651,15 +846,10 @@ func (suite *PortNotifyIntelDeliveryAttemptCreatedSuite) SetupTest() {
 		Importance: 260,
 		IsValid:    true,
 	}
-	suite.sampleAssignment = store.IntelAssignment{
-		ID:    testutil.NewUUIDV4(),
-		Intel: suite.sampleIntel.ID,
-		To:    testutil.NewUUIDV4(),
-	}
 	userID := testutil.NewUUIDV4()
 	suite.sampleAssignedEntry = store.AddressBookEntryDetailed{
 		AddressBookEntry: store.AddressBookEntry{
-			ID:          suite.sampleAssignment.To,
+			ID:          testutil.NewUUIDV4(),
 			Label:       "bay",
 			Description: "cage",
 			Operation:   nulls.NewUUID(testutil.NewUUIDV4()),
@@ -673,13 +863,13 @@ func (suite *PortNotifyIntelDeliveryAttemptCreatedSuite) SetupTest() {
 			IsActive:  true,
 		}),
 	}
-	suite.sampleIntel.Assignments = []store.IntelAssignment{suite.sampleAssignment}
 	suite.sampleDelivery = store.IntelDelivery{
-		ID:         testutil.NewUUIDV4(),
-		Assignment: suite.sampleIntel.Assignments[0].ID,
-		IsActive:   true,
-		Success:    false,
-		Note:       nulls.NewString("inch"),
+		ID:       testutil.NewUUIDV4(),
+		Intel:    suite.sampleIntel.ID,
+		To:       suite.sampleAssignedEntry.ID,
+		IsActive: true,
+		Success:  false,
+		Note:     nulls.NewString("inch"),
 	}
 	suite.sampleCreated = store.IntelDeliveryAttempt{
 		ID:        testutil.NewUUIDV4(),
@@ -699,16 +889,12 @@ func (suite *PortNotifyIntelDeliveryAttemptCreatedSuite) SetupTest() {
 			Value: event.IntelDeliveryAttemptCreated{
 				ID: suite.sampleCreated.ID,
 				Delivery: event.IntelDeliveryAttemptCreatedDelivery{
-					ID:         suite.sampleDelivery.ID,
-					Assignment: suite.sampleDelivery.Assignment,
-					IsActive:   suite.sampleDelivery.IsActive,
-					Success:    suite.sampleDelivery.Success,
-					Note:       suite.sampleDelivery.Note,
-				},
-				Assignment: event.IntelDeliveryAttemptCreatedAssignment{
-					ID:    suite.sampleAssignment.ID,
-					Intel: suite.sampleAssignment.Intel,
-					To:    suite.sampleAssignment.To,
+					ID:       suite.sampleDelivery.ID,
+					Intel:    suite.sampleDelivery.Intel,
+					To:       suite.sampleDelivery.To,
+					IsActive: suite.sampleDelivery.IsActive,
+					Success:  suite.sampleDelivery.Success,
+					Note:     suite.sampleDelivery.Note,
 				},
 				AssignedEntry: event.IntelDeliveryAttemptCreatedAssignedEntry{
 					ID:          suite.sampleAssignedEntry.ID,
@@ -754,7 +940,7 @@ func (suite *PortNotifyIntelDeliveryAttemptCreatedSuite) TestUnsupportedStatus()
 	go func() {
 		defer cancel()
 		err := suite.port.Port.NotifyIntelDeliveryAttemptCreated(timeout, suite.tx, suite.sampleCreated,
-			suite.sampleDelivery, suite.sampleAssignment, suite.sampleAssignedEntry, suite.sampleIntel)
+			suite.sampleDelivery, suite.sampleAssignedEntry, suite.sampleIntel)
 		suite.Error(err, "should fail")
 	}()
 
@@ -768,7 +954,7 @@ func (suite *PortNotifyIntelDeliveryAttemptCreatedSuite) TestWriteFail() {
 	go func() {
 		defer cancel()
 		err := suite.port.Port.NotifyIntelDeliveryAttemptCreated(timeout, suite.tx, suite.sampleCreated,
-			suite.sampleDelivery, suite.sampleAssignment, suite.sampleAssignedEntry, suite.sampleIntel)
+			suite.sampleDelivery, suite.sampleAssignedEntry, suite.sampleIntel)
 		suite.Error(err, "should fail")
 	}()
 
@@ -781,7 +967,7 @@ func (suite *PortNotifyIntelDeliveryAttemptCreatedSuite) TestOK() {
 	go func() {
 		defer cancel()
 		err := suite.port.Port.NotifyIntelDeliveryAttemptCreated(timeout, suite.tx, suite.sampleCreated,
-			suite.sampleDelivery, suite.sampleAssignment, suite.sampleAssignedEntry, suite.sampleIntel)
+			suite.sampleDelivery, suite.sampleAssignedEntry, suite.sampleIntel)
 		suite.Require().NoError(err, "should not fail")
 		suite.Equal(suite.expectedMessages, suite.port.recorder.Recorded, "should write correct messages")
 	}()
@@ -890,11 +1076,12 @@ func (suite *PortNotifyIntelDeliveryCreatedSuite) SetupTest() {
 	suite.port = newMockPort()
 	suite.tx = &testutil.DBTx{}
 	suite.sampleCreated = store.IntelDelivery{
-		ID:         testutil.NewUUIDV4(),
-		Assignment: testutil.NewUUIDV4(),
-		IsActive:   false,
-		Success:    true,
-		Note:       nulls.NewString("variety"),
+		ID:       testutil.NewUUIDV4(),
+		Intel:    testutil.NewUUIDV4(),
+		To:       testutil.NewUUIDV4(),
+		IsActive: false,
+		Success:  true,
+		Note:     nulls.NewString("variety"),
 	}
 	suite.expectedMessages = []kafkautil.OutboundMessage{
 		{
@@ -902,11 +1089,12 @@ func (suite *PortNotifyIntelDeliveryCreatedSuite) SetupTest() {
 			Key:       suite.sampleCreated.ID.String(),
 			EventType: event.TypeIntelDeliveryCreated,
 			Value: event.IntelDeliveryCreated{
-				ID:         suite.sampleCreated.ID,
-				Assignment: suite.sampleCreated.Assignment,
-				IsActive:   suite.sampleCreated.IsActive,
-				Success:    suite.sampleCreated.Success,
-				Note:       suite.sampleCreated.Note,
+				ID:       suite.sampleCreated.ID,
+				Intel:    suite.sampleCreated.Intel,
+				To:       suite.sampleCreated.To,
+				IsActive: suite.sampleCreated.IsActive,
+				Success:  suite.sampleCreated.Success,
+				Note:     suite.sampleCreated.Note,
 			},
 			Headers: nil,
 		},

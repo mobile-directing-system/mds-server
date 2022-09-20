@@ -90,6 +90,7 @@ func InitNewMall(ctx context.Context, logger *zap.Logger, db pgutil.DBTxSupplier
 		MasterKey: searchMasterKey,
 		IndexConfigs: map[search.Index]search.IndexConfig{
 			abEntrySearchIndex: abEntrySearchIndexConfig,
+			intelSearchIndex:   intelSearchIndexConfig,
 		},
 		Logger:  logger.Named("search"),
 		Timeout: search.DefaultClientTimeout,
@@ -98,6 +99,9 @@ func InitNewMall(ctx context.Context, logger *zap.Logger, db pgutil.DBTxSupplier
 			case abEntrySearchIndex:
 				return meh.NilOrWrap(m.rebuildAddressBookEntrySearchIndex(ctx, tx, searchClient),
 					"rebuild address-book-entry-search-index", nil)
+			case intelSearchIndex:
+				return meh.NilOrWrap(m.rebuildIntelSearchIndex(ctx, tx, searchClient),
+					"rebuild intel-search-index", nil)
 			default:
 				return meh.NewInternalErr("unsupported index", meh.Details{"index": index})
 			}
@@ -151,6 +155,52 @@ func (m *Mall) rebuildAddressBookEntrySearchIndex(ctx context.Context, tx pgx.Tx
 				d, err := m.documentFromAddressBookEntryByID(ctx, tx, entryID)
 				if err != nil {
 					return meh.Wrap(err, "document from address book entry by id", meh.Details{"entry_id": entryID})
+				}
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case next <- d:
+				}
+			}
+			return nil
+		})
+	if err != nil {
+		return meh.Wrap(err, "rebuild search", nil)
+	}
+	return nil
+}
+
+// rebuildIntelSearchIndex in search.ClientConfig in InitNewMall.
+func (m *Mall) rebuildIntelSearchIndex(ctx context.Context, tx pgx.Tx, searchClient search.Client) error {
+	err := search.Rebuild(ctx, searchClient, intelSearchIndex, search.DefaultBatchSize,
+		func(ctx context.Context, next chan<- search.Document) error {
+			defer close(next)
+			// Retrieve ids for all entries.
+			q, _, err := m.dialect.From(goqu.T("intel")).
+				Select(goqu.C("id")).ToSQL()
+			if err != nil {
+				return meh.NewInternalErrFromErr(err, "query to sql", nil)
+			}
+			rows, err := tx.Query(ctx, q)
+			if err != nil {
+				return mehpg.NewQueryDBErr(err, "query db", q)
+			}
+			defer rows.Close()
+			intelIDs := make([]uuid.UUID, 0)
+			for rows.Next() {
+				var intelID uuid.UUID
+				err = rows.Scan(&intelID)
+				if err != nil {
+					return mehpg.NewScanRowsErr(err, "scan row", q)
+				}
+				intelIDs = append(intelIDs, intelID)
+			}
+			rows.Close()
+			// Retrieve document for each (database operation).
+			for _, intelID := range intelIDs {
+				d, err := m.documentFromIntelByID(ctx, tx, intelID)
+				if err != nil {
+					return meh.Wrap(err, "document from intel by id", meh.Details{"intel_id": intelID})
 				}
 				select {
 				case <-ctx.Done():

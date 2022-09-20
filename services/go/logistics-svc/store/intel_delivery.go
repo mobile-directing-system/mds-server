@@ -40,13 +40,14 @@ const (
 	IntelDeliveryStatusFailed IntelDeliveryStatus = "failed"
 )
 
-// IntelDelivery for delivering Intel from IntelAssignment.
+// IntelDelivery for delivering Intel to an address book entry.
 type IntelDelivery struct {
 	// ID identifies the delivery.
 	ID uuid.UUID
-	// Assignment is the id of the referenced assignment, holding further
-	// information.
-	Assignment uuid.UUID
+	// Intel is the id of the intel to deliver.
+	Intel uuid.UUID
+	// To is the id of the address book entry, the delivery is for.
+	To uuid.UUID
 	// IsActive describes, whether the delivery is still active and should be
 	// checked by the scheduler/controller.
 	IsActive bool
@@ -80,10 +81,11 @@ type IntelDeliveryAttempt struct {
 // assigned id.
 func (m *Mall) CreateIntelDelivery(ctx context.Context, tx pgx.Tx, create IntelDelivery) (IntelDelivery, error) {
 	q, _, err := m.dialect.Insert(goqu.T("intel_deliveries")).Rows(goqu.Record{
-		"assignment": create.Assignment,
-		"is_active":  create.IsActive,
-		"success":    create.Success,
-		"note":       create.Note,
+		"intel":     create.Intel,
+		"to":        create.To,
+		"is_active": create.IsActive,
+		"success":   create.Success,
+		"note":      create.Note,
 	}).Returning(goqu.C("id")).ToSQL()
 	if err != nil {
 		return IntelDelivery{}, meh.NewInternalErrFromErr(err, "query to sql", nil)
@@ -109,6 +111,11 @@ func (m *Mall) CreateIntelDelivery(ctx context.Context, tx pgx.Tx, create IntelD
 	if err != nil {
 		return IntelDelivery{}, meh.Wrap(err, "created intel delivery by id", meh.Details{"delivery_id": deliveryID})
 	}
+	// Update intel in search.
+	err = m.addOrUpdateIntelInSearch(ctx, tx, create.Intel)
+	if err != nil {
+		return IntelDelivery{}, meh.Wrap(err, "update intel in search", meh.Details{"intel_id": create.Intel})
+	}
 	return created, nil
 }
 
@@ -116,7 +123,8 @@ func (m *Mall) CreateIntelDelivery(ctx context.Context, tx pgx.Tx, create IntelD
 func (m *Mall) IntelDeliveryByID(ctx context.Context, tx pgx.Tx, deliveryID uuid.UUID) (IntelDelivery, error) {
 	q, _, err := m.dialect.From(goqu.T("intel_deliveries")).
 		Select(goqu.C("id"),
-			goqu.C("assignment"),
+			goqu.C("intel"),
+			goqu.C("to"),
 			goqu.C("is_active"),
 			goqu.C("success"),
 			goqu.C("note")).
@@ -134,7 +142,8 @@ func (m *Mall) IntelDeliveryByID(ctx context.Context, tx pgx.Tx, deliveryID uuid
 	}
 	var delivery IntelDelivery
 	err = rows.Scan(&delivery.ID,
-		&delivery.Assignment,
+		&delivery.Intel,
+		&delivery.To,
 		&delivery.IsActive,
 		&delivery.Success,
 		&delivery.Note)
@@ -142,6 +151,42 @@ func (m *Mall) IntelDeliveryByID(ctx context.Context, tx pgx.Tx, deliveryID uuid
 		return IntelDelivery{}, mehpg.NewScanRowsErr(err, "scan row", q)
 	}
 	return delivery, nil
+}
+
+// IntelDeliveriesByIntel retrieves the IntelDelivery list for the intel with
+// the given id.
+func (m *Mall) IntelDeliveriesByIntel(ctx context.Context, tx pgx.Tx, intelID uuid.UUID) ([]IntelDelivery, error) {
+	q, _, err := m.dialect.From(goqu.T("intel_deliveries")).
+		Select(goqu.C("id"),
+			goqu.C("intel"),
+			goqu.C("to"),
+			goqu.C("is_active"),
+			goqu.C("success"),
+			goqu.C("note")).
+		Where(goqu.C("intel").Eq(intelID)).ToSQL()
+	if err != nil {
+		return nil, meh.NewInternalErrFromErr(err, "query to sql", nil)
+	}
+	rows, err := tx.Query(ctx, q)
+	if err != nil {
+		return nil, mehpg.NewQueryDBErr(err, "query db", q)
+	}
+	defer rows.Close()
+	deliveries := make([]IntelDelivery, 0)
+	for rows.Next() {
+		var delivery IntelDelivery
+		err = rows.Scan(&delivery.ID,
+			&delivery.Intel,
+			&delivery.To,
+			&delivery.IsActive,
+			&delivery.Success,
+			&delivery.Note)
+		if err != nil {
+			return nil, mehpg.NewScanRowsErr(err, "scan row", q)
+		}
+		deliveries = append(deliveries, delivery)
+	}
+	return deliveries, nil
 }
 
 // CreateIntelDeliveryAttempt creates the given IntelDeliveryAttempt and returns
@@ -292,12 +337,10 @@ func (m *Mall) IntelDeliveryAttemptByID(ctx context.Context, tx pgx.Tx, attemptI
 // attempts.
 func (m *Mall) NextChannelForDeliveryAttempt(ctx context.Context, tx pgx.Tx, deliveryID uuid.UUID) (Channel, bool, error) {
 	q, _, err := m.dialect.From(goqu.T("intel_deliveries")).
-		InnerJoin(goqu.T("intel_assignments"),
-			goqu.On(goqu.I("intel_assignments.id").Eq(goqu.I("intel_deliveries.assignment")))).
 		InnerJoin(goqu.T("intel"),
-			goqu.On(goqu.I("intel.id").Eq(goqu.I("intel_assignments.intel")))).
+			goqu.On(goqu.I("intel.id").Eq(goqu.I("intel_deliveries.intel")))).
 		InnerJoin(goqu.T("channels"),
-			goqu.On(goqu.I("channels.entry").Eq(goqu.I("intel_assignments.to")))).
+			goqu.On(goqu.I("channels.entry").Eq(goqu.I("intel_deliveries.to")))).
 		LeftJoin(goqu.T("intel_delivery_attempts"),
 			goqu.On(goqu.I("intel_delivery_attempts.delivery").Eq(deliveryID),
 				goqu.I("intel_delivery_attempts.channel").Eq(goqu.I("channels.id")))).
@@ -356,6 +399,15 @@ func (m *Mall) UpdateIntelDeliveryStatusByDelivery(ctx context.Context, tx pgx.T
 	}
 	if result.RowsAffected() == 0 {
 		return meh.NewNotFoundErr("not found", nil)
+	}
+	// Update intel in search.
+	delivery, err := m.IntelDeliveryByID(ctx, tx, deliveryID)
+	if err != nil {
+		return meh.Wrap(err, "updated intel-delivery by id", meh.Details{"delivery_id": deliveryID})
+	}
+	err = m.addOrUpdateIntelInSearch(ctx, tx, delivery.Intel)
+	if err != nil {
+		return meh.Wrap(err, "update intel in search", meh.Details{"intel_id": delivery.Intel})
 	}
 	return nil
 }
@@ -429,7 +481,8 @@ func (m *Mall) LockIntelDeliveryByIDOrSkip(ctx context.Context, tx pgx.Tx, deliv
 func (m *Mall) IntelDeliveryByIDAndLockOrWait(ctx context.Context, tx pgx.Tx, deliveryID uuid.UUID) (IntelDelivery, error) {
 	q, _, err := m.dialect.From(goqu.T("intel_deliveries")).
 		Select(goqu.C("id"),
-			goqu.C("assignment"),
+			goqu.C("intel"),
+			goqu.C("to"),
 			goqu.C("is_active"),
 			goqu.C("success"),
 			goqu.C("note")).
@@ -448,7 +501,8 @@ func (m *Mall) IntelDeliveryByIDAndLockOrWait(ctx context.Context, tx pgx.Tx, de
 	}
 	var delivery IntelDelivery
 	err = rows.Scan(&delivery.ID,
-		&delivery.Assignment,
+		&delivery.Intel,
+		&delivery.To,
 		&delivery.IsActive,
 		&delivery.Success,
 		&delivery.Note)
@@ -536,7 +590,8 @@ func (m *Mall) DeleteIntelDeliveryAttemptsByChannel(ctx context.Context, tx pgx.
 func (m *Mall) ActiveIntelDeliveriesAndLockOrSkip(ctx context.Context, tx pgx.Tx) ([]IntelDelivery, error) {
 	q, _, err := m.dialect.From(goqu.T("intel_deliveries")).
 		Select(goqu.C("id"),
-			goqu.C("assignment"),
+			goqu.C("intel"),
+			goqu.C("to"),
 			goqu.C("is_active"),
 			goqu.C("success"),
 			goqu.C("note")).
@@ -554,7 +609,8 @@ func (m *Mall) ActiveIntelDeliveriesAndLockOrSkip(ctx context.Context, tx pgx.Tx
 	for rows.Next() {
 		var delivery IntelDelivery
 		err = rows.Scan(&delivery.ID,
-			&delivery.Assignment,
+			&delivery.Intel,
+			&delivery.To,
 			&delivery.IsActive,
 			&delivery.Success,
 			&delivery.Note)

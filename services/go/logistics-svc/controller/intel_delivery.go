@@ -58,20 +58,22 @@ func (c *Controller) runPeriodicDeliveryChecks(lifetime context.Context) error {
 	}
 }
 
-// scheduleDeliveriesForIntelAssignments schedules intel-deliveries for the
-// assignments of the intel with the given id.
-func (c *Controller) scheduleDeliveriesForIntelAssignments(ctx context.Context, tx pgx.Tx, intelID uuid.UUID) error {
-	intel, err := c.Store.IntelByID(ctx, tx, intelID)
+// scheduleDeliveriesForIntel schedules intel-deliveries for the intel with the
+// given id.
+func (c *Controller) scheduleDeliveriesForIntel(ctx context.Context, tx pgx.Tx, intelID uuid.UUID, recipientEntries []uuid.UUID) error {
+	// Assure intel exists.
+	_, err := c.Store.IntelByID(ctx, tx, intelID)
 	if err != nil {
 		return meh.Wrap(err, "intel by id from store", meh.Details{"intel_id": intelID})
 	}
-	// Create deliveries for all assignments.
-	for _, assignment := range intel.Assignments {
+	// Create deliveries.
+	for _, entryID := range recipientEntries {
 		// Create.
 		deliveryToCreate := store.IntelDelivery{
-			Assignment: assignment.ID,
-			IsActive:   true,
-			Success:    false,
+			Intel:    intelID,
+			To:       entryID,
+			IsActive: true,
+			Success:  false,
 		}
 		createdDelivery, err := c.Store.CreateIntelDelivery(ctx, tx, deliveryToCreate)
 		if err != nil {
@@ -164,20 +166,15 @@ func (c *Controller) createIntelDeliveryAttempt(ctx context.Context, tx pgx.Tx, 
 	if err != nil {
 		return meh.Wrap(err, "create intel delivery attempt", meh.Details{"to_create": attemptToCreate})
 	}
-	// Gather information for notifying.
-	assignment, err := c.Store.IntelAssignmentByID(ctx, tx, delivery.Assignment)
+	intel, err := c.Store.IntelByID(ctx, tx, delivery.Intel)
 	if err != nil {
-		return meh.Wrap(err, "intel assignment by id from store", meh.Details{"assignment_id": delivery.Assignment})
+		return meh.Wrap(err, "intel by id from store", meh.Details{"intel_id": delivery.Intel})
 	}
-	intel, err := c.Store.IntelByID(ctx, tx, assignment.Intel)
+	assignedEntry, err := c.Store.AddressBookEntryByID(ctx, tx, delivery.To, uuid.NullUUID{})
 	if err != nil {
-		return meh.Wrap(err, "intel by id from store", meh.Details{"intel_id": assignment.Intel})
+		return meh.Wrap(err, "address book entry from store", meh.Details{"entry_id": delivery.To})
 	}
-	assignedEntry, err := c.Store.AddressBookEntryByID(ctx, tx, assignment.To, uuid.NullUUID{})
-	if err != nil {
-		return meh.Wrap(err, "address book entry from store", meh.Details{"entry_id": assignment.To})
-	}
-	err = c.Notifier.NotifyIntelDeliveryAttemptCreated(ctx, tx, createdAttempt, delivery, assignment, assignedEntry, intel)
+	err = c.Notifier.NotifyIntelDeliveryAttemptCreated(ctx, tx, createdAttempt, delivery, assignedEntry, intel)
 	if err != nil {
 		return meh.Wrap(err, "notify intel delivery attempt created", meh.Details{"created": createdAttempt})
 	}
@@ -394,14 +391,10 @@ func (c *Controller) MarkIntelDeliveryAndAttemptAsDelivered(ctx context.Context,
 	}
 	// Assure assigned to given user if set.
 	if by.Valid {
-		assignment, err := c.Store.IntelAssignmentByID(ctx, tx, delivery.Assignment)
-		if err != nil {
-			return meh.Wrap(err, "intel-assignment by id from store", meh.Details{"assignment_id": delivery.Assignment})
-		}
-		if by.UUID != assignment.To {
+		if by.UUID != delivery.To {
 			return meh.NewForbiddenErr("intel-delivery assigned to different user", meh.Details{
 				"mark_by":              by.UUID,
-				"delivery_assigned_to": assignment.To,
+				"delivery_assigned_to": delivery.To,
 			})
 		}
 	}

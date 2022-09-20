@@ -2,6 +2,7 @@ package store
 
 import (
 	"encoding/json"
+	"github.com/gofrs/uuid"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -19,22 +20,17 @@ func (suite *CreateIntelValidateSuite) SetupTest() {
 		Operation: testutil.NewUUIDV4(),
 		Type:      IntelTypePlaintextMessage,
 		Content:   json.RawMessage(`{"text":"hello"}`),
-		Assignments: []IntelAssignment{
-			{
-				ID: testutil.NewUUIDV4(),
-				To: testutil.NewUUIDV4(),
-			},
-			{
-				ID: testutil.NewUUIDV4(),
-				To: testutil.NewUUIDV4(),
-			},
+		InitialDeliverTo: []uuid.UUID{
+			testutil.NewUUIDV4(),
+			testutil.NewUUIDV4(),
+			testutil.NewUUIDV4(),
 		},
 	}
 }
 
-func (suite *CreateIntelValidateSuite) TestDuplicateAssignments() {
-	a := suite.sampleCreateIntel.Assignments[0]
-	suite.sampleCreateIntel.Assignments = append(suite.sampleCreateIntel.Assignments, a)
+func (suite *CreateIntelValidateSuite) TestDuplicateInitialDeliverToEntries() {
+	a := suite.sampleCreateIntel.InitialDeliverTo[0]
+	suite.sampleCreateIntel.InitialDeliverTo = append(suite.sampleCreateIntel.InitialDeliverTo, a)
 
 	report, err := suite.sampleCreateIntel.Validate()
 	suite.Require().NoError(err, "should not fail")

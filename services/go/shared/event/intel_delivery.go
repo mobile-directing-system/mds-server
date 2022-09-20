@@ -42,9 +42,10 @@ const TypeIntelDeliveryCreated Type = "intel-delivery-created"
 type IntelDeliveryCreated struct {
 	// ID identifies the delivery.
 	ID uuid.UUID `json:"id"`
-	// Assignment is the id of the referenced assignment, holding further
-	// information.
-	Assignment uuid.UUID `json:"assignment"`
+	// Intel is the id of the intel to deliver.
+	Intel uuid.UUID
+	// To is the id of the address book entry, the delivery is for.
+	To uuid.UUID
 	// IsActive describes, whether the delivery is still active and should be
 	// checked by the scheduler/controller.
 	IsActive bool `json:"is_active"`
@@ -63,9 +64,10 @@ const TypeIntelDeliveryAttemptCreated Type = "intel-delivery-attempt-created"
 type IntelDeliveryAttemptCreatedDelivery struct {
 	// ID identifies the delivery.
 	ID uuid.UUID `json:"id"`
-	// Assignment is the id of the referenced assignment, holding further
-	// information.
-	Assignment uuid.UUID `json:"assignment"`
+	// Intel is the id of the intel to deliver.
+	Intel uuid.UUID `json:"intel"`
+	// To is the id of the address book entry, the delivery is for.
+	To uuid.UUID `json:"to"`
 	// IsActive describes, whether the delivery is still active and should be
 	// checked by the scheduler/controller.
 	IsActive bool `json:"is_active"`
@@ -73,17 +75,6 @@ type IntelDeliveryAttemptCreatedDelivery struct {
 	Success bool `json:"success"`
 	// Note contains optional human-readable information regarding the delivery.
 	Note nulls.String `json:"note"`
-}
-
-// IntelDeliveryAttemptCreatedAssignment is the
-// IntelDeliveryAttemptCreated.Assignment.
-type IntelDeliveryAttemptCreatedAssignment struct {
-	// ID identifies the delivery.
-	ID uuid.UUID `json:"id"`
-	// Intel is the id of the assigned intel.
-	Intel uuid.UUID `json:"intel"`
-	// To is the id of the assigned user.
-	To uuid.UUID `json:"to"`
 }
 
 // IntelDeliveryAttemptCreatedAssignedEntry is the
@@ -148,9 +139,7 @@ type IntelDeliveryAttemptCreated struct {
 	ID uuid.UUID `json:"id"`
 	// Delivery is the referenced delivery.
 	Delivery IntelDeliveryAttemptCreatedDelivery `json:"delivery"`
-	// Assignment for the Delivery.
-	Assignment IntelDeliveryAttemptCreatedAssignment `json:"assignment"`
-	// AssignedEntry is the address book entry from the Assignment.
+	// AssignedEntry is the address book entry from the Delivery.
 	AssignedEntry IntelDeliveryAttemptCreatedAssignedEntry `json:"assigned_entry"`
 	// Intel to deliver.
 	Intel IntelDeliveryAttemptCreatedIntel `json:"intel"`
