@@ -57,10 +57,10 @@ Creating intel is done by calling:
         "type": "<intel_type>",
         "content": {},
         "importance": 0,
-        "assignments": [
-            {
-                "to": "<assigned_address_book_entry_id>"
-            }
+        "initial_deliver_to": [
+            "<address_book_entry_1>",
+            "<address_book_entry_2>",
+            "<address_book_entry_n>",
         ]
     }
 
@@ -77,13 +77,7 @@ Response (201):
         "content": {},
         "search_text": "<search_text>",
         "importance": 0,
-        "is_valid": true,
-        "assignments": [
-            {
-                "id": "<assignment_id>",
-                "to": "<assigned_address_book_entry_id>"
-            }
-        ]
+        "is_valid": true
     }
 
 Invalidate intel
@@ -100,15 +94,34 @@ If provided, invalidation is done via:
 Retrieve intel
 ==============
 
-Retrieving intel (if member of the operation) does not require any permission.
-However, retrieving intel, not being associated with the requester, requires the :ref:`permission.intelligence.intel.view.any` permission.
+Single intel can be retrieved by any user which owns address book entries being recipients in deliveries for this intel.
+Otherwise, the :ref:`permission.intelligence.intel.view.any` permission is required.
 
-Usually, intel-retrieval should be done via the mailbox and therefore no batch-retrieval or search is provided.
-Only intels by id can be retrieved via:
+Retrieval is done via:
 
 `GET /intel/<intel_id>`
 
-Response:
+Response (200):
+
+.. code-block:: json
+
+    {
+        "id": "<assigned_id>",
+        "created_at": "<creation_timestamp>",
+        "created_by": "<creator_user_id>",
+        "operation": "<associated_operation_id>",
+        "type": "<intel_type>",
+        "content": {},
+        "search_text": "<search_text>",
+        "importance": 0,
+        "is_valid": true
+    }
+
+Retrieving intel as a :ref:`paginated <http-api.pagination>` list is possible via:
+
+`GET /intel`
+
+Entry payload:
 
 .. code-block:: json
 
@@ -121,14 +134,43 @@ Response:
         "content": {},
         "search_text": "<search_text>",
         "importance": 0,
-        "is_valid": true,
-        "assignments": [
-            {
-                "id": "<assignment_id>",
-                "to": "<assigned_address_book_entry_id>"
-            }
-        ]
+        "is_valid": true
     }
+
+Entries are ordered descending by creation timestamp.
+Additionally, query parameters can be applied in order to filter intel:
+
+- ``created_by=<user_id>``: Only include intel, created by the user with the given id.
+- ``operation=<operation_id>``: Only include intel for the given operation.
+- ``intel_type=<intel_type>``: Only include intel of the given type.
+- ``min_importance=0``: Only include intel with the given minimum importance.
+- ``include_invalid=false``: Include invalid intel as well.
+- ``one_of_delivery_for_entries=["<entry_id_1>","<entry_id_n>"]``: Only include intel with deliveries for the address book entries with the given ids.
+- ``one_of_delivered_to_entries=["<entry_id_1>","<entry_id_n>"]``: Only include intel with successful deliveries for the address book entries with the given ids.
+
+:ref:`Search <http-api.search>` provides these filters as well and is available via:
+
+`GET /intel/search`
+
+Entry payload:
+
+.. code-block:: json
+
+    {
+        "id": "<intel_id>",
+        "created_at": "<creation_timestamp>",
+        "created_by": "<creator_user_id>",
+        "operation": "<associated_operation_id>",
+        "type": "<intel_type>",
+        "content": {},
+        "search_text": "<search_text>",
+        "importance": 0,
+        "is_valid": true
+    }
+
+The search index can be rebuilt via:
+
+`POST /intel/search/rebuild`
 
 Intel-delivery
 ==============

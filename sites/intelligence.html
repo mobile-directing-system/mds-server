@@ -5,10 +5,10 @@
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="In-App Notifications" href="in-app-notifications.html" /><link rel="prev" title="Address Book" href="address-book.html" />
 
-    <meta name="generator" content="sphinx-4.5.0, furo 2022.06.21"/>
+    <meta name="generator" content="sphinx-4.5.0, furo 2022.09.15"/>
         <title>Intelligence - MDS Server documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=40978830699223671f4072448e654b5958f38b89" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=9ec31e2665bf879c1d47d93a8ec4893870ee1e45" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
     
     
@@ -243,10 +243,10 @@ Creating intel is done by calling:</p>
 <span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;intel_type&gt;&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{},</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;importance&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;assignments&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">        </span><span class="p">{</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;to&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assigned_address_book_entry_id&gt;&quot;</span><span class="w"></span>
-<span class="w">        </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;initial_deliver_to&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
+<span class="w">        </span><span class="s2">&quot;&lt;address_book_entry_1&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="s2">&quot;&lt;address_book_entry_2&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="s2">&quot;&lt;address_book_entry_n&gt;&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">    </span><span class="p">]</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
@@ -261,13 +261,7 @@ Creating intel is done by calling:</p>
 <span class="w">    </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{},</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;search_text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;search_text&gt;&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;importance&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;is_valid&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;assignments&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">        </span><span class="p">{</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assignment_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;to&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assigned_address_book_entry_id&gt;&quot;</span><span class="w"></span>
-<span class="w">        </span><span class="p">}</span><span class="w"></span>
-<span class="w">    </span><span class="p">]</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;is_valid&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
@@ -282,12 +276,27 @@ If provided, invalidation is done via:</p>
 </section>
 <section id="retrieve-intel">
 <h2>Retrieve intel<a class="headerlink" href="#retrieve-intel" title="Permalink to this headline">#</a></h2>
-<p>Retrieving intel (if member of the operation) does not require any permission.
-However, retrieving intel, not being associated with the requester, requires the <a class="reference internal" href="permissions.html#permission-intelligence-intel-view-any"><span class="std std-ref">intelligence.intel.view.any</span></a> permission.</p>
-<p>Usually, intel-retrieval should be done via the mailbox and therefore no batch-retrieval or search is provided.
-Only intels by id can be retrieved via:</p>
+<p>Single intel can be retrieved by any user which owns address book entries being recipients in deliveries for this intel.
+Otherwise, the <a class="reference internal" href="permissions.html#permission-intelligence-intel-view-any"><span class="std std-ref">intelligence.intel.view.any</span></a> permission is required.</p>
+<p>Retrieval is done via:</p>
 <p><cite>GET /intel/&lt;intel_id&gt;</cite></p>
-<p>Response:</p>
+<p>Response (200):</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assigned_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;created_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;creation_timestamp&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;created_by&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;creator_user_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;associated_operation_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;intel_type&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{},</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;search_text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;search_text&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;importance&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;is_valid&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+<p>Retrieving intel as a <a class="reference internal" href="general-http-api.html#http-api-pagination"><span class="std std-ref">paginated</span></a> list is possible via:</p>
+<p><cite>GET /intel</cite></p>
+<p>Entry payload:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;intel_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;created_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;creation_timestamp&gt;&quot;</span><span class="p">,</span><span class="w"></span>
@@ -297,16 +306,39 @@ Only intels by id can be retrieved via:</p>
 <span class="w">    </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{},</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;search_text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;search_text&gt;&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">    </span><span class="nt">&quot;importance&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;is_valid&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;assignments&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">        </span><span class="p">{</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assignment_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;to&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assigned_address_book_entry_id&gt;&quot;</span><span class="w"></span>
-<span class="w">        </span><span class="p">}</span><span class="w"></span>
-<span class="w">    </span><span class="p">]</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;is_valid&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
+<p>Entries are ordered descending by creation timestamp.
+Additionally, query parameters can be applied in order to filter intel:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">created_by=&lt;user_id&gt;</span></code>: Only include intel, created by the user with the given id.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">operation=&lt;operation_id&gt;</span></code>: Only include intel for the given operation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">intel_type=&lt;intel_type&gt;</span></code>: Only include intel of the given type.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">min_importance=0</span></code>: Only include intel with the given minimum importance.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">include_invalid=false</span></code>: Include invalid intel as well.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">one_of_delivery_for_entries=[&quot;&lt;entry_id_1&gt;&quot;,&quot;&lt;entry_id_n&gt;&quot;]</span></code>: Only include intel with deliveries for the address book entries with the given ids.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">one_of_delivered_to_entries=[&quot;&lt;entry_id_1&gt;&quot;,&quot;&lt;entry_id_n&gt;&quot;]</span></code>: Only include intel with successful deliveries for the address book entries with the given ids.</p></li>
+</ul>
+<p><a class="reference internal" href="general-http-api.html#http-api-search"><span class="std std-ref">Search</span></a> provides these filters as well and is available via:</p>
+<p><cite>GET /intel/search</cite></p>
+<p>Entry payload:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;intel_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;created_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;creation_timestamp&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;created_by&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;creator_user_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;associated_operation_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;intel_type&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{},</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;search_text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;search_text&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;importance&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;is_valid&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+<p>The search index can be rebuilt via:</p>
+<p><cite>POST /intel/search/rebuild</cite></p>
 </section>
 <section id="intel-delivery">
 <h2>Intel-delivery<a class="headerlink" href="#intel-delivery" title="Permalink to this headline">#</a></h2>
@@ -333,10 +365,10 @@ When the source was an actual attempt, it should be confirmed via:</p>
                 </div>
                 <div class="title">In-App Notifications</div>
               </div>
-              <svg><use href="#svg-arrow-right"></use></svg>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
           <a class="prev-page" href="address-book.html">
-              <svg><use href="#svg-arrow-right"></use></svg>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
@@ -372,7 +404,7 @@ When the source was an actual attempt, it should be confirmed via:</p>
       <div class="toc-sticky toc-scroll">
         <div class="toc-title-container">
           <span class="toc-title">
-            Contents
+            On this page
           </span>
         </div>
         <div class="toc-tree-container">
