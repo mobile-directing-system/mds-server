@@ -501,7 +501,6 @@ type portHandleIntelDeliveryAttemptCreatedSuite struct {
 func (suite *portHandleIntelDeliveryAttemptCreatedSuite) SetupTest() {
 	suite.handler = &HandlerMock{}
 	suite.port = newMockPort()
-	assignmentID := testutil.NewUUIDV4()
 	assignedEntryID := testutil.NewUUIDV4()
 	intelID := testutil.NewUUIDV4()
 	assignedEntryUserID := testutil.NewUUIDV4()
@@ -509,16 +508,12 @@ func (suite *portHandleIntelDeliveryAttemptCreatedSuite) SetupTest() {
 	suite.sampleEvent = event.IntelDeliveryAttemptCreated{
 		ID: testutil.NewUUIDV4(),
 		Delivery: event.IntelDeliveryAttemptCreatedDelivery{
-			ID:         testutil.NewUUIDV4(),
-			Assignment: assignmentID,
-			IsActive:   true,
-			Success:    false,
-			Note:       nulls.NewString("pass"),
-		},
-		Assignment: event.IntelDeliveryAttemptCreatedAssignment{
-			ID:    assignmentID,
-			Intel: intelID,
-			To:    assignedEntryID,
+			ID:       testutil.NewUUIDV4(),
+			Intel:    intelID,
+			To:       assignedEntryUserID,
+			IsActive: true,
+			Success:  false,
+			Note:     nulls.NewString("pass"),
 		},
 		AssignedEntry: event.IntelDeliveryAttemptCreatedAssignedEntry{
 			ID:          assignedEntryID,
@@ -554,7 +549,7 @@ func (suite *portHandleIntelDeliveryAttemptCreatedSuite) SetupTest() {
 	}
 	suite.sampleCreate = store.AcceptedIntelDeliveryAttempt{
 		ID:              suite.sampleEvent.ID,
-		AssignedTo:      suite.sampleEvent.Assignment.To,
+		AssignedTo:      suite.sampleEvent.Delivery.To,
 		AssignedToLabel: suite.sampleEvent.AssignedEntry.Label,
 		AssignedToUser:  suite.sampleEvent.AssignedEntry.User,
 		Delivery:        suite.sampleEvent.Delivery.ID,

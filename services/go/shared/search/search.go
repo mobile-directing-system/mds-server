@@ -447,6 +447,9 @@ func removeUnchangedFromMSSettings(current meilisearch.Settings, new meilisearch
 	if shouldUpdateStringSlice(current.FilterableAttributes, new.FilterableAttributes) {
 		cleaned.FilterableAttributes = new.FilterableAttributes
 	}
+	if shouldUpdateStringSlice(current.FilterableAttributes, new.SortableAttributes) {
+		cleaned.SortableAttributes = new.SortableAttributes
+	}
 	if new.TypoTolerance != nil {
 		cleaned.TypoTolerance = new.TypoTolerance
 	}

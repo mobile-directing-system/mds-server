@@ -154,7 +154,7 @@ create table forward_to_group_channel_entries
 
 create table intel
 (
-    id          uuid primary key not null,
+    id          uuid primary key not null default uuid_generate_v4(),
     created_at  timestamp        not null,
     created_by  uuid             not null references users (id)
         on delete restrict on update restrict,
@@ -169,39 +169,30 @@ create table intel
 
 create index intel_created_by_ix on intel (created_by);
 create index intel_operation_ix on intel (operation);
-
--- Create assignments table.
-
-create table intel_assignments
-(
-    id    uuid primary key not null default uuid_generate_v4(),
-    intel uuid             not null references intel (id)
-        on delete restrict on update restrict,
-    "to"  uuid             not null -- No ref for possible deletion.
-);
-
-create index intel_assignments_intel_ix on intel_assignments (intel);
-create index intel_assignments_to_ix on intel_assignments ("to");
+create index intel_created_at_ix on intel (created_at desc);
 
 -- Create deliveries table.
 
 create table intel_deliveries
 (
-    id           uuid primary key not null default uuid_generate_v4(),
-    "assignment" uuid             not null references intel_assignments (id)
+    id        uuid primary key not null default uuid_generate_v4(),
+    intel     uuid             not null references intel (id)
         on delete restrict on update restrict,
-    is_active    bool             not null,
-    success      bool             not null,
-    note         varchar
+    "to"      uuid             not null,
+    is_active bool             not null,
+    success   bool             not null,
+    note      varchar
 );
 
-create index intel_deliveries_assignment_ix on intel_deliveries ("assignment");
+comment on column intel_deliveries."to" is 'The referenced address book entry.';
 
 create index intel_deliveries_active_ix on intel_deliveries (is_active)
     where is_active = true or is_active is true;
 
 create index intel_deliveries_failed_ix on intel_deliveries (is_active, success)
     where (is_active = false or is_active is false) and success = false;
+
+create index intel_deliveries_to_ix on intel_deliveries ("to");
 
 -- Create delivery attempts table.
 

@@ -187,7 +187,7 @@ func (p *Port) handleIntelDeliveryAttemptCreated(ctx context.Context, tx pgx.Tx,
 	}
 	err = handler.CreateIntelDeliveryAttempt(ctx, tx, store.AcceptedIntelDeliveryAttempt{
 		ID:              attemptCreatedEvent.ID,
-		AssignedTo:      attemptCreatedEvent.Assignment.To,
+		AssignedTo:      attemptCreatedEvent.Delivery.To,
 		AssignedToLabel: attemptCreatedEvent.AssignedEntry.Label,
 		AssignedToUser:  attemptCreatedEvent.AssignedEntry.User,
 		Delivery:        attemptCreatedEvent.Delivery.ID,

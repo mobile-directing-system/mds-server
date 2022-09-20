@@ -21,6 +21,12 @@ type Store interface {
 	handleRebuildAddressBookEntrySearchStore
 	handleMarkIntelDeliveryAsDeliveredStore
 	handleMarkIntelDeliveryAttemptAsDeliveredStore
+	handleSearchIntelStore
+	handleCreateIntelStore
+	handleGetIntelByIDStore
+	handleInvalidateIntelByIDStore
+	handleRebuildIntelSearchStore
+	handleGetAllIntelStore
 }
 
 // Serve the endpoints via HTTP.
@@ -45,6 +51,12 @@ func populateRoutes(r *gin.Engine, logger *zap.Logger, secret string, s Store) {
 	r.DELETE("/address-book/entries/:entryID", httpendpoints.GinHandlerFunc(logger, secret, handleDeleteAddressBookEntryByID(s)))
 	r.GET("/address-book/entries", httpendpoints.GinHandlerFunc(logger, secret, handleGetAllAddressBookEntries(s)))
 	r.POST("/address-book/entries", httpendpoints.GinHandlerFunc(logger, secret, handleCreateAddressBookEntry(s)))
+	r.POST("/intel", httpendpoints.GinHandlerFunc(logger, secret, handleCreateIntel(s)))
+	r.GET("/intel", httpendpoints.GinHandlerFunc(logger, secret, handleGetAllIntel(s)))
+	r.GET("/intel/search", httpendpoints.GinHandlerFunc(logger, secret, handleSearchIntel(s)))
+	r.POST("/intel/search/rebuild", httpendpoints.GinHandlerFunc(logger, secret, handleRebuildIntelSearch(s)))
+	r.GET("/intel/:intelID", httpendpoints.GinHandlerFunc(logger, secret, handleGetIntelByID(s)))
+	r.POST("/intel/:intelID/invalidate", httpendpoints.GinHandlerFunc(logger, secret, handleInvalidateIntelByID(s)))
 	r.POST("/intel-deliveries/:deliveryID/delivered", httpendpoints.GinHandlerFunc(logger, secret, handleMarkIntelDeliveryAsDelivered(s)))
 	r.POST("/intel-delivery-attempts/:attemptID/delivered", httpendpoints.GinHandlerFunc(logger, secret, handleMarkIntelDeliveryAttemptAsDelivered(s)))
 }

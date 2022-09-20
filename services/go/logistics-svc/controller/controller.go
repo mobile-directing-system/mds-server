@@ -90,14 +90,12 @@ type Store interface {
 	// store.ChannelTypeForwardToUser, that forward to the user with the given id.
 	// It returns the list of affected address book entries.
 	DeleteForwardToUserChannelsByUser(ctx context.Context, tx pgx.Tx, userID uuid.UUID) ([]uuid.UUID, error)
-	// CreateIntel creates the given store.Intel with its assignments in the store.
-	CreateIntel(ctx context.Context, tx pgx.Tx, create store.Intel) error
+	// CreateIntel creates the given store.Intel in the store.
+	CreateIntel(ctx context.Context, tx pgx.Tx, create store.CreateIntel) (store.Intel, error)
 	// IntelByID retrieves the store.Intel with the given id.
 	IntelByID(ctx context.Context, tx pgx.Tx, intelID uuid.UUID) (store.Intel, error)
 	// CreateIntelDelivery creates the given store.IntelDelivery in the store.
 	CreateIntelDelivery(ctx context.Context, tx pgx.Tx, create store.IntelDelivery) (store.IntelDelivery, error)
-	// IntelAssignmentByID retrieves the store.IntelAssignment with the given id.
-	IntelAssignmentByID(ctx context.Context, tx pgx.Tx, assignmentID uuid.UUID) (store.IntelAssignment, error)
 	// IntelDeliveryByID retrieves the store.IntelDelivery with the given id.
 	IntelDeliveryByID(ctx context.Context, tx pgx.Tx, deliveryID uuid.UUID) (store.IntelDelivery, error)
 	// TimedOutIntelDeliveryAttemptsByDelivery retrieves a
@@ -157,6 +155,21 @@ type Store interface {
 	// IntelDeliveryByIDAndLockOrWait retrieves the store.IntelDelivery with the
 	// given id and locks it or waits until it is available.
 	IntelDeliveryByIDAndLockOrWait(ctx context.Context, tx pgx.Tx, deliveryID uuid.UUID) (store.IntelDelivery, error)
+	// SearchIntel using the given store.IntelFilters and search.Params.
+	SearchIntel(ctx context.Context, tx pgx.Tx, filters store.IntelFilters, searchParams search.Params) (search.Result[store.Intel], error)
+	// IsUserOperationMember checks if the user with the given id is member of the
+	// give operation.
+	IsUserOperationMember(ctx context.Context, tx pgx.Tx, userID uuid.UUID, operationID uuid.UUID) (bool, error)
+	// RebuildIntelSearch rebuilds the intel-search.
+	RebuildIntelSearch(ctx context.Context, tx pgx.Tx) error
+	// UsersWithDeliveriesByIntel retrieves all users having associated address book
+	// entries with deliveries for the intel with the given id.
+	UsersWithDeliveriesByIntel(ctx context.Context, tx pgx.Tx, intelID uuid.UUID) ([]uuid.UUID, error)
+	// Intel retrieves a paginated store.Intel list using the given store.IntelFilters and
+	// pagination.Params, sorted descending by creation date.
+	//
+	// Warning: Sorting via pagination.Params is discarded!
+	Intel(ctx context.Context, tx pgx.Tx, filters store.IntelFilters, paginationParams pagination.Params) (pagination.Paginated[store.Intel], error)
 }
 
 // Notifier sends event messages.
@@ -170,12 +183,16 @@ type Notifier interface {
 	// NotifyAddressBookEntryChannelsUpdated notifies about updated channels for an
 	// address book entry.
 	NotifyAddressBookEntryChannelsUpdated(ctx context.Context, tx pgx.Tx, entryID uuid.UUID, channels []store.Channel) error
+	// NotifyIntelCreated notifies about created intel.
+	NotifyIntelCreated(ctx context.Context, tx pgx.Tx, created store.Intel) error
+	// NotifyIntelInvalidated notifies about existing intel being invalidated.
+	NotifyIntelInvalidated(ctx context.Context, tx pgx.Tx, intelID uuid.UUID, by uuid.UUID) error
 	// NotifyIntelDeliveryCreated notifies about a created intel-delivery.
 	NotifyIntelDeliveryCreated(ctx context.Context, tx pgx.Tx, created store.IntelDelivery) error
 	// NotifyIntelDeliveryAttemptCreated notifies about a created
 	// intel-delivery-attempt.
 	NotifyIntelDeliveryAttemptCreated(ctx context.Context, tx pgx.Tx, created store.IntelDeliveryAttempt, delivery store.IntelDelivery,
-		assignment store.IntelAssignment, assignedEntry store.AddressBookEntryDetailed, intel store.Intel) error
+		assignedEntry store.AddressBookEntryDetailed, intel store.Intel) error
 	// NotifyIntelDeliveryAttemptStatusUpdated notifies about an status-update for a
 	// intel-delivery-attempt.
 	NotifyIntelDeliveryAttemptStatusUpdated(ctx context.Context, tx pgx.Tx, attempt store.IntelDeliveryAttempt) error

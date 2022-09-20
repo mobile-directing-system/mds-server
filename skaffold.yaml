@@ -30,10 +30,6 @@ profiles:
           context: ./
           docker:
             dockerfile: services/go/logistics-svc/Dockerfile
-        - image: mds-intelligence-svc
-          context: ./
-          docker:
-            dockerfile: services/go/intelligence-svc/Dockerfile
         - image: mds-in-app-notifier-svc
           context: ./
           docker:
@@ -71,7 +67,6 @@ profiles:
           - k8s/520_mds-operation-svc.yaml
           - k8s/521_mds-group-svc.yaml
           - k8s/530_mds-logistics-svc.yaml
-          - k8s/531_mds-intelligence-svc.yaml
           - k8s/540_mds-in-app-notifier-svc.yaml
           - k8s/811_public-ingress.yaml
           - k8s/821_internal-ingress.yaml

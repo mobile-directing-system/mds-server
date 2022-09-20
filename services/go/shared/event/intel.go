@@ -34,16 +34,6 @@ type IntelCreated struct {
 	// IsValid describes whether the intel is still valid or marked as invalid
 	// (equals deletion).
 	IsValid bool `json:"is_valid"`
-	// Assignments for the intel.
-	Assignments []IntelAssignment `json:"assignments"`
-}
-
-// IntelAssignment is used in IntelCreated.
-type IntelAssignment struct {
-	// ID identifies the assignment.
-	ID uuid.UUID `json:"id"`
-	// To is the id of the target address book entry.
-	To uuid.UUID `json:"to"`
 }
 
 // TypeIntelInvalidated for intel, that has been invalidated.

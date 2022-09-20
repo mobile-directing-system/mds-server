@@ -120,7 +120,7 @@ func Run(ctx context.Context) error {
 				event.OperationsTopic,
 				event.UsersTopic,
 				event.GroupsTopic,
-				event.IntelTopic,
+				event.AddressBookTopic,
 				event.InAppNotificationsTopic,
 			})
 		kafkaWriter := kafkautil.NewWriter(logger.Named("kafka"), c.KafkaAddr)

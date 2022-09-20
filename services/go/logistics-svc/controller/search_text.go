@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"github.com/lefinal/meh"
 	"github.com/lefinal/nulls"
-	"github.com/mobile-directing-system/mds-server/services/go/intelligence-svc/store"
+	"github.com/mobile-directing-system/mds-server/services/go/logistics-svc/store"
 	"strings"
 )
 

@@ -68,18 +68,24 @@ func NewPaginated[T any](params Params, entries []T, totalCount int) Paginated[T
 }
 
 // MapPaginated maps Paginated from one entry type to another.
-func MapPaginated[From any, To any](paginatedFrom Paginated[From], mapFn func(from From) To) Paginated[To] {
-	mappedEntries := make([]To, 0, len(paginatedFrom.Entries))
-	for _, from := range paginatedFrom.Entries {
+func MapPaginated[From any, To any](from Paginated[From], mapFn func(from From) To) Paginated[To] {
+	mappedEntries := make([]To, 0, len(from.Entries))
+	for _, from := range from.Entries {
 		mappedEntries = append(mappedEntries, mapFn(from))
 	}
+	return PaginatedFromPaginated(from, mappedEntries)
+}
+
+// PaginatedFromPaginated copies the given Paginated but sets Paginated.Entries
+// to the new given ones.
+func PaginatedFromPaginated[From any, To any](from Paginated[From], newEntries []To) Paginated[To] {
 	return Paginated[To]{
-		Total:          paginatedFrom.Total,
-		Limit:          paginatedFrom.Limit,
-		Offset:         paginatedFrom.Offset,
-		Retrieved:      paginatedFrom.Retrieved,
-		OrderedBy:      paginatedFrom.OrderedBy,
-		OrderDirection: paginatedFrom.OrderDirection,
-		Entries:        mappedEntries,
+		Total:          from.Total,
+		Limit:          from.Limit,
+		Offset:         from.Offset,
+		Retrieved:      from.Retrieved,
+		OrderedBy:      from.OrderedBy,
+		OrderDirection: from.OrderDirection,
+		Entries:        newEntries,
 	}
 }

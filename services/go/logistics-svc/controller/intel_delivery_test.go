@@ -20,7 +20,6 @@ type controllerLookAfterDeliverySuite struct {
 	tx                     *testutil.DBTx
 	sampleID               uuid.UUID
 	sampleIntel            store.Intel
-	sampleIntelAssignment  store.IntelAssignment
 	sampleAssignedEntry    store.AddressBookEntryDetailed
 	sampleDelivery         store.IntelDelivery
 	sampleDeliveryAttempts []store.IntelDeliveryAttempt
@@ -31,15 +30,10 @@ func (suite *controllerLookAfterDeliverySuite) SetupTest() {
 	suite.ctrl = NewMockController()
 	suite.tx = &testutil.DBTx{}
 	suite.sampleID = testutil.NewUUIDV4()
-	suite.sampleIntelAssignment = store.IntelAssignment{
-		ID:    testutil.NewUUIDV4(),
-		Intel: testutil.NewUUIDV4(),
-		To:    testutil.NewUUIDV4(),
-	}
 	userID := testutil.NewUUIDV4()
 	suite.sampleAssignedEntry = store.AddressBookEntryDetailed{
 		AddressBookEntry: store.AddressBookEntry{
-			ID:          suite.sampleIntelAssignment.To,
+			ID:          testutil.NewUUIDV4(),
 			Label:       "bay",
 			Description: "cage",
 			Operation:   nulls.NewUUID(testutil.NewUUIDV4()),
@@ -54,23 +48,23 @@ func (suite *controllerLookAfterDeliverySuite) SetupTest() {
 		}),
 	}
 	suite.sampleIntel = store.Intel{
-		ID:          suite.sampleIntelAssignment.Intel,
-		CreatedAt:   time.Date(2022, 9, 5, 22, 56, 49, 0, time.UTC),
-		CreatedBy:   testutil.NewUUIDV4(),
-		Operation:   testutil.NewUUIDV4(),
-		Type:        "except",
-		Content:     []byte(`{"hello":"world"}`),
-		SearchText:  nulls.NewString("Hello World!"),
-		Importance:  744,
-		IsValid:     true,
-		Assignments: []store.IntelAssignment{suite.sampleIntelAssignment},
+		ID:         testutil.NewUUIDV4(),
+		CreatedAt:  time.Date(2022, 9, 5, 22, 56, 49, 0, time.UTC),
+		CreatedBy:  testutil.NewUUIDV4(),
+		Operation:  testutil.NewUUIDV4(),
+		Type:       "except",
+		Content:    []byte(`{"hello":"world"}`),
+		SearchText: nulls.NewString("Hello World!"),
+		Importance: 744,
+		IsValid:    true,
 	}
 	suite.sampleDelivery = store.IntelDelivery{
-		ID:         suite.sampleID,
-		Assignment: testutil.NewUUIDV4(),
-		IsActive:   true,
-		Success:    false,
-		Note:       nulls.NewString("club"),
+		ID:       suite.sampleID,
+		Intel:    suite.sampleIntel.ID,
+		To:       suite.sampleAssignedEntry.ID,
+		IsActive: true,
+		Success:  false,
+		Note:     nulls.NewString("club"),
 	}
 	suite.sampleDeliveryAttempts = []store.IntelDeliveryAttempt{
 		{
@@ -96,7 +90,7 @@ func (suite *controllerLookAfterDeliverySuite) SetupTest() {
 	}
 	suite.sampleChannel = store.Channel{
 		ID:            testutil.NewUUIDV4(),
-		Entry:         suite.sampleDelivery.Assignment,
+		Entry:         suite.sampleDelivery.To,
 		Label:         "urgent",
 		Type:          "gallon",
 		Priority:      12,
@@ -392,32 +386,6 @@ func (suite *controllerLookAfterDeliverySuite) TestCreateNewAttemptFail() {
 	wait()
 }
 
-func (suite *controllerLookAfterDeliverySuite) TestRetrieveIntelAssignmentForNotifyFail() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.Store.On("IntelDeliveryByID", timeout, suite.tx, suite.sampleID).
-		Return(suite.sampleDelivery, nil)
-	suite.ctrl.Store.On("TimedOutIntelDeliveryAttemptsByDelivery", timeout, suite.tx, suite.sampleID).
-		Return(nil, nil)
-	suite.ctrl.Store.On("ActiveIntelDeliveryAttemptsByDelivery", timeout, suite.tx, suite.sampleID).
-		Return(nil, nil)
-	suite.ctrl.Store.On("NextChannelForDeliveryAttempt", timeout, suite.tx, suite.sampleID).
-		Return(suite.sampleChannel, true, nil)
-	suite.ctrl.Store.On("CreateIntelDeliveryAttempt", timeout, suite.tx, mock.Anything).
-		Return(suite.sampleDeliveryAttempts[0], nil)
-	suite.ctrl.Store.On("IntelAssignmentByID", timeout, suite.tx, suite.sampleDelivery.Assignment).
-		Return(store.IntelAssignment{}, errors.New("sad life")).Once()
-	defer suite.ctrl.Store.AssertExpectations(suite.T())
-	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
-
-	go func() {
-		defer cancel()
-		err := suite.ctrl.Ctrl.lookAfterDelivery(timeout, suite.tx, suite.sampleID)
-		suite.Error(err, "should fail")
-	}()
-
-	wait()
-}
-
 func (suite *controllerLookAfterDeliverySuite) TestRetrieveIntelForNotifyFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.ctrl.Store.On("IntelDeliveryByID", timeout, suite.tx, suite.sampleID).
@@ -430,9 +398,7 @@ func (suite *controllerLookAfterDeliverySuite) TestRetrieveIntelForNotifyFail() 
 		Return(suite.sampleChannel, true, nil)
 	suite.ctrl.Store.On("CreateIntelDeliveryAttempt", timeout, suite.tx, mock.Anything).
 		Return(suite.sampleDeliveryAttempts[0], nil)
-	suite.ctrl.Store.On("IntelAssignmentByID", timeout, suite.tx, suite.sampleDelivery.Assignment).
-		Return(suite.sampleIntelAssignment, nil).Once()
-	suite.ctrl.Store.On("IntelByID", timeout, suite.tx, suite.sampleIntelAssignment.Intel).
+	suite.ctrl.Store.On("IntelByID", timeout, suite.tx, suite.sampleDelivery.Intel).
 		Return(store.Intel{}, errors.New("sad life")).Once()
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
@@ -458,11 +424,9 @@ func (suite *controllerLookAfterDeliverySuite) TestRetrieveAssignedEntryFail() {
 		Return(suite.sampleChannel, true, nil)
 	suite.ctrl.Store.On("CreateIntelDeliveryAttempt", timeout, suite.tx, mock.Anything).
 		Return(suite.sampleDeliveryAttempts[0], nil)
-	suite.ctrl.Store.On("IntelAssignmentByID", timeout, suite.tx, suite.sampleDelivery.Assignment).
-		Return(suite.sampleIntelAssignment, nil).Once()
-	suite.ctrl.Store.On("IntelByID", timeout, suite.tx, suite.sampleIntelAssignment.Intel).
+	suite.ctrl.Store.On("IntelByID", timeout, suite.tx, suite.sampleDelivery.Intel).
 		Return(suite.sampleIntel, nil).Once()
-	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.tx, suite.sampleIntelAssignment.To, uuid.NullUUID{}).
+	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.tx, suite.sampleDelivery.To, uuid.NullUUID{}).
 		Return(store.AddressBookEntryDetailed{}, errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
@@ -488,14 +452,12 @@ func (suite *controllerLookAfterDeliverySuite) TestNotifyAttemptCreatedFail() {
 		Return(suite.sampleChannel, true, nil)
 	suite.ctrl.Store.On("CreateIntelDeliveryAttempt", timeout, suite.tx, mock.Anything).
 		Return(suite.sampleDeliveryAttempts[0], nil)
-	suite.ctrl.Store.On("IntelAssignmentByID", timeout, suite.tx, suite.sampleDelivery.Assignment).
-		Return(suite.sampleIntelAssignment, nil).Once()
-	suite.ctrl.Store.On("IntelByID", timeout, suite.tx, suite.sampleIntelAssignment.Intel).
+	suite.ctrl.Store.On("IntelByID", timeout, suite.tx, suite.sampleDelivery.Intel).
 		Return(suite.sampleIntel, nil).Once()
-	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.tx, suite.sampleIntelAssignment.To, uuid.NullUUID{}).
+	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.tx, suite.sampleDelivery.To, uuid.NullUUID{}).
 		Return(suite.sampleAssignedEntry, nil)
 	suite.ctrl.Notifier.On("NotifyIntelDeliveryAttemptCreated", timeout, suite.tx, suite.sampleDeliveryAttempts[0],
-		suite.sampleDelivery, suite.sampleIntelAssignment, suite.sampleAssignedEntry, suite.sampleIntel).
+		suite.sampleDelivery, suite.sampleAssignedEntry, suite.sampleIntel).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
@@ -538,14 +500,12 @@ func (suite *controllerLookAfterDeliverySuite) TestOKWithNewAttempt() {
 		return vv == expect
 	})).
 		Return(suite.sampleDeliveryAttempts[0], nil)
-	suite.ctrl.Store.On("IntelAssignmentByID", timeout, suite.tx, suite.sampleDelivery.Assignment).
-		Return(suite.sampleIntelAssignment, nil).Once()
-	suite.ctrl.Store.On("IntelByID", timeout, suite.tx, suite.sampleIntelAssignment.Intel).
+	suite.ctrl.Store.On("IntelByID", timeout, suite.tx, suite.sampleDelivery.Intel).
 		Return(suite.sampleIntel, nil).Once()
-	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.tx, suite.sampleIntelAssignment.To, uuid.NullUUID{}).
+	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.tx, suite.sampleDelivery.To, uuid.NullUUID{}).
 		Return(suite.sampleAssignedEntry, nil)
 	suite.ctrl.Notifier.On("NotifyIntelDeliveryAttemptCreated", timeout, suite.tx, suite.sampleDeliveryAttempts[0],
-		suite.sampleDelivery, suite.sampleIntelAssignment, suite.sampleAssignedEntry, suite.sampleIntel).
+		suite.sampleDelivery, suite.sampleAssignedEntry, suite.sampleIntel).
 		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
@@ -741,7 +701,6 @@ type ControllerMarkIntelAsDeliveredSuite struct {
 	sampleAttemptID      uuid.UUID
 	sampleDelivery       store.IntelDelivery
 	sampleActiveAttempts []store.IntelDeliveryAttempt
-	sampleAssignment     store.IntelAssignment
 }
 
 func (suite *ControllerMarkIntelAsDeliveredSuite) SetupTest() {
@@ -750,11 +709,12 @@ func (suite *ControllerMarkIntelAsDeliveredSuite) SetupTest() {
 	suite.sampleDeliveryID = testutil.NewUUIDV4()
 	suite.sampleAttemptID = testutil.NewUUIDV4()
 	suite.sampleDelivery = store.IntelDelivery{
-		ID:         suite.sampleDeliveryID,
-		Assignment: testutil.NewUUIDV4(),
-		IsActive:   true,
-		Success:    false,
-		Note:       nulls.NewString("gap"),
+		ID:       suite.sampleDeliveryID,
+		Intel:    testutil.NewUUIDV4(),
+		To:       testutil.NewUUIDV4(),
+		IsActive: true,
+		Success:  false,
+		Note:     nulls.NewString("gap"),
 	}
 	suite.sampleActiveAttempts = []store.IntelDeliveryAttempt{
 		{
@@ -778,11 +738,6 @@ func (suite *ControllerMarkIntelAsDeliveredSuite) SetupTest() {
 			Note:      nulls.NewString("lay"),
 		},
 	}
-	suite.sampleAssignment = store.IntelAssignment{
-		ID:    testutil.NewUUIDV4(),
-		Intel: testutil.NewUUIDV4(),
-		To:    testutil.NewUUIDV4(),
-	}
 }
 
 func (suite *ControllerMarkIntelAsDeliveredSuite) TestRetrieveDeliveryFail() {
@@ -800,30 +755,10 @@ func (suite *ControllerMarkIntelAsDeliveredSuite) TestRetrieveDeliveryFail() {
 	wait()
 }
 
-func (suite *ControllerMarkIntelAsDeliveredSuite) TestRetrieveIntelAssignmentForByCheckFail() {
-	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
-	suite.ctrl.Store.On("IntelDeliveryByIDAndLockOrWait", timeout, suite.tx, suite.sampleDeliveryID).
-		Return(suite.sampleDelivery, nil).Once()
-	suite.ctrl.Store.On("IntelAssignmentByID", timeout, suite.tx, suite.sampleDelivery.Assignment).
-		Return(store.IntelAssignment{}, errors.New("sad life")).Once()
-	defer suite.ctrl.Store.AssertExpectations(suite.T())
-
-	go func() {
-		defer cancel()
-		err := suite.ctrl.Ctrl.MarkIntelDeliveryAndAttemptAsDelivered(timeout, suite.tx, suite.sampleDeliveryID,
-			uuid.NullUUID{}, nulls.NewUUID(testutil.NewUUIDV4()))
-		suite.Error(err, "should fail")
-	}()
-
-	wait()
-}
-
 func (suite *ControllerMarkIntelAsDeliveredSuite) TestNotAssigned() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.ctrl.Store.On("IntelDeliveryByIDAndLockOrWait", timeout, suite.tx, suite.sampleDeliveryID).
 		Return(suite.sampleDelivery, nil).Once()
-	suite.ctrl.Store.On("IntelAssignmentByID", timeout, suite.tx, suite.sampleDelivery.Assignment).
-		Return(suite.sampleAssignment, nil).Once()
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
@@ -964,13 +899,11 @@ func (suite *ControllerMarkIntelAsDeliveredSuite) TestNotifyAboutUpdatedDelivery
 }
 
 func (suite *ControllerMarkIntelAsDeliveredSuite) TestOK() {
-	by := suite.sampleAssignment.To
+	by := suite.sampleDelivery.To
 	attemptID := suite.sampleActiveAttempts[1].ID
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.ctrl.Store.On("IntelDeliveryByIDAndLockOrWait", timeout, suite.tx, suite.sampleDeliveryID).
 		Return(suite.sampleDelivery, nil).Once()
-	suite.ctrl.Store.On("IntelAssignmentByID", timeout, suite.tx, suite.sampleDelivery.Assignment).
-		Return(suite.sampleAssignment, nil).Once()
 	suite.ctrl.Store.On("ActiveIntelDeliveryAttemptsByDelivery", timeout, suite.tx, suite.sampleDeliveryID).
 		Return(suite.sampleActiveAttempts, nil).Once()
 	// For other attempt:
@@ -1040,9 +973,10 @@ func (suite *ControllerMarkIntelDeliveryAttemptAsDeliveredSuite) SetupTest() {
 		IsActive: true,
 	}
 	suite.sampleDelivery = store.IntelDelivery{
-		ID:         suite.sampleAttempt.Delivery,
-		Assignment: testutil.NewUUIDV4(),
-		IsActive:   false,
+		ID:       suite.sampleAttempt.Delivery,
+		Intel:    testutil.NewUUIDV4(),
+		To:       testutil.NewUUIDV4(),
+		IsActive: false,
 	}
 }
 
@@ -1134,9 +1068,10 @@ func (suite *ControllerMarkIntelDeliveryAsDeliveredSuite) SetupTest() {
 	suite.sampleDeliveryID = testutil.NewUUIDV4()
 	suite.sampleBy = nulls.NewUUID(testutil.NewUUIDV4())
 	suite.sampleDelivery = store.IntelDelivery{
-		ID:         suite.sampleDeliveryID,
-		Assignment: testutil.NewUUIDV4(),
-		IsActive:   false,
+		ID:       suite.sampleDeliveryID,
+		Intel:    testutil.NewUUIDV4(),
+		To:       testutil.NewUUIDV4(),
+		IsActive: false,
 	}
 }
 
