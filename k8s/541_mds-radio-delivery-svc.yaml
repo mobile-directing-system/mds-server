@@ -1,0 +1,135 @@
+# Database config.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mds-radio-delivery-svc-postgres-config
+  labels:
+    app: mds-radio-delivery-svc-postgres
+data:
+  POSTGRES_DB: mds-radio-delivery-svc
+  POSTGRES_USER: mds
+  POSTGRES_PASSWORD: mds
+  PGDATA: /var/lib/postgresql/data/pgdata
+---
+# Database pvc.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mds-radio-delivery-svc-postgres-pvc
+  labels:
+    app: mds-radio-delivery-svc-postgres
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+---
+# Database service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mds-radio-delivery-svc-postgres-service
+  labels:
+    app: mds-radio-delivery-svc-postgres-service
+spec:
+  ports:
+    - port: 5432
+  selector:
+    app: mds-radio-delivery-svc-postgres
+---
+# Database deployment.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mds-radio-delivery-svc-postgres-deployment
+spec:
+  serviceName: mds-radio-delivery-svc-postgres-service
+  selector:
+    matchLabels:
+      app: mds-radio-delivery-svc-postgres
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mds-radio-delivery-svc-postgres
+    spec:
+      containers:
+        - name: mds-radio-delivery-svc-postgres
+          image: postgres:14.2
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: mds-radio-delivery-svc-postgres-config
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data/pgdata
+              name: postgres-data
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: mds-radio-delivery-svc-postgres-pvc
+---
+# Radio-delivery svc config.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mds-radio-delivery-svc-config
+  labels:
+    app: mds-radio-delivery-svc
+data:
+  MDS_DB_CONN_STRING: postgresql://mds:mds@mds-radio-delivery-svc-postgres-service/mds-radio-delivery-svc
+  MDS_KAFKA_ADDR: kafka-cluster-kafka-bootstrap.kafka:9092
+  MDS_SERVE_ADDR: :8080
+  MDS_LOG_LEVEL: debug
+  MDS_PICKED_UP_TIMEOUT: 3m
+---
+# Radio-delivery svc service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mds-radio-delivery-svc-service
+spec:
+  selector:
+    app: mds-radio-delivery-svc
+  ports:
+    - port: 3000
+      targetPort: 8080
+---
+# Radio-delivery svc deployment.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mds-radio-delivery-svc-deployment
+spec:
+  serviceName: mds-radio-delivery-svc-service
+  selector:
+    matchLabels:
+      app: mds-radio-delivery-svc
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mds-radio-delivery-svc
+      annotations:
+        reloader.stakater.com/auto: "true"
+    spec:
+      containers:
+        - name: mds-radio-delivery-svc
+          image: mds-radio-delivery-svc
+          envFrom:
+            - configMapRef:
+                name: mds-radio-delivery-svc-config
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              port: 31234
+              path: /livez
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              port: 31234
+              path: /readyz
+            timeoutSeconds: 5

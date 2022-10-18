@@ -291,7 +291,7 @@ func (c *Controller) handleDeletedChannelsForDeliveryAttempts(ctx context.Contex
 // UpdateIntelDeliveryAttemptStatusForActive updates the
 // intel-delivery-attempt-status for the attempt with the given id. It assures
 // that the delivery attempt is still active and does not have
-// store.IntelDeliveryStatusCanceled. It then notifier via
+// store.IntelDeliveryStatusCanceled. It then notifies via
 // Notifier.NotifyIntelDeliveryAttemptStatusUpdated.
 func (c *Controller) UpdateIntelDeliveryAttemptStatusForActive(ctx context.Context, tx pgx.Tx, attemptID uuid.UUID,
 	newStatus store.IntelDeliveryStatus, newNote nulls.String) error {
@@ -332,30 +332,45 @@ func (c *Controller) UpdateIntelDeliveryAttemptStatusForActive(ctx context.Conte
 			"new_note":   newNote,
 		})
 	}
+	updated, err := c.Store.IntelDeliveryAttemptByID(ctx, tx, attemptID)
+	if err != nil {
+		return meh.Wrap(err, "retrieve updated intel-delivery-attempt from store", meh.Details{"attempt_id": attemptID})
+	}
+	// Notify.
+	err = c.Notifier.NotifyIntelDeliveryAttemptStatusUpdated(ctx, tx, updated)
+	if err != nil {
+		return meh.Wrap(err, "notify intel-delivery-attempt-status updated", meh.Details{"updated": updated})
+	}
 	return nil
 }
 
-// MarkIntelDeliveryAttemptAsDelivered is a shortcut for
-// MarkIntelDeliveryAndAttemptAsDelivered that concludes the delivery id from
-// the given attempt id.
+// MarkIntelDeliveryAttemptAsDelivered calls
+// MarkIntelDeliveryAttemptAsDeliveredTX with an opened transaction.
 func (c *Controller) MarkIntelDeliveryAttemptAsDelivered(ctx context.Context, attemptID uuid.UUID, by uuid.NullUUID) error {
 	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
-		attempt, err := c.Store.IntelDeliveryAttemptByID(ctx, tx, attemptID)
-		if err != nil {
-			return meh.Wrap(err, "intel-delivery-attempt by id from store", meh.Details{"attempt_id": attemptID})
-		}
-		err = c.MarkIntelDeliveryAndAttemptAsDelivered(ctx, tx, attempt.Delivery, nulls.NewUUID(attemptID), by)
-		if err != nil {
-			return meh.Wrap(err, "mark intel delivery and attempt as delivered", meh.Details{
-				"delivery_id": attempt.Delivery,
-				"attempt_id":  attemptID,
-				"by":          by,
-			})
-		}
-		return nil
+		return c.MarkIntelDeliveryAttemptAsDeliveredTx(ctx, tx, attemptID, by)
 	})
 	if err != nil {
 		return meh.Wrap(err, "run in tx", nil)
+	}
+	return nil
+}
+
+// MarkIntelDeliveryAttemptAsDeliveredTx is a shortcut for
+// MarkIntelDeliveryAndAttemptAsDelivered that concludes the delivery id from
+// the given attempt id.
+func (c *Controller) MarkIntelDeliveryAttemptAsDeliveredTx(ctx context.Context, tx pgx.Tx, attemptID uuid.UUID, by uuid.NullUUID) error {
+	attempt, err := c.Store.IntelDeliveryAttemptByID(ctx, tx, attemptID)
+	if err != nil {
+		return meh.Wrap(err, "intel-delivery-attempt by id from store", meh.Details{"attempt_id": attemptID})
+	}
+	err = c.MarkIntelDeliveryAndAttemptAsDelivered(ctx, tx, attempt.Delivery, nulls.NewUUID(attemptID), by)
+	if err != nil {
+		return meh.Wrap(err, "mark intel delivery and attempt as delivered", meh.Details{
+			"delivery_id": attempt.Delivery,
+			"attempt_id":  attemptID,
+			"by":          by,
+		})
 	}
 	return nil
 }
@@ -375,6 +390,53 @@ func (c *Controller) MarkIntelDeliveryAsDelivered(ctx context.Context, deliveryI
 	})
 	if err != nil {
 		return meh.Wrap(err, "run in tx", nil)
+	}
+	return nil
+}
+
+// MarkIntelDeliveryAttemptAsFailed marks the intel-delivery-attempt with the
+// given id with store.IntelDeliveryStatusFailed, if still being active.
+func (c *Controller) MarkIntelDeliveryAttemptAsFailed(ctx context.Context, tx pgx.Tx, attemptID uuid.UUID, note nulls.String) error {
+	// Lock delivery.
+	attempt, err := c.Store.IntelDeliveryAttemptByID(ctx, tx, attemptID)
+	if err != nil {
+		return meh.Wrap(err, "intel-delivery-attempt by id from store", meh.Details{"attempt_id": attemptID})
+	}
+	_, err = c.Store.IntelDeliveryByIDAndLockOrWait(ctx, tx, attempt.Delivery)
+	if err != nil {
+		return meh.Wrap(err, "intel-delivery by id from store", meh.Details{"delivery_id": attempt.Delivery})
+	}
+	// Assure attempt still active.
+	attempt, err = c.Store.IntelDeliveryAttemptByID(ctx, tx, attemptID)
+	if err != nil {
+		return meh.Wrap(err, "intel-delivery-attempt by id from store (after locked delivery)",
+			meh.Details{"attempt_id": attemptID})
+	}
+	if !attempt.IsActive {
+		c.Logger.Debug("skipping marking intel-delivery-attempt as failed due to not being active anymore",
+			zap.Any("attempt_id", attemptID))
+		return nil
+	}
+	// Mark as failed.
+	newStatus := store.IntelDeliveryStatusFailed
+	newNote := note
+	err = c.Store.UpdateIntelDeliveryAttemptStatusByID(ctx, tx, attemptID, false, newStatus, newNote)
+	if err != nil {
+		return meh.Wrap(err, "update intel-delivery-attempt-status by id in store", meh.Details{"attempt_id": attemptID})
+	}
+	// Retrieve updated.
+	attempt, err = c.Store.IntelDeliveryAttemptByID(ctx, tx, attemptID)
+	if err != nil {
+		return meh.Wrap(err, "retrieve updated intel-delivery-attempt from store", meh.Details{"attempt_id": attemptID})
+	}
+	// Notify.
+	err = c.Notifier.NotifyIntelDeliveryAttemptStatusUpdated(ctx, tx, attempt)
+	if err != nil {
+		return meh.Wrap(err, "notify intel-deliver-attempt-status updated", meh.Details{"updated_attempt": attempt})
+	}
+	err = c.lookAfterDelivery(ctx, tx, attempt.Delivery)
+	if err != nil {
+		return meh.Wrap(err, "look after delivery", meh.Details{"delivery_id": attempt.Delivery})
 	}
 	return nil
 }

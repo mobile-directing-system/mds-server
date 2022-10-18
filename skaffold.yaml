@@ -42,6 +42,10 @@ profiles:
           context: ./
           docker:
             dockerfile: services/go/permission-svc/Dockerfile
+        - image: mds-radio-delivery-svc
+          context: ./
+          docker:
+            dockerfile: services/go/radio-delivery-svc/Dockerfile
         - image: mds-user-svc
           context: ./
           docker:
@@ -68,6 +72,7 @@ profiles:
           - k8s/521_mds-group-svc.yaml
           - k8s/530_mds-logistics-svc.yaml
           - k8s/540_mds-in-app-notifier-svc.yaml
+          - k8s/541_mds-radio-delivery-svc.yaml
           - k8s/811_public-ingress.yaml
           - k8s/821_internal-ingress.yaml
           - k8s/830_mds-ws-hub-svc.yaml

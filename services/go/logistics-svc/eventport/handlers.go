@@ -37,6 +37,12 @@ type Handler interface {
 	// store.IntelDeliveryStatusCanceled.
 	UpdateIntelDeliveryAttemptStatusForActive(ctx context.Context, tx pgx.Tx, attemptID uuid.UUID,
 		newStatus store.IntelDeliveryStatus, newNote nulls.String) error
+	// MarkIntelDeliveryAttemptAsDeliveredTx marks the intel-delivery-attempt with the
+	// given id and its delivery as delivered.
+	MarkIntelDeliveryAttemptAsDeliveredTx(ctx context.Context, tx pgx.Tx, attemptID uuid.UUID, by uuid.NullUUID) error
+	// MarkIntelDeliveryAttemptAsFailed marks the intel-delivery-attempt with the
+	// given id with store.IntelDeliveryStatusFailed, if still being active.
+	MarkIntelDeliveryAttemptAsFailed(ctx context.Context, tx pgx.Tx, attemptID uuid.UUID, note nulls.String) error
 }
 
 // HandlerFn for handling messages.
@@ -51,6 +57,8 @@ func (p *Port) HandlerFn(handler Handler) kafkautil.HandlerFunc {
 			return meh.NilOrWrap(p.handleUsersTopic(ctx, tx, handler, message), "handle users topic", nil)
 		case event.InAppNotificationsTopic:
 			return meh.NilOrWrap(p.handleInAppNotificationsTopic(ctx, tx, handler, message), "handle in-app-notifications topic", nil)
+		case event.RadioDeliveriesTopic:
+			return meh.NilOrWrap(p.handleRadioDeliveriesTopic(ctx, tx, handler, message), "handle radio-deliveries topic", nil)
 		}
 		return nil
 	}
@@ -292,6 +300,93 @@ func (p *Port) handleInAppNotificationForIntelSent(ctx context.Context, tx pgx.T
 		nulls.NewString("in-app-notification sent"))
 	if err != nil {
 		return meh.Wrap(err, "update intel-delivery-attempt-status for active", meh.Details{"attempt_id": notifSentEvent.Attempt})
+	}
+	return nil
+}
+
+// handleRadioDeliveriesTopic handles the event.RadioDeliveriesTopic.
+func (p *Port) handleRadioDeliveriesTopic(ctx context.Context, tx pgx.Tx, handler Handler, message kafkautil.InboundMessage) error {
+	switch message.EventType {
+	case event.TypeRadioDeliveryReadyForPickup:
+		return meh.NilOrWrap(p.handleRadioDeliveryReadyForPickup(ctx, tx, handler, message), "handle radio delivery ready for pickup", nil)
+	case event.TypeRadioDeliveryPickedUp:
+		return meh.NilOrWrap(p.handleRadioDeliveryPickedUp(ctx, tx, handler, message), "handle radio delivery picked up", nil)
+	case event.TypeRadioDeliveryReleased:
+		return meh.NilOrWrap(p.handleRadioDeliveryReleased(ctx, tx, handler, message), "handle radio delivery released", nil)
+	case event.TypeRadioDeliveryFinished:
+		return meh.NilOrWrap(p.handleRadioDeliveryFinished(ctx, tx, handler, message), "handle radio delivery finished", nil)
+	}
+	return nil
+}
+
+// handleRadioDeliveryReadyForPickup handles an
+// event.TypeRadioDeliveryReadyForPickup event.
+func (p *Port) handleRadioDeliveryReadyForPickup(ctx context.Context, tx pgx.Tx, handler Handler, message kafkautil.InboundMessage) error {
+	var readyEvent event.RadioDeliveryReadyForPickup
+	err := json.Unmarshal(message.RawValue, &readyEvent)
+	if err != nil {
+		return meh.NewInternalErrFromErr(err, "unmarshal event", meh.Details{"raw": string(message.RawValue)})
+	}
+	err = handler.UpdateIntelDeliveryAttemptStatusForActive(ctx, tx, readyEvent.Attempt, store.IntelDeliveryStatusAwaitingDelivery,
+		nulls.NewString("delivery ready for pickup"))
+	if err != nil {
+		return meh.Wrap(err, "update intel-delivery-attempt-status for active", meh.Details{"attempt_id": readyEvent.Attempt})
+	}
+	return nil
+}
+
+// handleRadioDeliveryPickedUp handles an event.handleRadioDeliveryPickedUp
+// event.
+func (p *Port) handleRadioDeliveryPickedUp(ctx context.Context, tx pgx.Tx, handler Handler, message kafkautil.InboundMessage) error {
+	var pickedUpEvent event.RadioDeliveryPickedUp
+	err := json.Unmarshal(message.RawValue, &pickedUpEvent)
+	if err != nil {
+		return meh.NewInternalErrFromErr(err, "unmarshal event", meh.Details{"raw": string(message.RawValue)})
+	}
+	err = handler.UpdateIntelDeliveryAttemptStatusForActive(ctx, tx, pickedUpEvent.Attempt, store.IntelDeliveryStatusDelivering,
+		nulls.NewString("delivery picked up"))
+	if err != nil {
+		return meh.Wrap(err, "update intel-delivery-attempt-status for active", meh.Details{"attempt_id": pickedUpEvent.Attempt})
+	}
+	return nil
+}
+
+// handleRadioDeliveryReleased handles an event.handleRadioDeliveryReleased
+// event.
+func (p *Port) handleRadioDeliveryReleased(ctx context.Context, tx pgx.Tx, handler Handler, message kafkautil.InboundMessage) error {
+	var releasedEvent event.RadioDeliveryReleased
+	err := json.Unmarshal(message.RawValue, &releasedEvent)
+	if err != nil {
+		return meh.NewInternalErrFromErr(err, "unmarshal event", meh.Details{"raw": string(message.RawValue)})
+	}
+	err = handler.UpdateIntelDeliveryAttemptStatusForActive(ctx, tx, releasedEvent.Attempt, store.IntelDeliveryStatusAwaitingDelivery,
+		nulls.NewString("delivery ready for pickup (released)"))
+	if err != nil {
+		return meh.Wrap(err, "update intel-delivery-attempt-status for active", meh.Details{"attempt_id": releasedEvent.Attempt})
+	}
+	return nil
+}
+
+// handleRadioDeliveryFinished handles an event.handleRadioDeliveryFinished
+// event.
+func (p *Port) handleRadioDeliveryFinished(ctx context.Context, tx pgx.Tx, handler Handler, message kafkautil.InboundMessage) error {
+	var finishedEvent event.RadioDeliveryFinished
+	err := json.Unmarshal(message.RawValue, &finishedEvent)
+	if err != nil {
+		return meh.NewInternalErrFromErr(err, "unmarshal event", meh.Details{"raw": string(message.RawValue)})
+	}
+	if finishedEvent.Success {
+		// Mark as delivered.
+		err = handler.MarkIntelDeliveryAttemptAsDeliveredTx(ctx, tx, finishedEvent.Attempt, uuid.NullUUID{})
+		if err != nil {
+			return meh.Wrap(err, "mark intel-delivery-attempt as delivered", meh.Details{"attempt_id": finishedEvent.Attempt})
+		}
+	} else {
+		// Mark as failed.
+		err = handler.MarkIntelDeliveryAttemptAsFailed(ctx, tx, finishedEvent.Attempt, nulls.NewString(finishedEvent.Note))
+		if err != nil {
+			return meh.Wrap(err, "mark intel-delivery-attempt as failed", meh.Details{"attempt_id": finishedEvent.Attempt})
+		}
 	}
 	return nil
 }
