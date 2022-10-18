@@ -26,6 +26,10 @@ data:
             {
               "name": "in-app-notifier",
               "url": "ws://mds-in-app-notifier-svc-service:3000/ws"
+            },
+            {
+              "name": "radio-delivery",
+              "url": "ws://mds-radio-delivery-svc-service:3000/ws"
             }
           ]
         }

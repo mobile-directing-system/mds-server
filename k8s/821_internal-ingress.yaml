@@ -52,6 +52,13 @@ spec:
                 name: mds-permission-svc-service
                 port:
                   number: 3000
+          - path: /radio-deliveries/?(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: mds-radio-delivery-svc-service
+                port:
+                  number: 3000
           - path: /users/?(.*)
             pathType: Prefix
             backend:

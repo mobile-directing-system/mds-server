@@ -230,6 +230,27 @@ operation.members.update
 
 Allows (un)assigning members to operations.
 
+Radio delivery
+--------------
+
+.. _permission.radio-delivery.deliver.any:
+
+radio-delivery.deliver.any
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Allows delivering any radio delivery.
+
+Options: `none`
+
+.. _permission.radio-delivery.manage.any:
+
+radio-delivery.deliver.any
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Allows managing, assigning and releasing any radio delivery.
+
+Options: `none`
+
 Users
 -----
 

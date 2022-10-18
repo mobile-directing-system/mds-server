@@ -3,17 +3,20 @@ package app
 import (
 	"context"
 	"embed"
+	"fmt"
 	"github.com/lefinal/meh"
-	"github.com/mobile-directing-system/mds-server/services/go/logistics-svc/controller"
-	"github.com/mobile-directing-system/mds-server/services/go/logistics-svc/endpoints"
-	"github.com/mobile-directing-system/mds-server/services/go/logistics-svc/eventport"
-	"github.com/mobile-directing-system/mds-server/services/go/logistics-svc/store"
+	"github.com/mobile-directing-system/mds-server/services/go/radio-delivery-svc/controller"
+	"github.com/mobile-directing-system/mds-server/services/go/radio-delivery-svc/endpoints"
+	"github.com/mobile-directing-system/mds-server/services/go/radio-delivery-svc/eventport"
+	"github.com/mobile-directing-system/mds-server/services/go/radio-delivery-svc/store"
+	"github.com/mobile-directing-system/mds-server/services/go/radio-delivery-svc/ws"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/connectutil"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/event"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/kafkautil"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/logging"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pgconnect"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/ready"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/wsutil"
 	"golang.org/x/sync/errgroup"
 	"io/fs"
 )
@@ -31,7 +34,7 @@ func init() {
 	}
 }
 
-const kafkaGroupID = "mds-logistics-svc"
+const kafkaGroupID = "mds-radio-delivery-svc"
 
 const dbScope = "app"
 
@@ -41,7 +44,7 @@ func Run(ctx context.Context) error {
 	if err != nil {
 		return meh.Wrap(err, "parse config", nil)
 	}
-	logger, err := logging.NewLogger("logistics-svc", c.LogLevel)
+	logger, err := logging.NewLogger("radio-delivery-svc", c.LogLevel)
 	if err != nil {
 		return meh.Wrap(err, "new logger", nil)
 	}
@@ -63,19 +66,16 @@ func Run(ctx context.Context) error {
 		eg, egCtx := errgroup.WithContext(ctx)
 		// Check hosts.
 		eg.Go(func() error {
-			err := connectutil.AwaitHostsReachable(egCtx, c.KafkaAddr, c.searchConfig.Host)
+			err := connectutil.AwaitHostsReachable(egCtx, c.KafkaAddr)
 			return meh.NilOrWrap(err, "await hosts reachable", nil)
 		})
 		// Check Kafka topics.
 		eg.Go(func() error {
 			awaitTopics := []event.Topic{
-				event.GroupsTopic,
-				event.OperationsTopic,
 				event.UsersTopic,
 				event.AddressBookTopic,
-				event.IntelTopic,
 				event.IntelDeliveriesTopic,
-				event.InAppNotificationsTopic,
+				event.OperationsTopic,
 				event.RadioDeliveriesTopic,
 			}
 			err := kafkautil.AwaitTopics(egCtx, c.KafkaAddr, awaitTopics...)
@@ -98,19 +98,12 @@ func Run(ctx context.Context) error {
 		return meh.Wrap(err, "init new kafka connector", nil)
 	}
 	eventPort := eventport.NewPort(kafkaConnector)
-	mall, err := store.InitNewMall(ctx, logger.Named("mall"), sqlDB, c.searchConfig.Host, c.searchConfig.MasterKey)
-	if err != nil {
-		return meh.Wrap(err, "init new mall", nil)
-	}
-	ctrl := &controller.Controller{
-		Logger:   logger.Named("controller"),
-		DB:       sqlDB,
-		Store:    mall,
-		Notifier: eventPort,
-	}
+	logger.Debug(fmt.Sprintf("using picked-up-timeout of %s", c.pickedUpTimeout.String()))
+	ctrl := controller.NewController(logger.Named("controller"), sqlDB, store.NewMall(), eventPort, c.pickedUpTimeout)
+	wsHub := wsutil.NewHub(egCtx, logger.Named("ws-hub"), ws.Gatekeeper(), ws.ConnListener(logger.Named("conn-listener"), ctrl))
 	// Serve endpoints.
 	eg.Go(func() error {
-		err := endpoints.Serve(egCtx, logger.Named("endpoints"), c.ServeAddr, c.AuthTokenSecret, ctrl)
+		err := endpoints.Serve(egCtx, logger.Named("endpoints"), c.ServeAddr, c.AuthTokenSecret, ctrl, wsHub)
 		return meh.NilOrWrap(err, "serve endpoints", meh.Details{"serve_addr": c.ServeAddr})
 	})
 	// Run Kafka connector.
@@ -118,12 +111,10 @@ func Run(ctx context.Context) error {
 		logger := logger.Named("kafka-reader")
 		kafkaReader := kafkautil.NewReader(logger, c.KafkaAddr, kafkaGroupID,
 			[]event.Topic{
-				event.OperationsTopic,
 				event.UsersTopic,
-				event.GroupsTopic,
 				event.AddressBookTopic,
-				event.InAppNotificationsTopic,
-				event.RadioDeliveriesTopic,
+				event.IntelDeliveriesTopic,
+				event.OperationsTopic,
 			})
 		kafkaWriter := kafkautil.NewWriter(logger.Named("kafka"), c.KafkaAddr)
 		err := kafkautil.RunConnector(egCtx, kafkaConnector, sqlDB, kafkaWriter, kafkaReader, eventPort.HandlerFn(ctrl))
@@ -135,10 +126,6 @@ func Run(ctx context.Context) error {
 	// Run controller.
 	eg.Go(func() error {
 		return meh.NilOrWrap(ctrl.Run(egCtx), "run controller", nil)
-	})
-	// Open mall.
-	eg.Go(func() error {
-		return meh.NilOrWrap(mall.Open(egCtx), "open mall", nil)
 	})
 	startUpCompleted(readyCheck)
 	return eg.Wait()

@@ -91,7 +91,7 @@ func (op *radioChannelOperator) getChannelDetailsByChannel(ctx context.Context, 
 	if !rows.Next() {
 		return nil, meh.NewNotFoundErr("not found", nil)
 	}
-	var details DirectChannelDetails
+	var details RadioChannelDetails
 	err = rows.Scan(&details.Info)
 	if err != nil {
 		return nil, mehpg.NewScanRowsErr(err, "scan row", q)

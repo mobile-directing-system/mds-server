@@ -67,6 +67,14 @@ func (m *HandlerMock) UpdateIntelDeliveryAttemptStatusForActive(ctx context.Cont
 	return m.Called(ctx, tx, attemptID, newStatus, newNote).Error(0)
 }
 
+func (m *HandlerMock) MarkIntelDeliveryAttemptAsDeliveredTx(ctx context.Context, tx pgx.Tx, attemptID uuid.UUID, by uuid.NullUUID) error {
+	return m.Called(ctx, tx, attemptID, by).Error(0)
+}
+
+func (m *HandlerMock) MarkIntelDeliveryAttemptAsFailed(ctx context.Context, tx pgx.Tx, attemptID uuid.UUID, note nulls.String) error {
+	return m.Called(ctx, tx, attemptID, note).Error(0)
+}
+
 // portHandleUserCreatedSuite tests Port.handleUserCreated.
 type portHandleUserCreatedSuite struct {
 	suite.Suite
@@ -890,4 +898,356 @@ func (suite *portHandleInAppNotificationForIntelSentSuite) TestOK() {
 
 func TestPort_handleInAppNotificationForIntelSentSuite(t *testing.T) {
 	suite.Run(t, new(portHandleInAppNotificationForIntelSentSuite))
+}
+
+// portHandleRadioDeliveryReadyForPickupSuite tests
+// Port.handleRadioDeliveryReadyForPickup.
+type portHandleRadioDeliveryReadyForPickupSuite struct {
+	suite.Suite
+	handler     *HandlerMock
+	port        *PortMock
+	sampleEvent event.RadioDeliveryReadyForPickup
+}
+
+func (suite *portHandleRadioDeliveryReadyForPickupSuite) SetupTest() {
+	suite.handler = &HandlerMock{}
+	suite.port = newMockPort()
+	suite.sampleEvent = event.RadioDeliveryReadyForPickup{
+		Attempt:                testutil.NewUUIDV4(),
+		Intel:                  testutil.NewUUIDV4(),
+		IntelOperation:         testutil.NewUUIDV4(),
+		IntelImportance:        979,
+		AttemptAssignedTo:      testutil.NewUUIDV4(),
+		AttemptAssignedToLabel: "appear",
+		Delivery:               testutil.NewUUIDV4(),
+		Channel:                testutil.NewUUIDV4(),
+		Note:                   "jaw",
+		AttemptAcceptedAt:      time.Date(2022, 10, 13, 14, 11, 40, 0, time.UTC),
+	}
+}
+
+func (suite *portHandleRadioDeliveryReadyForPickupSuite) handle(ctx context.Context, tx pgx.Tx, rawValue json.RawMessage) error {
+	return suite.port.Port.HandlerFn(suite.handler)(ctx, tx, kafkautil.InboundMessage{
+		Topic:     event.RadioDeliveriesTopic,
+		EventType: event.TypeRadioDeliveryReadyForPickup,
+		RawValue:  rawValue,
+	})
+}
+
+func (suite *portHandleRadioDeliveryReadyForPickupSuite) TestBadEventValue() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, json.RawMessage(`{invalid`))
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *portHandleRadioDeliveryReadyForPickupSuite) TestUpdateStatusFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.handler.On("UpdateIntelDeliveryAttemptStatusForActive", timeout, tx, suite.sampleEvent.Attempt,
+		store.IntelDeliveryStatusAwaitingDelivery, mock.Anything).
+		Return(errors.New("sad life"))
+	defer suite.handler.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *portHandleRadioDeliveryReadyForPickupSuite) TestOK() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.handler.On("UpdateIntelDeliveryAttemptStatusForActive", timeout, tx, suite.sampleEvent.Attempt,
+		store.IntelDeliveryStatusAwaitingDelivery, mock.Anything).
+		Return(nil)
+	defer suite.handler.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
+		suite.NoError(err, "should not fail")
+	}()
+
+	wait()
+}
+
+func TestPort_handleRadioDeliveryReadyForPickupSuite(t *testing.T) {
+	suite.Run(t, new(portHandleRadioDeliveryReadyForPickupSuite))
+}
+
+// portHandleRadioDeliveryPickedUpSuite tests Port.handleRadioDeliveryPickedUp.
+type portHandleRadioDeliveryPickedUpSuite struct {
+	suite.Suite
+	handler     *HandlerMock
+	port        *PortMock
+	sampleEvent event.RadioDeliveryPickedUp
+}
+
+func (suite *portHandleRadioDeliveryPickedUpSuite) SetupTest() {
+	suite.handler = &HandlerMock{}
+	suite.port = newMockPort()
+	suite.sampleEvent = event.RadioDeliveryPickedUp{
+		Attempt:    testutil.NewUUIDV4(),
+		PickedUpBy: testutil.NewUUIDV4(),
+		PickedUpAt: time.Date(2022, 10, 13, 14, 12, 55, 0, time.UTC),
+	}
+}
+
+func (suite *portHandleRadioDeliveryPickedUpSuite) handle(ctx context.Context, tx pgx.Tx, rawValue json.RawMessage) error {
+	return suite.port.Port.HandlerFn(suite.handler)(ctx, tx, kafkautil.InboundMessage{
+		Topic:     event.RadioDeliveriesTopic,
+		EventType: event.TypeRadioDeliveryPickedUp,
+		RawValue:  rawValue,
+	})
+}
+
+func (suite *portHandleRadioDeliveryPickedUpSuite) TestBadEventValue() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, json.RawMessage(`{invalid`))
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *portHandleRadioDeliveryPickedUpSuite) TestUpdateStatusFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.handler.On("UpdateIntelDeliveryAttemptStatusForActive", timeout, tx, suite.sampleEvent.Attempt,
+		store.IntelDeliveryStatusDelivering, mock.Anything).
+		Return(errors.New("sad life"))
+	defer suite.handler.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *portHandleRadioDeliveryPickedUpSuite) TestOK() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.handler.On("UpdateIntelDeliveryAttemptStatusForActive", timeout, tx, suite.sampleEvent.Attempt,
+		store.IntelDeliveryStatusDelivering, mock.Anything).
+		Return(nil)
+	defer suite.handler.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
+		suite.NoError(err, "should not fail")
+	}()
+
+	wait()
+}
+
+func TestPort_handleRadioDeliveryPickedUpSuite(t *testing.T) {
+	suite.Run(t, new(portHandleRadioDeliveryPickedUpSuite))
+}
+
+// portHandleRadioDeliveryReleasedSuite tests Port.handleRadioDeliveryReleased.
+type portHandleRadioDeliveryReleasedSuite struct {
+	suite.Suite
+	handler     *HandlerMock
+	port        *PortMock
+	sampleEvent event.RadioDeliveryReleased
+}
+
+func (suite *portHandleRadioDeliveryReleasedSuite) SetupTest() {
+	suite.handler = &HandlerMock{}
+	suite.port = newMockPort()
+	suite.sampleEvent = event.RadioDeliveryReleased{
+		Attempt:    testutil.NewUUIDV4(),
+		ReleasedAt: time.Date(2022, 10, 13, 14, 12, 55, 0, time.UTC),
+	}
+}
+
+func (suite *portHandleRadioDeliveryReleasedSuite) handle(ctx context.Context, tx pgx.Tx, rawValue json.RawMessage) error {
+	return suite.port.Port.HandlerFn(suite.handler)(ctx, tx, kafkautil.InboundMessage{
+		Topic:     event.RadioDeliveriesTopic,
+		EventType: event.TypeRadioDeliveryReleased,
+		RawValue:  rawValue,
+	})
+}
+
+func (suite *portHandleRadioDeliveryReleasedSuite) TestBadEventValue() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, json.RawMessage(`{invalid`))
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *portHandleRadioDeliveryReleasedSuite) TestUpdateStatusFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.handler.On("UpdateIntelDeliveryAttemptStatusForActive", timeout, tx, suite.sampleEvent.Attempt,
+		store.IntelDeliveryStatusAwaitingDelivery, mock.Anything).
+		Return(errors.New("sad life"))
+	defer suite.handler.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *portHandleRadioDeliveryReleasedSuite) TestOK() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.handler.On("UpdateIntelDeliveryAttemptStatusForActive", timeout, tx, suite.sampleEvent.Attempt,
+		store.IntelDeliveryStatusAwaitingDelivery, mock.Anything).
+		Return(nil)
+	defer suite.handler.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
+		suite.NoError(err, "should not fail")
+	}()
+
+	wait()
+}
+
+func TestPort_handleRadioDeliveryReleasedSuite(t *testing.T) {
+	suite.Run(t, new(portHandleRadioDeliveryReleasedSuite))
+}
+
+// portHandleRadioDeliveryFinishedSuite tests Port.handleRadioDeliveryFinished.
+type portHandleRadioDeliveryFinishedSuite struct {
+	suite.Suite
+	handler     *HandlerMock
+	port        *PortMock
+	sampleEvent event.RadioDeliveryFinished
+}
+
+func (suite *portHandleRadioDeliveryFinishedSuite) SetupTest() {
+	suite.handler = &HandlerMock{}
+	suite.port = newMockPort()
+	suite.sampleEvent = event.RadioDeliveryFinished{
+		Attempt:    testutil.NewUUIDV4(),
+		PickedUpBy: nulls.NewUUID(testutil.NewUUIDV4()),
+		PickedUpAt: nulls.NewTime(time.Date(2022, 10, 13, 14, 15, 23, 0, time.UTC)),
+		Success:    true,
+		FinishedAt: time.Date(2022, 10, 13, 14, 15, 55, 0, time.UTC),
+		Note:       "instead",
+	}
+}
+
+func (suite *portHandleRadioDeliveryFinishedSuite) handle(ctx context.Context, tx pgx.Tx, rawValue json.RawMessage) error {
+	return suite.port.Port.HandlerFn(suite.handler)(ctx, tx, kafkautil.InboundMessage{
+		Topic:     event.RadioDeliveriesTopic,
+		EventType: event.TypeRadioDeliveryFinished,
+		RawValue:  rawValue,
+	})
+}
+
+func (suite *portHandleRadioDeliveryFinishedSuite) TestBadEventValue() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, json.RawMessage(`{invalid`))
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *portHandleRadioDeliveryFinishedSuite) TestMarkAsDeliveredFail() {
+	suite.sampleEvent.Success = true
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.handler.On("MarkIntelDeliveryAttemptAsDeliveredTx", timeout, tx, suite.sampleEvent.Attempt, uuid.NullUUID{}).
+		Return(errors.New("sad life"))
+	defer suite.handler.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *portHandleRadioDeliveryFinishedSuite) TestOKDelivered() {
+	suite.sampleEvent.Success = true
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.handler.On("MarkIntelDeliveryAttemptAsDeliveredTx", timeout, tx, suite.sampleEvent.Attempt, uuid.NullUUID{}).
+		Return(nil)
+	defer suite.handler.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
+		suite.NoError(err, "should not fail")
+	}()
+
+	wait()
+}
+
+func (suite *portHandleRadioDeliveryFinishedSuite) TestMarkAsFailedFail() {
+	suite.sampleEvent.Success = false
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.handler.On("MarkIntelDeliveryAttemptAsFailed", timeout, tx, suite.sampleEvent.Attempt, nulls.NewString(suite.sampleEvent.Note)).
+		Return(errors.New("sad life"))
+	defer suite.handler.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *portHandleRadioDeliveryFinishedSuite) TestOKFailed() {
+	suite.sampleEvent.Success = false
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	tx := &testutil.DBTx{}
+	suite.handler.On("MarkIntelDeliveryAttemptAsFailed", timeout, tx, suite.sampleEvent.Attempt, nulls.NewString(suite.sampleEvent.Note)).
+		Return(nil)
+	defer suite.handler.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.handle(timeout, tx, testutil.MarshalJSONMust(suite.sampleEvent))
+		suite.NoError(err, "should not fail")
+	}()
+
+	wait()
+}
+
+func TestPort_handleRadioDeliveryFinishedSuite(t *testing.T) {
+	suite.Run(t, new(portHandleRadioDeliveryFinishedSuite))
 }
