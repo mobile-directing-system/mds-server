@@ -3,10 +3,10 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="API Gateway" href="api-gateway.html" /><link rel="prev" title="Welcome to MDS Server’s documentation!" href="../index.html" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Development" href="development.html" /><link rel="prev" title="In-App Notifications" href="in-app-notifications.html" />
 
     <meta name="generator" content="sphinx-4.5.0, furo 2022.09.29"/>
-        <title>General HTTP API - MDS Server documentation</title>
+        <title>Radio Delivery - MDS Server documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=d81277517bee4d6b0349d71bb2661d4890b5617c" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
@@ -156,7 +156,7 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">General HTTP API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="general-http-api.html">General HTTP API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api-gateway.html">API Gateway</a></li>
 <li class="toctree-l1"><a class="reference internal" href="websocket.html">WebSocket</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user-management.html">Users</a></li>
@@ -166,7 +166,7 @@
 <li class="toctree-l1"><a class="reference internal" href="address-book.html">Address Book</a></li>
 <li class="toctree-l1"><a class="reference internal" href="intelligence.html">Intelligence</a></li>
 <li class="toctree-l1"><a class="reference internal" href="in-app-notifications.html">In-App Notifications</a></li>
-<li class="toctree-l1"><a class="reference internal" href="radio-delivery.html">Radio Delivery</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Radio Delivery</a></li>
 <li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
 </ul>
 
@@ -202,176 +202,67 @@
           </label>
         </div>
         <article role="main">
-          <section id="general-http-api">
-<h1>General HTTP API<a class="headerlink" href="#general-http-api" title="Permalink to this headline">#</a></h1>
-<p>This chapter covers some general aspects regarding the HTTP API.</p>
-<section id="authentication-and-permissions">
-<h2>Authentication and permissions<a class="headerlink" href="#authentication-and-permissions" title="Permalink to this headline">#</a></h2>
-<p>For most endpoints, authentication is required.
-This is explained in the <a class="reference internal" href="api-gateway.html#chapter-api-gateway"><span class="std std-ref">API Gateway</span></a> chapter.</p>
-<p>If an endpoint requires authentication, a <cite>401</cite> code is returned.
-If a caller lacks required permissions, a <cite>403</cite> code is returned.</p>
-</section>
-<section id="pagination">
-<span id="http-api-pagination"></span><h2>Pagination<a class="headerlink" href="#pagination" title="Permalink to this headline">#</a></h2>
-<p>Most endpoints with list data use pagination in order to limit results and data exchange.
-The following query parameters are available:</p>
-<div class="table-wrapper docutils container">
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 50%" />
-<col style="width: 50%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Parameter</p></th>
-<th class="head"><p>Description</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">limit</span></code></p></td>
-<td><p>Maximum amount of entries to retrieve. Defaults to 20.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">offset</span></code></p></td>
-<td><p>Offset for retrieved entries.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">order_by</span></code></p></td>
-<td><p>Field to order entries by.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">order_dir</span></code></p></td>
-<td><p>Direction for ordering. Supported values are <code class="docutils literal notranslate"><span class="pre">asc</span></code> and <code class="docutils literal notranslate"><span class="pre">desc</span></code> with the first being default.</p></td>
-</tr>
-</tbody>
-</table>
-</div>
-<p>Paginated responses will look like the following:</p>
+          <section id="radio-delivery">
+<h1>Radio Delivery<a class="headerlink" href="#radio-delivery" title="Permalink to this headline">#</a></h1>
+<p>Radio deliveries are for radio channels.
+Delivery requests are added to queues and assigned to radio operators, if they request one.
+Prioritization is either highest importance or oldest timestamp first.</p>
+<p>Clients receive updates via <a class="reference internal" href="websocket.html#websocket"><span class="std std-ref">WebSocket</span></a> (gate <cite>desktop-app</cite> with channel <cite>radio-delivery</cite>) which informs them about possible new delivery requests.
+Payload has the following content:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;total&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;limit&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;offset&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;ordered_by&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;field_name&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;order_dir&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;order_direction&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;retrieved&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;entries&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;new-radio-deliveries-available&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;payload&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_with_possible_new_requests&gt;&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-<div class="table-wrapper docutils container">
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 50%" />
-<col style="width: 50%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Field</p></th>
-<th class="head"><p>Description</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">total</span></code></p></td>
-<td><p>Total amounts of available entries.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">limit</span></code></p></td>
-<td><p>Applied limit for retrieved entries.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">offset</span></code></p></td>
-<td><p>Applied offset for retrieved entries.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ordered_by</span></code></p></td>
-<td><p>Field name the entries were ordered by.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">order_dir</span></code></p></td>
-<td><p>Applied direction for ordering entries. As with query parameters, <code class="docutils literal notranslate"><span class="pre">asc</span></code> and <code class="docutils literal notranslate"><span class="pre">desc</span></code> are possible values.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">retrieved</span></code></p></td>
-<td><p>Amount of entries in the <code class="docutils literal notranslate"><span class="pre">entries</span></code>-field.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">entries</span></code></p></td>
-<td><p>The actual entries. Structure depends on the retrieved data.</p></td>
-</tr>
-</tbody>
-</table>
-</div>
-</section>
-<section id="search">
-<span id="http-api-search"></span><h2>Search<a class="headerlink" href="#search" title="Permalink to this headline">#</a></h2>
-<p>Search allows retrieving a limited set of entries via searching.
-In most cases, these query parameters are used:</p>
-<div class="table-wrapper docutils container">
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 50%" />
-<col style="width: 50%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Parameter</p></th>
-<th class="head"><p>Description</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">q</span></code></p></td>
-<td><p>The search query.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">limit</span></code></p></td>
-<td><p>Applied limit for retrieving entries.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">offset</span></code></p></td>
-<td><p>Applied offset for retrieved entries.</p></td>
-</tr>
-</tbody>
-</table>
-</div>
-<p>The result is the following container:</p>
+<section id="retrieve-next-radio-delivery-to-deliver">
+<h2>Retrieve next radio delivery to deliver<a class="headerlink" href="#retrieve-next-radio-delivery-to-deliver" title="Permalink to this headline">#</a></h2>
+<p>In order to pick up requests, the <a class="reference internal" href="permissions.html#permission-radio-delivery-deliver-any"><span class="std std-ref">radio-delivery.deliver.any</span></a> permission is required.
+Picking up a request is done by calling:</p>
+<p><cite>GET /radio-deliveries/operations/&lt;operation_id&gt;/next</cite></p>
+<p>Response if none available (204): None</p>
+<p>Response if picked up (200):</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;hits&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;estimated_total_hits&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;offset&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;limit&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;processing_time&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;query&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;attempt_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;intel&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;intel_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;intel_operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_id_of_intel&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;intel_importance&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;assigned_to&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assigned_to_address_book_entry&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;assigned_to_label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;name_of_assigned_address_book_entry&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;delivery&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;delivery_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;channel&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;channel_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;created_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;attempt_creation_ts&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;status_ts&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;radio_delivery_status_update_ts&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;note&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;optional_radio_delivery_note&gt;&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;accepted_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;attempt_acception_ts&gt;&quot;</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
-<div class="table-wrapper docutils container">
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 50%" />
-<col style="width: 50%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Field</p></th>
-<th class="head"><p>Description</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">hits</span></code></p></td>
-<td><p>The ordered list of search hits.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">estimated_total_hits</span></code></p></td>
-<td><p>Total hits are not computed because of performance reasons. This is an estimation only.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">offset</span></code></p></td>
-<td><p>Applied offset for retrieved entries.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">limit</span></code></p></td>
-<td><p>Applied limit for retrieved entries.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">processing_time</span></code></p></td>
-<td><p>Duration of searching.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">query</span></code></p></td>
-<td><p>The original search query, that was being used.</p></td>
-</tr>
-</tbody>
-</table>
-</div>
-<p>Rebuilding search indices requires the <a class="reference internal" href="permissions.html#permission-core-search-rebuild-index"><span class="std std-ref">core.search.rebuild-index</span></a> permission.</p>
 </section>
-<section id="misc">
-<h2>Misc<a class="headerlink" href="#misc" title="Permalink to this headline">#</a></h2>
-<ul class="simple">
-<li><p>Durations are always represented in nanoseconds.</p></li>
-<li><p>Primitives in JSON, not being string and not stated otherwise, can be any value from the respective value range.</p></li>
-</ul>
+<section id="release-picked-up-radio-delivery">
+<h2>Release picked up radio delivery<a class="headerlink" href="#release-picked-up-radio-delivery" title="Permalink to this headline">#</a></h2>
+<p>In order to release a picked up radio delivery, the <a class="reference internal" href="permissions.html#permission-radio-delivery-deliver-any"><span class="std std-ref">radio-delivery.deliver.any</span></a> permission is required.
+If a delivery is to be released, not being assigned to the requesting client, the <a class="reference internal" href="permissions.html#permission-radio-delivery-manage-any"><span class="std std-ref">radio-delivery.deliver.any</span></a> permission is needed.
+Releasing is done by calling:</p>
+<p><cite>POST /radio-deliveries/&lt;attempt_id&gt;/release</cite></p>
+</section>
+<section id="finish-picked-up-radio-delivery">
+<h2>Finish picked up radio delivery<a class="headerlink" href="#finish-picked-up-radio-delivery" title="Permalink to this headline">#</a></h2>
+<p>In order to finish a picked up radio delivery, the <a class="reference internal" href="permissions.html#permission-radio-delivery-deliver-any"><span class="std std-ref">radio-delivery.deliver.any</span></a> permission is required.
+If a delivery is to be finished, not being assigned to the requesting client, the <a class="reference internal" href="permissions.html#permission-radio-delivery-manage-any"><span class="std std-ref">radio-delivery.deliver.any</span></a> permission is needed.
+Finishing is done by calling:</p>
+<p><cite>POST /radio-deliveries/&lt;attempt_id&gt;/finish</cite></p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;success&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;note&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;note&gt;&quot;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">success</span></code>-Field can be <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code> according to if delivery was successful.
+Keep in mind, that <code class="docutils literal notranslate"><span class="pre">false</span></code> will result in radio delivery being considered unsuccessful.
+If you simply want to not deliver anymore, release it instead.</p>
 </section>
 </section>
 
@@ -380,23 +271,23 @@ In most cases, these query parameters are used:</p>
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="api-gateway.html">
+          <a class="next-page" href="development.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">API Gateway</div>
+                <div class="title">Development</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="../index.html">
+          <a class="prev-page" href="in-app-notifications.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Home</div>
+                <div class="title">In-App Notifications</div>
                 
               </div>
             </a>
@@ -432,11 +323,10 @@ In most cases, these query parameters are used:</p>
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">General HTTP API</a><ul>
-<li><a class="reference internal" href="#authentication-and-permissions">Authentication and permissions</a></li>
-<li><a class="reference internal" href="#pagination">Pagination</a></li>
-<li><a class="reference internal" href="#search">Search</a></li>
-<li><a class="reference internal" href="#misc">Misc</a></li>
+<li><a class="reference internal" href="#">Radio Delivery</a><ul>
+<li><a class="reference internal" href="#retrieve-next-radio-delivery-to-deliver">Retrieve next radio delivery to deliver</a></li>
+<li><a class="reference internal" href="#release-picked-up-radio-delivery">Release picked up radio delivery</a></li>
+<li><a class="reference internal" href="#finish-picked-up-radio-delivery">Finish picked up radio delivery</a></li>
 </ul>
 </li>
 </ul>
