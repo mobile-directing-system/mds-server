@@ -15,7 +15,7 @@ require (
 
 require (
 	github.com/doug-martin/goqu/v9 v9.18.0
-	github.com/gin-gonic/gin v1.8.0
+	github.com/gin-gonic/gin v1.8.1
 	github.com/jackc/pgx/v4 v4.16.1
 	github.com/lefinal/nulls v1.6.0
 	github.com/lefinal/zaprec v1.0.0
@@ -24,6 +24,7 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/gin-contrib/cors v1.4.0 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
