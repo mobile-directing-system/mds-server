@@ -3,6 +3,7 @@ package httpendpoints
 import (
 	"context"
 	"errors"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/lefinal/meh"
 	"github.com/lefinal/meh/mehgin"
@@ -28,11 +29,19 @@ func NoResponse(err error) error {
 	return noResponseWrapper{wrapped: err}
 }
 
-// NewEngine returns a gin.Engine with preconfigured request-debug-logger.
+// NewEngine returns a gin.Engine with preconfigured request-debug-logger and
+// CORS allowed.
 func NewEngine(logger *zap.Logger) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 	r.Use(requestDebugLogger(logger.Named("request")))
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{http.MethodOptions, http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete},
+		AllowHeaders:     []string{"*"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 	return r
 }
 

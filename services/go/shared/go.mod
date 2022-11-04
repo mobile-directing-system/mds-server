@@ -4,7 +4,8 @@ go 1.18
 
 require (
 	github.com/doug-martin/goqu/v9 v9.18.0
-	github.com/gin-gonic/gin v1.8.0
+	github.com/gin-contrib/cors v1.4.0
+	github.com/gin-gonic/gin v1.8.1
 	github.com/gofrs/uuid v4.3.0+incompatible
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/gorilla/websocket v1.5.0
