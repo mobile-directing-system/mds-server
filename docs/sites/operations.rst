@@ -99,6 +99,12 @@ Entry payload:
         "is_archived": false
     }
 
+Available query parameters for filtering:
+
+- ``only_ongoing`` (default: ``false``): Excludes all operations not currently ongoing. This includes operations not having an end-timestamp set or being in the future.
+- ``include_archived`` (default: ``false``): Includes archived operations.
+- ``for_user``: Includes only operations the user with the given ID is member of.
+
 The following fields can be used for ordering:
 
 - ``title``
