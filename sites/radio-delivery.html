@@ -1,14 +1,14 @@
 <!doctype html>
-<html class="no-js">
+<html class="no-js" lang="en">
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Development" href="development.html" /><link rel="prev" title="In-App Notifications" href="in-app-notifications.html" />
 
-    <meta name="generator" content="sphinx-4.5.0, furo 2022.09.29"/>
+    <!-- Generated with Sphinx 6.0.0 and Furo 2022.12.07 -->
         <title>Radio Delivery - MDS Server documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=d81277517bee4d6b0349d71bb2661d4890b5617c" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
     
     
@@ -149,7 +149,7 @@
   <span class="sidebar-brand-text">MDS Server  documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
-  <input class="sidebar-search" placeholder=Search name="q" aria-label="Search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
   <input type="hidden" name="area" value="default">
 </form>
@@ -203,61 +203,61 @@
         </div>
         <article role="main">
           <section id="radio-delivery">
-<h1>Radio Delivery<a class="headerlink" href="#radio-delivery" title="Permalink to this headline">#</a></h1>
+<h1>Radio Delivery<a class="headerlink" href="#radio-delivery" title="Permalink to this heading">#</a></h1>
 <p>Radio deliveries are for radio channels.
 Delivery requests are added to queues and assigned to radio operators, if they request one.
 Prioritization is either highest importance or oldest timestamp first.</p>
 <p>Clients receive updates via <a class="reference internal" href="websocket.html#websocket"><span class="std std-ref">WebSocket</span></a> (gate <cite>desktop-app</cite> with channel <cite>radio-delivery</cite>) which informs them about possible new delivery requests.
 Payload has the following content:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;new-radio-deliveries-available&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;payload&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_with_possible_new_requests&gt;&quot;</span><span class="w"></span>
-<span class="w">    </span><span class="p">}</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;new-radio-deliveries-available&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;payload&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_with_possible_new_requests&gt;&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 <section id="retrieve-next-radio-delivery-to-deliver">
-<h2>Retrieve next radio delivery to deliver<a class="headerlink" href="#retrieve-next-radio-delivery-to-deliver" title="Permalink to this headline">#</a></h2>
+<h2>Retrieve next radio delivery to deliver<a class="headerlink" href="#retrieve-next-radio-delivery-to-deliver" title="Permalink to this heading">#</a></h2>
 <p>In order to pick up requests, the <a class="reference internal" href="permissions.html#permission-radio-delivery-deliver-any"><span class="std std-ref">radio-delivery.deliver.any</span></a> permission is required.
 Picking up a request is done by calling:</p>
 <p><cite>GET /radio-deliveries/operations/&lt;operation_id&gt;/next</cite></p>
 <p>Response if none available (204): None</p>
 <p>Response if picked up (200):</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;attempt_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;intel&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;intel_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;intel_operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_id_of_intel&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;intel_importance&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;assigned_to&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assigned_to_address_book_entry&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;assigned_to_label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;name_of_assigned_address_book_entry&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;delivery&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;delivery_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;channel&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;channel_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;created_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;attempt_creation_ts&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;status_ts&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;radio_delivery_status_update_ts&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;note&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;optional_radio_delivery_note&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;accepted_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;attempt_acception_ts&gt;&quot;</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;attempt_id&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;intel&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;intel_id&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;intel_operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_id_of_intel&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;intel_importance&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;assigned_to&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assigned_to_address_book_entry&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;assigned_to_label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;name_of_assigned_address_book_entry&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;delivery&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;delivery_id&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;channel&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;channel_id&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;created_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;attempt_creation_ts&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;status_ts&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;radio_delivery_status_update_ts&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;note&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;optional_radio_delivery_note&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;accepted_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;attempt_acception_ts&gt;&quot;</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </section>
 <section id="release-picked-up-radio-delivery">
-<h2>Release picked up radio delivery<a class="headerlink" href="#release-picked-up-radio-delivery" title="Permalink to this headline">#</a></h2>
+<h2>Release picked up radio delivery<a class="headerlink" href="#release-picked-up-radio-delivery" title="Permalink to this heading">#</a></h2>
 <p>In order to release a picked up radio delivery, the <a class="reference internal" href="permissions.html#permission-radio-delivery-deliver-any"><span class="std std-ref">radio-delivery.deliver.any</span></a> permission is required.
 If a delivery is to be released, not being assigned to the requesting client, the <a class="reference internal" href="permissions.html#permission-radio-delivery-manage-any"><span class="std std-ref">radio-delivery.deliver.any</span></a> permission is needed.
 Releasing is done by calling:</p>
 <p><cite>POST /radio-deliveries/&lt;attempt_id&gt;/release</cite></p>
 </section>
 <section id="finish-picked-up-radio-delivery">
-<h2>Finish picked up radio delivery<a class="headerlink" href="#finish-picked-up-radio-delivery" title="Permalink to this headline">#</a></h2>
+<h2>Finish picked up radio delivery<a class="headerlink" href="#finish-picked-up-radio-delivery" title="Permalink to this heading">#</a></h2>
 <p>In order to finish a picked up radio delivery, the <a class="reference internal" href="permissions.html#permission-radio-delivery-deliver-any"><span class="std std-ref">radio-delivery.deliver.any</span></a> permission is required.
 If a delivery is to be finished, not being assigned to the requesting client, the <a class="reference internal" href="permissions.html#permission-radio-delivery-manage-any"><span class="std std-ref">radio-delivery.deliver.any</span></a> permission is needed.
 Finishing is done by calling:</p>
 <p><cite>POST /radio-deliveries/&lt;attempt_id&gt;/finish</cite></p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;success&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;note&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;note&gt;&quot;</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;success&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;note&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;note&gt;&quot;</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">success</span></code>-Field can be <code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code> according to if delivery was successful.
@@ -303,9 +303,7 @@ If you simply want to not deliver anymore, release it instead.</p>
             
           </div>
           <div class="right-details">
-            <div class="icons">
-              
-            </div>
+            
           </div>
         </div>
         
@@ -339,9 +337,8 @@ If you simply want to not deliver anymore, release it instead.</p>
     </aside>
   </div>
 </div><script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
     <script src="../_static/doctools.js"></script>
+    <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/scripts/furo.js"></script>
     </body>
 </html>

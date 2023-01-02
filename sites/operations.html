@@ -1,14 +1,14 @@
 <!doctype html>
-<html class="no-js">
+<html class="no-js" lang="en">
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Groups" href="groups.html" /><link rel="prev" title="Permissions" href="permissions.html" />
 
-    <meta name="generator" content="sphinx-4.5.0, furo 2022.09.29"/>
+    <!-- Generated with Sphinx 6.0.0 and Furo 2022.12.07 -->
         <title>Operations - MDS Server documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=d81277517bee4d6b0349d71bb2661d4890b5617c" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
     
     
@@ -149,7 +149,7 @@
   <span class="sidebar-brand-text">MDS Server  documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
-  <input class="sidebar-search" placeholder=Search name="q" aria-label="Search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
   <input type="hidden" name="area" value="default">
 </form>
@@ -203,84 +203,90 @@
         </div>
         <article role="main">
           <section id="operations">
-<h1>Operations<a class="headerlink" href="#operations" title="Permalink to this headline">#</a></h1>
+<h1>Operations<a class="headerlink" href="#operations" title="Permalink to this heading">#</a></h1>
 <p>This section cover creating, retrieving and updating operations via API endpoints.</p>
 <p>Deleting operations is not allowed.
 They can only be marked as archived.</p>
 <p>Each operation must have an non-empty title.
 The end-timestamp must not be before the start-timestamp.</p>
 <section id="create-operation">
-<h2>Create operation<a class="headerlink" href="#create-operation" title="Permalink to this headline">#</a></h2>
+<h2>Create operation<a class="headerlink" href="#create-operation" title="Permalink to this heading">#</a></h2>
 <p>In order to create an operation, the <a class="reference internal" href="permissions.html#permission-operation-create"><span class="std std-ref">operation.create</span></a> permission is needed.
 Creating an operation is done by calling:</p>
 <p><cite>POST /operations</cite></p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_title&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="nt">&quot;&lt;description&gt;&quot;</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;start&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;end&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;is_archived&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_title&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="nt">&quot;&lt;description&gt;&quot;</span>
+<span class="w">    </span><span class="nt">&quot;start&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;end&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;is_archived&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">end</span></code>-field is optional.</p>
 <p>Response (201):</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assigned_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_title&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="nt">&quot;&lt;description&gt;&quot;</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;start&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;end&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;is_archived&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;assigned_id&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_title&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="nt">&quot;&lt;description&gt;&quot;</span>
+<span class="w">    </span><span class="nt">&quot;start&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;end&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;is_archived&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </section>
 <section id="update-operation">
-<h2>Update operation<a class="headerlink" href="#update-operation" title="Permalink to this headline">#</a></h2>
+<h2>Update operation<a class="headerlink" href="#update-operation" title="Permalink to this heading">#</a></h2>
 <p>Updating an operation requires the <a class="reference internal" href="permissions.html#permission-operation-update"><span class="std std-ref">operation.update</span></a> permission.
 If provided, updating is done via:</p>
 <p><cite>PUT /operations/&lt;operation_id&gt;</cite></p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_id&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_title&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="nt">&quot;&lt;description&gt;&quot;</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;start&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;end&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;is_archived&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_id&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_title&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="nt">&quot;&lt;description&gt;&quot;</span>
+<span class="w">    </span><span class="nt">&quot;start&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;end&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;is_archived&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </section>
 <section id="retrieve-operations">
-<h2>Retrieve operations<a class="headerlink" href="#retrieve-operations" title="Permalink to this headline">#</a></h2>
+<h2>Retrieve operations<a class="headerlink" href="#retrieve-operations" title="Permalink to this heading">#</a></h2>
 <p>Retrieving an operation by its id is possible via:</p>
 <p><cite>GET /operations/&lt;operation_id&gt;</cite></p>
 <p>Response (200):</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_id&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_title&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="nt">&quot;&lt;description&gt;&quot;</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;start&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;end&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;is_archived&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_id&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_title&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="nt">&quot;&lt;description&gt;&quot;</span>
+<span class="w">    </span><span class="nt">&quot;start&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;end&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;is_archived&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 <p>Retrieving a <a class="reference internal" href="general-http-api.html#http-api-pagination"><span class="std std-ref">paginated</span></a> operation list requires the <a class="reference internal" href="permissions.html#permission-operation-view-any"><span class="std std-ref">operation.view.any</span></a> permission, if all operations should be retrieved.
 Otherwise, only operations are returned that the requesting client is member of.</p>
 <p><cite>GET /operations</cite></p>
 <p>Entry payload:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_id&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_title&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="nt">&quot;&lt;description&gt;&quot;</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;start&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;end&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;is_archived&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_id&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_title&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="nt">&quot;&lt;description&gt;&quot;</span>
+<span class="w">    </span><span class="nt">&quot;start&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;end&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;is_archived&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="p">}</span>
 </pre></div>
 </div>
+<p>Available query parameters for filtering:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">only_ongoing</span></code> (default: <code class="docutils literal notranslate"><span class="pre">false</span></code>): Excludes all operations not currently ongoing. This includes operations not having an end-timestamp set or being in the future.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">include_archived</span></code> (default: <code class="docutils literal notranslate"><span class="pre">false</span></code>): Includes archived operations.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">for_user</span></code>: Includes only operations the user with the given ID is member of.</p></li>
+</ul>
 <p>The following fields can be used for ordering:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">title</span></code></p></li>
@@ -292,43 +298,43 @@ Otherwise, only operations are returned that the requesting client is member of.
 <p><a class="reference internal" href="general-http-api.html#http-api-search"><span class="std std-ref">Search</span></a> is available via:</p>
 <p><cite>GET /operations/search</cite></p>
 <p>Entry payload:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_id&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_title&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="nt">&quot;&lt;description&gt;&quot;</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;start&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;end&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;is_archived&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_id&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;operation_title&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="nt">&quot;&lt;description&gt;&quot;</span>
+<span class="w">    </span><span class="nt">&quot;start&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;end&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2006-01-02T15:04:05Z07:00&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;is_archived&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 <p>The search index can be rebuilt via:</p>
 <p><cite>POST /operations/search/rebuild</cite></p>
 </section>
 <section id="update-operation-members">
-<h2>Update operation members<a class="headerlink" href="#update-operation-members" title="Permalink to this headline">#</a></h2>
+<h2>Update operation members<a class="headerlink" href="#update-operation-members" title="Permalink to this heading">#</a></h2>
 <p>Updating operation members requires the <a class="reference internal" href="permissions.html#permission-operation-members-update"><span class="std std-ref">operation.members.update</span></a> permission:</p>
 <p><cite>PUT /operations/&lt;operation_id&gt;/members</cite></p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="w"></span>
-<span class="w">    </span><span class="s2">&quot;&lt;user_id_1&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="s2">&quot;&lt;user_id_2&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="s2">&quot;&lt;user_id_n&gt;&quot;</span><span class="w"></span>
-<span class="p">]</span><span class="w"></span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
+<span class="w">    </span><span class="s2">&quot;&lt;user_id_1&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;&lt;user_id_2&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;&lt;user_id_n&gt;&quot;</span>
+<span class="p">]</span>
 </pre></div>
 </div>
 </section>
 <section id="retrieve-operation-members">
-<h2>Retrieve operation members<a class="headerlink" href="#retrieve-operation-members" title="Permalink to this headline">#</a></h2>
+<h2>Retrieve operation members<a class="headerlink" href="#retrieve-operation-members" title="Permalink to this heading">#</a></h2>
 <p>Retrieving a <a class="reference internal" href="general-http-api.html#http-api-pagination"><span class="std std-ref">paginated</span></a> member list requires the <a class="reference internal" href="permissions.html#permission-operation-members-view"><span class="std std-ref">operation.members.view</span></a> permission and is done via:</p>
 <p><cite>GET /operations/&lt;operation_id&gt;/members</cite></p>
 <p>Entry payload:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;user_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;username&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;first_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;first_name&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;last_name&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;is_active&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;user_id&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;username&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;first_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;first_name&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;last_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;last_name&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;is_active&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 <p>The following fields can be used for ordering:</p>
@@ -377,9 +383,7 @@ Otherwise, only operations are returned that the requesting client is member of.
             
           </div>
           <div class="right-details">
-            <div class="icons">
-              
-            </div>
+            
           </div>
         </div>
         
@@ -415,9 +419,8 @@ Otherwise, only operations are returned that the requesting client is member of.
     </aside>
   </div>
 </div><script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
     <script src="../_static/doctools.js"></script>
+    <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/scripts/furo.js"></script>
     </body>
 </html>

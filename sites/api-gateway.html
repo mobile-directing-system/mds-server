@@ -1,14 +1,14 @@
 <!doctype html>
-<html class="no-js">
+<html class="no-js" lang="en">
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="WebSocket" href="websocket.html" /><link rel="prev" title="General HTTP API" href="general-http-api.html" />
 
-    <meta name="generator" content="sphinx-4.5.0, furo 2022.09.29"/>
+    <!-- Generated with Sphinx 6.0.0 and Furo 2022.12.07 -->
         <title>API Gateway - MDS Server documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=d81277517bee4d6b0349d71bb2661d4890b5617c" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
     
     
@@ -149,7 +149,7 @@
   <span class="sidebar-brand-text">MDS Server  documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
-  <input class="sidebar-search" placeholder=Search name="q" aria-label="Search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
   <input type="hidden" name="area" value="default">
 </form>
@@ -203,7 +203,7 @@
         </div>
         <article role="main">
           <section id="api-gateway">
-<span id="chapter-api-gateway"></span><h1>API Gateway<a class="headerlink" href="#api-gateway" title="Permalink to this headline">#</a></h1>
+<span id="chapter-api-gateway"></span><h1>API Gateway<a class="headerlink" href="#api-gateway" title="Permalink to this heading">#</a></h1>
 <p>MDS Server uses a concept of passing authentication information via HTTP headers.
 The public Ingress forwards HTTP requests to the API Gateway.
 This one manages sessions and handles login as well as logout.
@@ -216,33 +216,33 @@ Therefore, each service can check permissions, if needed, but session management
 <p>Keep in mind, that only active users can sign in.
 When a user’s active-state is set to invalid, all session tokens will be invalidated.</p>
 <section id="logging-in">
-<h2>Logging in<a class="headerlink" href="#logging-in" title="Permalink to this headline">#</a></h2>
+<h2>Logging in<a class="headerlink" href="#logging-in" title="Permalink to this heading">#</a></h2>
 <p>Login with username and password via:</p>
 <p><cite>POST /login</cite></p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;username&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;pass&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;password&gt;&quot;</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;username&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;pass&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;password&gt;&quot;</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 <p>Response <cite>200</cite>:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;user_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;the_user_id&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;access_token&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;the-access-token&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;token_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Bearer&quot;</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;user_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;the_user_id&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;access_token&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;the-access-token&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;token_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Bearer&quot;</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </section>
 <section id="making-requests">
-<h2>Making requests<a class="headerlink" href="#making-requests" title="Permalink to this headline">#</a></h2>
+<h2>Making requests<a class="headerlink" href="#making-requests" title="Permalink to this heading">#</a></h2>
 <p>Each request should be made with the HTTP header:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Authorization</span><span class="p">:</span> <span class="n">Bearer</span> <span class="o">&lt;</span><span class="n">the</span><span class="o">-</span><span class="n">access</span><span class="o">-</span><span class="n">token</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 </section>
 <section id="logging-out">
-<h2>Logging out<a class="headerlink" href="#logging-out" title="Permalink to this headline">#</a></h2>
+<h2>Logging out<a class="headerlink" href="#logging-out" title="Permalink to this heading">#</a></h2>
 <p>Logging out is done via:</p>
 <p><cite>POST /logout</cite></p>
 <p>This returns <cite>200</cite>, if logging out was successful.</p>
@@ -286,9 +286,7 @@ When a user’s active-state is set to invalid, all session tokens will be inval
             
           </div>
           <div class="right-details">
-            <div class="icons">
-              
-            </div>
+            
           </div>
         </div>
         
@@ -322,9 +320,8 @@ When a user’s active-state is set to invalid, all session tokens will be inval
     </aside>
   </div>
 </div><script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
     <script src="../_static/doctools.js"></script>
+    <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/scripts/furo.js"></script>
     </body>
 </html>

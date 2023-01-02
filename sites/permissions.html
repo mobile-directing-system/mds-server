@@ -1,14 +1,14 @@
 <!doctype html>
-<html class="no-js">
+<html class="no-js" lang="en">
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Operations" href="operations.html" /><link rel="prev" title="Users" href="user-management.html" />
 
-    <meta name="generator" content="sphinx-4.5.0, furo 2022.09.29"/>
+    <!-- Generated with Sphinx 6.0.0 and Furo 2022.12.07 -->
         <title>Permissions - MDS Server documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=d81277517bee4d6b0349d71bb2661d4890b5617c" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
     
     
@@ -149,7 +149,7 @@
   <span class="sidebar-brand-text">MDS Server  documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
-  <input class="sidebar-search" placeholder=Search name="q" aria-label="Search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
   <input type="hidden" name="area" value="default">
 </form>
@@ -203,207 +203,207 @@
         </div>
         <article role="main">
           <section id="permissions">
-<h1>Permissions<a class="headerlink" href="#permissions" title="Permalink to this headline">#</a></h1>
+<h1>Permissions<a class="headerlink" href="#permissions" title="Permalink to this heading">#</a></h1>
 <p>Permissions always have a unique name like <cite>user.create</cite> and optional additional options.</p>
 <section id="setting-permissions">
-<h2>Setting permissions<a class="headerlink" href="#setting-permissions" title="Permalink to this headline">#</a></h2>
+<h2>Setting permissions<a class="headerlink" href="#setting-permissions" title="Permalink to this heading">#</a></h2>
 <p>Setting permissions requires the <a class="reference internal" href="#permission-permissions-update"><span class="std std-ref">permissions.update</span></a> permission and is accomplished by calling:</p>
 <p><cite>PUT /permissions/user/&lt;user_id&gt;</cite></p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="w"></span>
-<span class="w">    </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;name_of_first_permission&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;options&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="w"></span>
-<span class="w">    </span><span class="p">},</span><span class="w"></span>
-<span class="w">    </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;name_of_second_permission&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;options&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;hello&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;world&quot;</span><span class="w"></span>
-<span class="w">        </span><span class="p">}</span><span class="w"></span>
-<span class="w">    </span><span class="p">}</span><span class="w"></span>
-<span class="p">]</span><span class="w"></span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;name_of_first_permission&gt;&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;options&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;name_of_second_permission&gt;&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;options&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;hello&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;world&quot;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">]</span>
 </pre></div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">options</span></code>-field contains the options available for the certain permission.</p>
 </section>
 <section id="retrieving-permissions">
-<h2>Retrieving permissions<a class="headerlink" href="#retrieving-permissions" title="Permalink to this headline">#</a></h2>
+<h2>Retrieving permissions<a class="headerlink" href="#retrieving-permissions" title="Permalink to this heading">#</a></h2>
 <p>Retrieving permissions for users requires the <a class="reference internal" href="#permission-permissions-view"><span class="std std-ref">permissions.view</span></a> permission, if not retrieving for the caller.
 Retrieval is done via:</p>
 <p><cite>GET /permissions/user/&lt;user_id&gt;</cite></p>
 <p>Response:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="w"></span>
-<span class="w">    </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;name_of_first_permission&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;options&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="w"></span>
-<span class="w">    </span><span class="p">},</span><span class="w"></span>
-<span class="w">    </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;name_of_second_permission&gt;&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;options&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;hello&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;world&quot;</span><span class="w"></span>
-<span class="w">        </span><span class="p">}</span><span class="w"></span>
-<span class="w">    </span><span class="p">}</span><span class="w"></span>
-<span class="p">]</span><span class="w"></span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;name_of_first_permission&gt;&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;options&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;name_of_second_permission&gt;&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;options&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;hello&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;world&quot;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">]</span>
 </pre></div>
 </div>
 </section>
 <section id="permission-list">
-<h2>Permission list<a class="headerlink" href="#permission-list" title="Permalink to this headline">#</a></h2>
+<h2>Permission list<a class="headerlink" href="#permission-list" title="Permalink to this heading">#</a></h2>
 <p>This is a list of all available permissions.</p>
 <section id="id1">
-<h3>Permissions<a class="headerlink" href="#id1" title="Permalink to this headline">#</a></h3>
+<h3>Permissions<a class="headerlink" href="#id1" title="Permalink to this heading">#</a></h3>
 <p>Permissions regarding permissions themselves like updating or retrieving.</p>
 <section id="permissions-update">
-<span id="permission-permissions-update"></span><h4>permissions.update<a class="headerlink" href="#permissions-update" title="Permalink to this headline">#</a></h4>
+<span id="permission-permissions-update"></span><h4>permissions.update<a class="headerlink" href="#permissions-update" title="Permalink to this heading">#</a></h4>
 <p>Allows setting permissions for users.</p>
 <p>Options: <cite>none</cite></p>
 </section>
 <section id="permissions-view">
-<span id="permission-permissions-view"></span><h4>permissions.view<a class="headerlink" href="#permissions-view" title="Permalink to this headline">#</a></h4>
+<span id="permission-permissions-view"></span><h4>permissions.view<a class="headerlink" href="#permissions-view" title="Permalink to this heading">#</a></h4>
 <p>Allows retrieving permissions of users.</p>
 <p>Options: <cite>none</cite></p>
 </section>
 </section>
 <section id="address-book">
-<h3>Address book<a class="headerlink" href="#address-book" title="Permalink to this headline">#</a></h3>
+<h3>Address book<a class="headerlink" href="#address-book" title="Permalink to this heading">#</a></h3>
 <section id="logistics-address-book-entry-create-any">
-<span id="permission-logistics-address-book-entry-create-any"></span><h4>logistics.address-book.entry.create.any<a class="headerlink" href="#logistics-address-book-entry-create-any" title="Permalink to this headline">#</a></h4>
+<span id="permission-logistics-address-book-entry-create-any"></span><h4>logistics.address-book.entry.create.any<a class="headerlink" href="#logistics-address-book-entry-create-any" title="Permalink to this heading">#</a></h4>
 <p>Allows creating address book entries, that can also be global or associated to foreign users.
 This also includes associating entries with operations, the target user or the requesting client is not part of.</p>
 <p>Options: <cite>none</cite></p>
 </section>
 <section id="logistics-address-book-entry-update-any">
-<span id="permission-logistics-address-book-entry-update-any"></span><h4>logistics.address-book.entry.update.any<a class="headerlink" href="#logistics-address-book-entry-update-any" title="Permalink to this headline">#</a></h4>
+<span id="permission-logistics-address-book-entry-update-any"></span><h4>logistics.address-book.entry.update.any<a class="headerlink" href="#logistics-address-book-entry-update-any" title="Permalink to this heading">#</a></h4>
 <p>Allows updating address book entries, that can also be global or associated to foreign users.
 This also includes associating entries with operations, the target user or the requesting client is not part of.</p>
 <p>Options: <cite>none</cite></p>
 </section>
 <section id="logistics-address-book-entry-delete-any">
-<span id="permission-logistics-address-book-entry-delete-any"></span><h4>logistics.address-book.entry.delete.any<a class="headerlink" href="#logistics-address-book-entry-delete-any" title="Permalink to this headline">#</a></h4>
+<span id="permission-logistics-address-book-entry-delete-any"></span><h4>logistics.address-book.entry.delete.any<a class="headerlink" href="#logistics-address-book-entry-delete-any" title="Permalink to this heading">#</a></h4>
 <p>Allows deletion of address book entries, that can also be global or associated to foreign users.
 This also includes associating entries with operations, the requesting client is not part of.</p>
 <p>Options: <cite>none</cite></p>
 </section>
 <section id="logistics-address-book-entry-view-any">
-<span id="permission-logistics-address-book-entry-view-any"></span><h4>logistics.address-book.entry.view.any<a class="headerlink" href="#logistics-address-book-entry-view-any" title="Permalink to this headline">#</a></h4>
+<span id="permission-logistics-address-book-entry-view-any"></span><h4>logistics.address-book.entry.view.any<a class="headerlink" href="#logistics-address-book-entry-view-any" title="Permalink to this heading">#</a></h4>
 <p>Allows retrieval of all address book entries, including that can also be global or associated to foreign users.
 This also includes associating entries with operations, the requesting client is not part of.</p>
 <p>Options: <cite>none</cite></p>
 </section>
 </section>
 <section id="groups">
-<h3>Groups<a class="headerlink" href="#groups" title="Permalink to this headline">#</a></h3>
+<h3>Groups<a class="headerlink" href="#groups" title="Permalink to this heading">#</a></h3>
 <section id="group-create">
-<span id="permission-group-create"></span><h4>group.create<a class="headerlink" href="#group-create" title="Permalink to this headline">#</a></h4>
+<span id="permission-group-create"></span><h4>group.create<a class="headerlink" href="#group-create" title="Permalink to this heading">#</a></h4>
 <p>Allows creating groups.</p>
 <p>Options: <cite>none</cite></p>
 </section>
 <section id="group-update">
-<span id="permission-group-update"></span><h4>group.update<a class="headerlink" href="#group-update" title="Permalink to this headline">#</a></h4>
+<span id="permission-group-update"></span><h4>group.update<a class="headerlink" href="#group-update" title="Permalink to this heading">#</a></h4>
 <p>Allows updating groups.</p>
 <p>Options: <cite>none</cite></p>
 </section>
 <section id="group-delete">
-<span id="permission-group-delete"></span><h4>group.delete<a class="headerlink" href="#group-delete" title="Permalink to this headline">#</a></h4>
+<span id="permission-group-delete"></span><h4>group.delete<a class="headerlink" href="#group-delete" title="Permalink to this heading">#</a></h4>
 <p>Allows deleting groups.</p>
 <p>Options: <cite>none</cite></p>
 </section>
 <section id="group-view">
-<span id="permission-group-view"></span><h4>group.view<a class="headerlink" href="#group-view" title="Permalink to this headline">#</a></h4>
+<span id="permission-group-view"></span><h4>group.view<a class="headerlink" href="#group-view" title="Permalink to this heading">#</a></h4>
 <p>Allows retrieving of groups with details.</p>
 <p>Options: <cite>none</cite></p>
 </section>
 </section>
 <section id="intelligence">
-<h3>Intelligence<a class="headerlink" href="#intelligence" title="Permalink to this headline">#</a></h3>
+<h3>Intelligence<a class="headerlink" href="#intelligence" title="Permalink to this heading">#</a></h3>
 <section id="intelligence-intel-create">
-<span id="permission-intelligence-intel-create"></span><h4>intelligence.intel.create<a class="headerlink" href="#intelligence-intel-create" title="Permalink to this headline">#</a></h4>
+<span id="permission-intelligence-intel-create"></span><h4>intelligence.intel.create<a class="headerlink" href="#intelligence-intel-create" title="Permalink to this heading">#</a></h4>
 <p>Allows creating intel (if member of operation).</p>
 <p>Options: <cite>none</cite></p>
 </section>
 <section id="intelligence-intel-invalidate">
-<span id="permission-intelligence-intel-invalidate"></span><h4>intelligence.intel.invalidate<a class="headerlink" href="#intelligence-intel-invalidate" title="Permalink to this headline">#</a></h4>
+<span id="permission-intelligence-intel-invalidate"></span><h4>intelligence.intel.invalidate<a class="headerlink" href="#intelligence-intel-invalidate" title="Permalink to this heading">#</a></h4>
 <p>Allows invalidating intel (if member of operation).</p>
 <p>Options: <cite>none</cite></p>
 </section>
 <section id="intelligence-intel-view-any">
-<span id="permission-intelligence-intel-view-any"></span><h4>intelligence.intel.view.any<a class="headerlink" href="#intelligence-intel-view-any" title="Permalink to this headline">#</a></h4>
+<span id="permission-intelligence-intel-view-any"></span><h4>intelligence.intel.view.any<a class="headerlink" href="#intelligence-intel-view-any" title="Permalink to this heading">#</a></h4>
 <p>Allows viewing any intel (if member of operation), even if not assigned to.</p>
 <p>Options: <cite>none</cite></p>
 </section>
 </section>
 <section id="operations">
-<h3>Operations<a class="headerlink" href="#operations" title="Permalink to this headline">#</a></h3>
+<h3>Operations<a class="headerlink" href="#operations" title="Permalink to this heading">#</a></h3>
 <section id="operation-view-any">
-<span id="permission-operation-view-any"></span><h4>operation.view.any<a class="headerlink" href="#operation-view-any" title="Permalink to this headline">#</a></h4>
+<span id="permission-operation-view-any"></span><h4>operation.view.any<a class="headerlink" href="#operation-view-any" title="Permalink to this heading">#</a></h4>
 <p>Allows listing and viewing all registered operations. In contrast to that, usually, only viewing operations via id is allowed.</p>
 </section>
 <section id="operation-create">
-<span id="permission-operation-create"></span><h4>operation.create<a class="headerlink" href="#operation-create" title="Permalink to this headline">#</a></h4>
+<span id="permission-operation-create"></span><h4>operation.create<a class="headerlink" href="#operation-create" title="Permalink to this heading">#</a></h4>
 <p>Allows creating operations.</p>
 </section>
 <section id="operation-update">
-<span id="permission-operation-update"></span><h4>operation.update<a class="headerlink" href="#operation-update" title="Permalink to this headline">#</a></h4>
+<span id="permission-operation-update"></span><h4>operation.update<a class="headerlink" href="#operation-update" title="Permalink to this heading">#</a></h4>
 <p>Allows updating of operations. This also includes marking them as finished or archived.</p>
 </section>
 <section id="operation-members-view">
-<span id="permission-operation-members-view"></span><h4>operation.members.view<a class="headerlink" href="#operation-members-view" title="Permalink to this headline">#</a></h4>
+<span id="permission-operation-members-view"></span><h4>operation.members.view<a class="headerlink" href="#operation-members-view" title="Permalink to this heading">#</a></h4>
 <p>Allows retrieving members for operations.</p>
 </section>
 <section id="operation-members-update">
-<span id="permission-operation-members-update"></span><h4>operation.members.update<a class="headerlink" href="#operation-members-update" title="Permalink to this headline">#</a></h4>
+<span id="permission-operation-members-update"></span><h4>operation.members.update<a class="headerlink" href="#operation-members-update" title="Permalink to this heading">#</a></h4>
 <p>Allows (un)assigning members to operations.</p>
 </section>
 </section>
 <section id="radio-delivery">
-<h3>Radio delivery<a class="headerlink" href="#radio-delivery" title="Permalink to this headline">#</a></h3>
+<h3>Radio delivery<a class="headerlink" href="#radio-delivery" title="Permalink to this heading">#</a></h3>
 <section id="radio-delivery-deliver-any">
-<span id="permission-radio-delivery-deliver-any"></span><h4>radio-delivery.deliver.any<a class="headerlink" href="#radio-delivery-deliver-any" title="Permalink to this headline">#</a></h4>
+<span id="permission-radio-delivery-deliver-any"></span><h4>radio-delivery.deliver.any<a class="headerlink" href="#radio-delivery-deliver-any" title="Permalink to this heading">#</a></h4>
 <p>Allows delivering any radio delivery.</p>
 <p>Options: <cite>none</cite></p>
 </section>
 <section id="permission-radio-delivery-manage-any">
-<span id="id2"></span><h4>radio-delivery.deliver.any<a class="headerlink" href="#permission-radio-delivery-manage-any" title="Permalink to this headline">#</a></h4>
+<span id="id2"></span><h4>radio-delivery.deliver.any<a class="headerlink" href="#permission-radio-delivery-manage-any" title="Permalink to this heading">#</a></h4>
 <p>Allows managing, assigning and releasing any radio delivery.</p>
 <p>Options: <cite>none</cite></p>
 </section>
 </section>
 <section id="users">
-<h3>Users<a class="headerlink" href="#users" title="Permalink to this headline">#</a></h3>
+<h3>Users<a class="headerlink" href="#users" title="Permalink to this heading">#</a></h3>
 <section id="user-create">
-<span id="permission-user-create"></span><h4>user.create<a class="headerlink" href="#user-create" title="Permalink to this headline">#</a></h4>
+<span id="permission-user-create"></span><h4>user.create<a class="headerlink" href="#user-create" title="Permalink to this heading">#</a></h4>
 <p>Allows creating users.</p>
 <p>Options: <cite>none</cite></p>
 </section>
 <section id="user-set-active-state">
-<span id="permission-user-set-active-state"></span><h4>user.set-active-state<a class="headerlink" href="#user-set-active-state" title="Permalink to this headline">#</a></h4>
+<span id="permission-user-set-active-state"></span><h4>user.set-active-state<a class="headerlink" href="#user-set-active-state" title="Permalink to this heading">#</a></h4>
 <p>Allows setting the active-state for users.</p>
 <p>Options: <cite>none</cite></p>
 </section>
 <section id="user-set-admin">
-<span id="permission-user-set-admin"></span><h4>user.set-admin<a class="headerlink" href="#user-set-admin" title="Permalink to this headline">#</a></h4>
+<span id="permission-user-set-admin"></span><h4>user.set-admin<a class="headerlink" href="#user-set-admin" title="Permalink to this heading">#</a></h4>
 <p>Allows setting the is-admin-state of users.</p>
 <p>Options: <cite>none</cite></p>
 </section>
 <section id="user-update">
-<span id="permission-user-update"></span><h4>user.update<a class="headerlink" href="#user-update" title="Permalink to this headline">#</a></h4>
+<span id="permission-user-update"></span><h4>user.update<a class="headerlink" href="#user-update" title="Permalink to this heading">#</a></h4>
 <p>Allows updating a user. If the is-admin-state is wanted to be changed, the <a class="reference internal" href="#permission-user-set-admin"><span class="std std-ref">user.set-admin</span></a> permission is required, too.</p>
 <p>Options: <cite>none</cite></p>
 </section>
 <section id="user-update-pass">
-<span id="permission-user-update-pass"></span><h4>user.update-pass<a class="headerlink" href="#user-update-pass" title="Permalink to this headline">#</a></h4>
+<span id="permission-user-update-pass"></span><h4>user.update-pass<a class="headerlink" href="#user-update-pass" title="Permalink to this heading">#</a></h4>
 <p>Allows setting the password of other users.</p>
 <p>Options: <cite>none</cite></p>
 </section>
 <section id="user-view">
-<span id="permission-user-view"></span><h4>user.view<a class="headerlink" href="#user-view" title="Permalink to this headline">#</a></h4>
+<span id="permission-user-view"></span><h4>user.view<a class="headerlink" href="#user-view" title="Permalink to this heading">#</a></h4>
 <p>Allows retrieving information of other users.</p>
 <p>Options: <cite>none</cite></p>
 </section>
 </section>
 <section id="misc">
-<h3>Misc<a class="headerlink" href="#misc" title="Permalink to this headline">#</a></h3>
+<h3>Misc<a class="headerlink" href="#misc" title="Permalink to this heading">#</a></h3>
 <section id="core-search-rebuild-index">
-<span id="permission-core-search-rebuild-index"></span><h4>core.search.rebuild-index<a class="headerlink" href="#core-search-rebuild-index" title="Permalink to this headline">#</a></h4>
+<span id="permission-core-search-rebuild-index"></span><h4>core.search.rebuild-index<a class="headerlink" href="#core-search-rebuild-index" title="Permalink to this heading">#</a></h4>
 <p>Allows rebuilding of search indices. Because of taking a long time, this permission is required.</p>
 <p>Options: <cite>none</cite></p>
 </section>
@@ -448,9 +448,7 @@ This also includes associating entries with operations, the requesting client is
             
           </div>
           <div class="right-details">
-            <div class="icons">
-              
-            </div>
+            
           </div>
         </div>
         
@@ -537,9 +535,8 @@ This also includes associating entries with operations, the requesting client is
     </aside>
   </div>
 </div><script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
     <script src="../_static/doctools.js"></script>
+    <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/scripts/furo.js"></script>
     </body>
 </html>

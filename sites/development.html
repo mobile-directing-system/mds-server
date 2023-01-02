@@ -1,14 +1,14 @@
 <!doctype html>
-<html class="no-js">
+<html class="no-js" lang="en">
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="prev" title="Radio Delivery" href="radio-delivery.html" />
 
-    <meta name="generator" content="sphinx-4.5.0, furo 2022.09.29"/>
+    <!-- Generated with Sphinx 6.0.0 and Furo 2022.12.07 -->
         <title>Development - MDS Server documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=d81277517bee4d6b0349d71bb2661d4890b5617c" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
     
     
@@ -149,7 +149,7 @@
   <span class="sidebar-brand-text">MDS Server  documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
-  <input class="sidebar-search" placeholder=Search name="q" aria-label="Search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
   <input type="hidden" name="area" value="default">
 </form>
@@ -203,40 +203,40 @@
         </div>
         <article role="main">
           <section id="development">
-<h1>Development<a class="headerlink" href="#development" title="Permalink to this headline">#</a></h1>
+<h1>Development<a class="headerlink" href="#development" title="Permalink to this heading">#</a></h1>
 <p>This chapter provides instructions in order to explain the development setup with MDS Server.
 As MDS Server is meant to be deployed on a Kubernetes cluster, local development requires some adjustments.
 Here, we describe usage with <a class="reference external" href="https://www.docker.com/">Docker</a>, <a class="reference external" href="https://minikube.sigs.k8s.io/">minikube</a>, <a class="reference external" href="https://skaffold.dev/">Skaffold</a> and <a class="reference external" href="https://plugins.jetbrains.com/plugin/8079-cloud-code">IntelliJ Cloud Code Plugin</a>.</p>
 <section id="setup-project">
-<h2>Setup Project<a class="headerlink" href="#setup-project" title="Permalink to this headline">#</a></h2>
+<h2>Setup Project<a class="headerlink" href="#setup-project" title="Permalink to this heading">#</a></h2>
 <p>MDS Server source code is stored in a <a class="reference external" href="https://github.com/mobile-directing-system/mds-server">GitHub Repository</a>.
 If you want to contribute, create a fork and checkout the repository locally using <a class="reference external" href="https://git-scm.com/">Git</a>.
 If you only want to run the server, you can clone the regular repository with:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git clone https://github.com/mobile-directing-system/mds-server.git
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/mobile-directing-system/mds-server.git
 </pre></div>
 </div>
 <p>From now on, we expect you to use the repository root as your working directory.</p>
 </section>
 <section id="setup-docker">
-<h2>Setup Docker<a class="headerlink" href="#setup-docker" title="Permalink to this headline">#</a></h2>
+<h2>Setup Docker<a class="headerlink" href="#setup-docker" title="Permalink to this heading">#</a></h2>
 <p>Docker provides needed containerization for services.
 For installation instructions refer to the Docker documentation <a class="reference external" href="https://docs.docker.com/get-docker/">here</a>.</p>
 </section>
 <section id="setup-minikube">
-<h2>Setup minikube<a class="headerlink" href="#setup-minikube" title="Permalink to this headline">#</a></h2>
+<h2>Setup minikube<a class="headerlink" href="#setup-minikube" title="Permalink to this heading">#</a></h2>
 <p>First, you need to install minikube.
 Installation instructions for your operating system are available <a class="reference external" href="https://minikube.sigs.k8s.io/docs/start/">here</a>.
 Then we need to start a cluster:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>minikube start
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>minikube<span class="w"> </span>start
 </pre></div>
 </div>
 <p>You can also launch the Kubernetes dashboard by running:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>minikube dashboard
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>minikube<span class="w"> </span>dashboard
 </pre></div>
 </div>
 </section>
 <section id="prepare-deployment">
-<h2>Prepare deployment<a class="headerlink" href="#prepare-deployment" title="Permalink to this headline">#</a></h2>
+<h2>Prepare deployment<a class="headerlink" href="#prepare-deployment" title="Permalink to this heading">#</a></h2>
 <p>Kubernetes uses YAML-files for deploying configurations.
 Skaffold simplifies working with these files as well as building Docker images, etc.
 When developing in JetBrains IDEs like <a class="reference external" href="https://www.jetbrains.com/go/">GoLand</a>, you can use the <a class="reference external" href="https://plugins.jetbrains.com/plugin/8079-cloud-code">IntelliJ Cloud Code Plugin</a>.
@@ -250,17 +250,17 @@ This also applies to NGINX configurations.
 Therefore, the <cite>prepare</cite>-profile provides basic setup for resources as well as NGINX deployments and the <cite>mds</cite>-profile includes the rest of the actual server application.
 Normally, the <cite>prepare</cite>-profile needs to be deployed exactly once after a new Kubernetes was created with minikube.
 For deploying the profile, execute the following command:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>skaffold deploy --profile<span class="o">=</span>prepare
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>skaffold<span class="w"> </span>deploy<span class="w"> </span>--profile<span class="o">=</span>prepare
 </pre></div>
 </div>
 <p>Now everything is setup for the actual deployment of MDS Server.</p>
 </section>
 <section id="deploy-for-development-using-skaffold">
-<h2>Deploy for development using Skaffold<a class="headerlink" href="#deploy-for-development-using-skaffold" title="Permalink to this headline">#</a></h2>
+<h2>Deploy for development using Skaffold<a class="headerlink" href="#deploy-for-development-using-skaffold" title="Permalink to this heading">#</a></h2>
 <p>For actually deploying MDS Server, we need to build required Docker images as well as deploy everything to Kubernetes.
 This job is handled by Skaffold.
 Run from the working directory:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>skaffold dev --profile<span class="o">=</span>mds
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>skaffold<span class="w"> </span>dev<span class="w"> </span>--profile<span class="o">=</span>mds
 </pre></div>
 </div>
 <p>This will build all Docker images and deploy to the Kubernetes cluster.
@@ -270,27 +270,27 @@ This will make Skaffold remove all applied configurations and make Kubernetes sh
 <p>We expect you to be running minikube as Docker container.
 In order to access services provided by MDS Server, you need to find the minikube IP address as well as the port number.
 This can be achieved by running the following command:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>minikube service list
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>minikube<span class="w"> </span>service<span class="w"> </span>list
 </pre></div>
 </div>
 <p>This will return something like the following:</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="p">|</span>------------------------<span class="p">|</span>---------------------------------------------<span class="p">|</span>--------------<span class="p">|</span>---------------------------<span class="p">|</span>
-<span class="p">|</span>       NAMESPACE        <span class="p">|</span>                    NAME                     <span class="p">|</span> TARGET PORT  <span class="p">|</span>            URL            <span class="p">|</span>
+<span class="p">|</span><span class="w">       </span>NAMESPACE<span class="w">        </span><span class="p">|</span><span class="w">                    </span>NAME<span class="w">                     </span><span class="p">|</span><span class="w"> </span>TARGET<span class="w"> </span>PORT<span class="w">  </span><span class="p">|</span><span class="w">            </span>URL<span class="w">            </span><span class="p">|</span>
 <span class="p">|</span>------------------------<span class="p">|</span>---------------------------------------------<span class="p">|</span>--------------<span class="p">|</span>---------------------------<span class="p">|</span>
-<span class="p">|</span> default                <span class="p">|</span> kubernetes                                  <span class="p">|</span> No node port <span class="p">|</span>
+<span class="p">|</span><span class="w"> </span>default<span class="w">                </span><span class="p">|</span><span class="w"> </span>kubernetes<span class="w">                                  </span><span class="p">|</span><span class="w"> </span>No<span class="w"> </span>node<span class="w"> </span>port<span class="w"> </span><span class="p">|</span>
 ...
-<span class="p">|</span> kafka                  <span class="p">|</span> kafka-cluster-zookeeper-nodes               <span class="p">|</span> No node port <span class="p">|</span>
-<span class="p">|</span> kafka                  <span class="p">|</span> kafka-ui-service                            <span class="p">|</span> http/30010   <span class="p">|</span> http://192.168.49.2:31847 <span class="p">|</span>
-<span class="p">|</span> kube-system            <span class="p">|</span> kube-dns                                    <span class="p">|</span> No node port <span class="p">|</span>
-<span class="p">|</span> public-ingress-nginx   <span class="p">|</span> public-ingress-nginx-controller             <span class="p">|</span> http/30080   <span class="p">|</span> http://192.168.49.2:30080 <span class="p">|</span>
-<span class="p">|</span>                        <span class="p">|</span>                                             <span class="p">|</span> https/30443  <span class="p">|</span> http://192.168.49.2:30443 <span class="p">|</span>
-<span class="p">|</span> public-ingress-nginx   <span class="p">|</span> public-ingress-nginx-controller-admission   <span class="p">|</span> No node port <span class="p">|</span>
+<span class="p">|</span><span class="w"> </span>kafka<span class="w">                  </span><span class="p">|</span><span class="w"> </span>kafka-cluster-zookeeper-nodes<span class="w">               </span><span class="p">|</span><span class="w"> </span>No<span class="w"> </span>node<span class="w"> </span>port<span class="w"> </span><span class="p">|</span>
+<span class="p">|</span><span class="w"> </span>kafka<span class="w">                  </span><span class="p">|</span><span class="w"> </span>kafka-ui-service<span class="w">                            </span><span class="p">|</span><span class="w"> </span>http/30010<span class="w">   </span><span class="p">|</span><span class="w"> </span>http://192.168.49.2:31847<span class="w"> </span><span class="p">|</span>
+<span class="p">|</span><span class="w"> </span>kube-system<span class="w">            </span><span class="p">|</span><span class="w"> </span>kube-dns<span class="w">                                    </span><span class="p">|</span><span class="w"> </span>No<span class="w"> </span>node<span class="w"> </span>port<span class="w"> </span><span class="p">|</span>
+<span class="p">|</span><span class="w"> </span>public-ingress-nginx<span class="w">   </span><span class="p">|</span><span class="w"> </span>public-ingress-nginx-controller<span class="w">             </span><span class="p">|</span><span class="w"> </span>http/30080<span class="w">   </span><span class="p">|</span><span class="w"> </span>http://192.168.49.2:30080<span class="w"> </span><span class="p">|</span>
+<span class="p">|</span><span class="w">                        </span><span class="p">|</span><span class="w">                                             </span><span class="p">|</span><span class="w"> </span>https/30443<span class="w">  </span><span class="p">|</span><span class="w"> </span>http://192.168.49.2:30443<span class="w"> </span><span class="p">|</span>
+<span class="p">|</span><span class="w"> </span>public-ingress-nginx<span class="w">   </span><span class="p">|</span><span class="w"> </span>public-ingress-nginx-controller-admission<span class="w">   </span><span class="p">|</span><span class="w"> </span>No<span class="w"> </span>node<span class="w"> </span>port<span class="w"> </span><span class="p">|</span>
 <span class="p">|</span>------------------------<span class="p">|</span>---------------------------------------------<span class="p">|</span>--------------<span class="p">|</span>---------------------------<span class="p">|</span>
 </pre></div>
 </div>
 <p>From the information provided, we can access the servers HTTP service at <cite>http://192.168.49.2:30080</cite>.
 The IP address is also shown when running:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>minikube ip
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>minikube<span class="w"> </span>ip
 </pre></div>
 </div>
 <p>If you want to, you can create a new entry in <cite>/etc/hosts</cite> file with your minikube IP address:</p>
@@ -300,16 +300,16 @@ The IP address is also shown when running:</p>
 <p>This allows you accessing the HTTP service via <cite>http://minikube:30080</cite>.</p>
 </section>
 <section id="if-something-goes-wrong">
-<h2>If something goes wrong<a class="headerlink" href="#if-something-goes-wrong" title="Permalink to this headline">#</a></h2>
+<h2>If something goes wrong<a class="headerlink" href="#if-something-goes-wrong" title="Permalink to this heading">#</a></h2>
 <p>Due to some bugs, sometimes resources might not get cleaned up or the cluster is in an unexpected state.
 In this case, a hard reset can be performed by running:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>minikube delete
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>minikube<span class="w"> </span>delete
 </pre></div>
 </div>
 <p>Keep in mind, that in order to deploy again, you need to deploy the <cite>prepare</cite>-profile again as well as described in this chapter.</p>
 </section>
 <section id="viewing-logs">
-<h2>Viewing logs<a class="headerlink" href="#viewing-logs" title="Permalink to this headline">#</a></h2>
+<h2>Viewing logs<a class="headerlink" href="#viewing-logs" title="Permalink to this heading">#</a></h2>
 <p>Logs can be either viewed through the Kubernetes dashboard by navigating to the desired pod and it’s logs or through Kibana.
 Part of the deployment is <a class="reference external" href="https://fluentbit.io/">Fluent Bit</a>, which allows centralized logging.
 It forwards processed log entries to Elasticsearch.
@@ -355,9 +355,7 @@ If you only want to see logs from MDS pods, type <code class="docutils literal n
             
           </div>
           <div class="right-details">
-            <div class="icons">
-              
-            </div>
+            
           </div>
         </div>
         
@@ -395,9 +393,8 @@ If you only want to see logs from MDS pods, type <code class="docutils literal n
     </aside>
   </div>
 </div><script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
     <script src="../_static/doctools.js"></script>
+    <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/scripts/furo.js"></script>
     </body>
 </html>
