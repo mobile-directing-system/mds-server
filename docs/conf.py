@@ -36,19 +36,19 @@ extensions = [
 # Add external URLs.
 
 extlinks = {
-    "docker-homepage": ("https://www.docker.com/", "Docker"),
-    "docker-install": ("https://docs.docker.com/get-docker/", "Install Docker"),
-    "e-164": ("https://en.wikipedia.org/wiki/E.164", "E.164"),
-    "fluent-bit-homepage": ("https://fluentbit.io/", "Fluent Bit"),
-    "git-homepage": ("https://git-scm.com/", "Git"),
-    "github-repo": ("https://github.com/mobile-directing-system/mds-server", "GitHub Repository"),
-    "goland-homepage": ("https://www.jetbrains.com/go/", "GoLand"),
-    "intellij-cloud-code-plugin-homepage": ("https://plugins.jetbrains.com/plugin/8079-cloud-code", "IntelliJ Cloud Code Plugin"),
-    "intellij-cloud-code-plugin-install": ("https://cloud.google.com/code/docs/intellij/install", "Cloud Code Instructions"),
-    "minikube-homepage": ("https://minikube.sigs.k8s.io/", "minikube Homepage"),
-    "minikube-install": ("https://minikube.sigs.k8s.io/docs/start/", "Install minikube"),
-    "skaffold-homepage": ("https://skaffold.dev/", "Skaffold Homepage"),
-    "skaffold-install": ("https://skaffold.dev/docs/install/", "Install Skaffold"),
+    "docker-homepage": ("https://www.docker.com/%s", "Docker"),
+    "docker-install": ("https://docs.docker.com/get-docker/%s", "Install Docker"),
+    "e-164": ("https://en.wikipedia.org/wiki/E.164%s", "E.164"),
+    "fluent-bit-homepage": ("https://fluentbit.io/%s", "Fluent Bit"),
+    "git-homepage": ("https://git-scm.com/%s", "Git"),
+    "github-repo": ("https://github.com/mobile-directing-system/mds-server%s", "GitHub Repository"),
+    "goland-homepage": ("https://www.jetbrains.com/go/%s", "GoLand"),
+    "intellij-cloud-code-plugin-homepage": ("https://plugins.jetbrains.com/plugin/8079-cloud-code%s", "IntelliJ Cloud Code Plugin"),
+    "intellij-cloud-code-plugin-install": ("https://cloud.google.com/code/docs/intellij/install%s", "Cloud Code Instructions"),
+    "minikube-homepage": ("https://minikube.sigs.k8s.io/%s", "minikube Homepage"),
+    "minikube-install": ("https://minikube.sigs.k8s.io/docs/start/%s", "Install minikube"),
+    "skaffold-homepage": ("https://skaffold.dev/%s", "Skaffold Homepage"),
+    "skaffold-install": ("https://skaffold.dev/docs/install/%s", "Install Skaffold"),
 }
 
 # Add any paths that contain templates here, relative to this directory.

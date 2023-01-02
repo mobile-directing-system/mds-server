@@ -17,8 +17,9 @@ jobs:
         run: |
           sudo apt update
           sudo apt install pip
-          sudo pip install Sphinx==4.5.0
+          sudo pip install Sphinx=6.0.0
           sudo pip install furo pygments==2.11.2 sphinxemoji
+          sudo pip install Sphinx==6.0.0
 
       - name: Build docs
         run: sphinx-build -b html "./docs" "./docs/_build" -W
