@@ -150,3 +150,13 @@ Upon first start do the following:
 
 You can now view logs using the `Discover`-button on the left toolbar (the compass-icon).
 If you only want to see logs from MDS pods, type ``kubernetes.pod_name : mds*`` in the search bar.
+
+Connecting to databases
+=======================
+
+If you deploy MDS as mentioned above using Minikube or other tools, you have access to the Kubernetes cluster through `kubectl`.
+However, databases are only accessible from inside the cluster.
+For development purposes you might want to access them through your favorite IDE.
+Manually forwarding each database container might be annoying.
+As a solution, you can use the script `tools/forward-postgres.sh`.
+For all database instances, port-forwarding with fixed ports is then available and you can setup the databases in your IDE or other tools that you want.
