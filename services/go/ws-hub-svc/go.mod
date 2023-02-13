@@ -10,14 +10,13 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/lefinal/meh v1.6.0
 	github.com/mobile-directing-system/mds-server/services/go/shared v0.0.0-00010101000000-000000000000
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 	go.uber.org/zap v1.21.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 )
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/gin-contrib/cors v1.4.0 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
