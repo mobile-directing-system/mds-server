@@ -184,6 +184,8 @@ For example, an email channel is used for sending an email containing the intel 
 A radio channel might forward intel to a radio operator, that calls the recipient.
 Each channel has a unique priority, timeout and minimum importance for intel.
 
+The is-active-Flag of a channel describes whether the channel is available for intel-delivery.
+
 Currently, the following channel types are supported, but not all implemented:
 
 - (**Coming soon** |:rocket:|) **Direct** (`direct`): Use, if the recipient can be contacted directly, for example by talking.
@@ -268,6 +270,7 @@ Setting channels for global entries or ones, being associated to other users tha
     [
         {
             "entry": "<entry_id>",
+            "is_active": false,
             "label": "<label>",
             "type": "<channel_type>",
             "priority": 20,
@@ -296,6 +299,7 @@ Response:
         {
             "id": "<channel_id>",
             "entry": "<entry_id>",
+            "is_active": false,
             "label": "<label>",
             "type": "<channel_type>",
             "priority": 20,

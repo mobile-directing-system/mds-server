@@ -357,6 +357,7 @@ Regarding entry visibility, the same regulations apply as for retrieving single 
 For example, an email channel is used for sending an email containing the intel to a target email address.
 A radio channel might forward intel to a radio operator, that calls the recipient.
 Each channel has a unique priority, timeout and minimum importance for intel.</p>
+<p>The is-active-Flag of a channel describes whether the channel is available for intel-delivery.</p>
 <p>Currently, the following channel types are supported, but not all implemented:</p>
 <ul class="simple">
 <li><p>(<strong>Coming soon</strong> 🚀) <strong>Direct</strong> (<cite>direct</cite>): Use, if the recipient can be contacted directly, for example by talking.</p></li>
@@ -419,6 +420,7 @@ Each channel has a unique priority, timeout and minimum importance for intel.</p
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
 <span class="w">    </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">&quot;entry&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;entry_id&gt;&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;is_active&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;label&gt;&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;channel_type&gt;&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">&quot;priority&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span>
@@ -442,6 +444,7 @@ So if delivery was already tried over an old channel and failed or timed out, it
 <span class="w">    </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;channel_id&gt;&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">&quot;entry&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;entry_id&gt;&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;is_active&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;label&gt;&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;channel_type&gt;&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">&quot;priority&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span>
