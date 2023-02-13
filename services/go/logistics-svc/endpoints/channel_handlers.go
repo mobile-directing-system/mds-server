@@ -20,6 +20,7 @@ import (
 type publicChannel struct {
 	ID            uuid.UUID       `json:"id"`
 	Entry         uuid.UUID       `json:"entry"`
+	IsActive      bool            `json:"is_active"`
 	Label         string          `json:"label"`
 	Type          string          `json:"type"`
 	Priority      int32           `json:"priority"`
@@ -33,10 +34,12 @@ func publicChannelFromStore(s store.Channel) (publicChannel, error) {
 	p := publicChannel{
 		ID:            s.ID,
 		Entry:         s.Entry,
+		IsActive:      s.IsActive,
 		Label:         s.Label,
 		Type:          string(s.Type),
 		Priority:      s.Priority,
 		MinImportance: s.MinImportance,
+		Details:       nil,
 		Timeout:       s.Timeout,
 	}
 	// Convert details.
@@ -83,6 +86,7 @@ func storeChannelFromPublic(p publicChannel) (store.Channel, error) {
 	s := store.Channel{
 		ID:            p.ID,
 		Entry:         p.Entry,
+		IsActive:      p.IsActive,
 		Label:         p.Label,
 		Type:          store.ChannelType(p.Type),
 		Priority:      p.Priority,

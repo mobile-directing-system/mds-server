@@ -346,6 +346,7 @@ func (m *Mall) NextChannelForDeliveryAttempt(ctx context.Context, tx pgx.Tx, del
 				goqu.I("intel_delivery_attempts.channel").Eq(goqu.I("channels.id")))).
 		Select(goqu.I("channels.id"),
 			goqu.I("channels.entry"),
+			goqu.I("channels.is_active"),
 			goqu.I("channels.label"),
 			goqu.I("channels.type"),
 			goqu.I("channels.priority"),
@@ -353,6 +354,7 @@ func (m *Mall) NextChannelForDeliveryAttempt(ctx context.Context, tx pgx.Tx, del
 			goqu.I("channels.timeout")).
 		Where(goqu.I("intel_deliveries.id").Eq(deliveryID),
 			goqu.I("intel_delivery_attempts.id").IsNull(),
+			goqu.I("channels.is_active").IsTrue(),
 			goqu.I("intel.importance").Gte(goqu.I("channels.min_importance"))).
 		Order(goqu.I("channels.priority").Desc()).
 		Limit(1).ToSQL()
@@ -370,6 +372,7 @@ func (m *Mall) NextChannelForDeliveryAttempt(ctx context.Context, tx pgx.Tx, del
 	var channel Channel
 	err = rows.Scan(&channel.ID,
 		&channel.Entry,
+		&channel.IsActive,
 		&channel.Label,
 		&channel.Type,
 		&channel.Priority,

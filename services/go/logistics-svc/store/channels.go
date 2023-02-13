@@ -29,6 +29,9 @@ type Channel struct {
 	ID uuid.UUID
 	// Entry is the id of the entry the channel is assigned to.
 	Entry uuid.UUID
+	// IsActive describes whether the channel is currently active and available for
+	// delivery or not.
+	IsActive bool
 	// Label of the channel for better human-readability.
 	Label string
 	// Type of the channel.
@@ -136,6 +139,7 @@ func (m *Mall) channelMetadataByAddressBookEntry(ctx context.Context, tx pgx.Tx,
 	q, _, err := m.dialect.From(goqu.T("channels")).
 		Select(goqu.C("id"),
 			goqu.C("entry"),
+			goqu.C("is_active"),
 			goqu.C("label"),
 			goqu.C("type"),
 			goqu.C("priority"),
@@ -156,6 +160,7 @@ func (m *Mall) channelMetadataByAddressBookEntry(ctx context.Context, tx pgx.Tx,
 		err = rows.Scan(&channel.ID,
 			&channel.Entry,
 			&channel.Label,
+			&channel.IsActive,
 			&channel.Type,
 			&channel.Priority,
 			&channel.MinImportance,
@@ -234,6 +239,7 @@ func (m *Mall) CreateChannelWithDetails(ctx context.Context, tx pgx.Tx, channel 
 	// Create channel itself.
 	q, _, err := m.dialect.Insert(goqu.T("channels")).Rows(goqu.Record{
 		"entry":          channel.Entry,
+		"is_active":      channel.IsActive,
 		"label":          channel.Label,
 		"type":           channel.Type,
 		"priority":       channel.Priority,
@@ -303,6 +309,7 @@ func (m *Mall) ChannelMetadataByID(ctx context.Context, tx pgx.Tx, channelID uui
 	q, _, err := m.dialect.From(goqu.T("channels")).
 		Select(goqu.C("id"),
 			goqu.C("entry"),
+			goqu.C("is_active"),
 			goqu.C("label"),
 			goqu.C("type"),
 			goqu.C("priority"),
@@ -323,6 +330,7 @@ func (m *Mall) ChannelMetadataByID(ctx context.Context, tx pgx.Tx, channelID uui
 	}
 	err = rows.Scan(&channel.ID,
 		&channel.Entry,
+		&channel.IsActive,
 		&channel.Label,
 		&channel.Type,
 		&channel.Priority,

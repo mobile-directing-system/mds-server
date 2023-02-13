@@ -77,6 +77,7 @@ create table channels
     id             uuid primary key not null default uuid_generate_v4(),
     entry          uuid             not null references address_book_entries (id)
         on delete restrict on update restrict,
+    is_active      boolean          not null,
     label          varchar          not null,
     "type"         varchar          not null,
     priority       int              not null,
