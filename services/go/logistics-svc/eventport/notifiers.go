@@ -273,6 +273,7 @@ func (p *Port) NotifyAddressBookEntryChannelsUpdated(ctx context.Context, tx pgx
 		mappedChannel := event.AddressBookEntryChannelsUpdatedChannel{
 			ID:            channel.ID,
 			Entry:         channel.Entry,
+			IsActive:      channel.IsActive,
 			Label:         channel.Label,
 			Priority:      channel.Priority,
 			MinImportance: channel.MinImportance,

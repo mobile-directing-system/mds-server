@@ -35,6 +35,7 @@ func (suite *storeChannelFromPublicSuite) SetupTest() {
 	suite.samplePublicChannel = publicChannel{
 		ID:            testutil.NewUUIDV4(),
 		Entry:         testutil.NewUUIDV4(),
+		IsActive:      true,
 		Label:         "flavor",
 		Type:          string(store.ChannelTypeInAppNotification),
 		Priority:      900,
@@ -45,6 +46,7 @@ func (suite *storeChannelFromPublicSuite) SetupTest() {
 	suite.sampleStoreChannel = store.Channel{
 		ID:            suite.samplePublicChannel.ID,
 		Entry:         suite.samplePublicChannel.Entry,
+		IsActive:      suite.samplePublicChannel.IsActive,
 		Label:         suite.samplePublicChannel.Label,
 		Type:          store.ChannelType(suite.samplePublicChannel.Type),
 		Priority:      suite.samplePublicChannel.Priority,
@@ -84,6 +86,7 @@ func testStoreChannelDetailsFromPublic[From any, To store.ChannelDetails](t *tes
 	pChan := publicChannel{
 		ID:            testutil.NewUUIDV4(),
 		Entry:         testutil.NewUUIDV4(),
+		IsActive:      true,
 		Label:         "flavor",
 		Type:          string(chanType),
 		Priority:      900,
@@ -96,6 +99,7 @@ func testStoreChannelDetailsFromPublic[From any, To store.ChannelDetails](t *tes
 	assert.Equal(t, store.Channel{
 		ID:            pChan.ID,
 		Entry:         pChan.Entry,
+		IsActive:      pChan.IsActive,
 		Label:         pChan.Label,
 		Type:          chanType,
 		Priority:      pChan.Priority,
@@ -191,6 +195,7 @@ func (suite *publicChannelFromStoreSuite) SetupTest() {
 	suite.sampleStoreChannel = store.Channel{
 		ID:            testutil.NewUUIDV4(),
 		Entry:         testutil.NewUUIDV4(),
+		IsActive:      true,
 		Label:         "flavor",
 		Type:          store.ChannelTypeInAppNotification,
 		Priority:      900,
@@ -201,6 +206,7 @@ func (suite *publicChannelFromStoreSuite) SetupTest() {
 	suite.samplePublicChannel = publicChannel{
 		ID:            suite.sampleStoreChannel.ID,
 		Entry:         suite.sampleStoreChannel.Entry,
+		IsActive:      suite.sampleStoreChannel.IsActive,
 		Label:         suite.sampleStoreChannel.Label,
 		Type:          string(suite.sampleStoreChannel.Type),
 		Priority:      suite.sampleStoreChannel.Priority,
@@ -243,6 +249,7 @@ func testPublicChannelDetailsFromStore[From store.ChannelDetails, To any](t *tes
 	sChan := store.Channel{
 		ID:            testutil.NewUUIDV4(),
 		Entry:         testutil.NewUUIDV4(),
+		IsActive:      true,
 		Label:         "flavor",
 		Type:          chanType,
 		Priority:      900,
@@ -255,6 +262,7 @@ func testPublicChannelDetailsFromStore[From store.ChannelDetails, To any](t *tes
 	assert.Equal(t, publicChannel{
 		ID:            sChan.ID,
 		Entry:         sChan.Entry,
+		IsActive:      sChan.IsActive,
 		Label:         sChan.Label,
 		Type:          string(chanType),
 		Priority:      sChan.Priority,
@@ -367,6 +375,7 @@ func (suite *handleUpdateChannelsByAddressBookEntrySuite) SetupTest() {
 		{
 			ID:            testutil.NewUUIDV4(),
 			Entry:         suite.sampleEntryID,
+			IsActive:      true,
 			Label:         "quarter",
 			Type:          string(store.ChannelTypeInAppNotification),
 			Priority:      966,
@@ -376,6 +385,7 @@ func (suite *handleUpdateChannelsByAddressBookEntrySuite) SetupTest() {
 		},
 		{
 			Entry:         suite.sampleEntryID,
+			IsActive:      true,
 			Label:         "towel",
 			Type:          string(store.ChannelTypePhoneCall),
 			Priority:      40,

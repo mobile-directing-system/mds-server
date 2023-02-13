@@ -475,6 +475,7 @@ func (suite *PortNotifyAddressBookEntryChannelsUpdatedSuite) SetupTest() {
 		{
 			ID:            testutil.NewUUIDV4(),
 			Entry:         suite.sampleEntryID,
+			IsActive:      true,
 			Label:         "",
 			Type:          store.ChannelTypeDirect,
 			Priority:      1,
@@ -487,6 +488,7 @@ func (suite *PortNotifyAddressBookEntryChannelsUpdatedSuite) SetupTest() {
 		{
 			ID:            testutil.NewUUIDV4(),
 			Entry:         suite.sampleEntryID,
+			IsActive:      false,
 			Label:         "give",
 			Type:          store.ChannelTypeForwardToUser,
 			Priority:      -1,
@@ -511,6 +513,7 @@ func (suite *PortNotifyAddressBookEntryChannelsUpdatedSuite) SetupTest() {
 				{
 					ID:            suite.sampleChannels[0].ID,
 					Entry:         suite.sampleEntryID,
+					IsActive:      suite.sampleChannels[0].IsActive,
 					Label:         "",
 					Type:          event.AddressBookEntryChannelTypeDirect,
 					Priority:      1,
@@ -523,6 +526,7 @@ func (suite *PortNotifyAddressBookEntryChannelsUpdatedSuite) SetupTest() {
 				{
 					ID:            suite.sampleChannels[1].ID,
 					Entry:         suite.sampleEntryID,
+					IsActive:      suite.sampleChannels[1].IsActive,
 					Label:         "give",
 					Type:          event.AddressBookEntryChannelTypeForwardToUser,
 					Priority:      -1,

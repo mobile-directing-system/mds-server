@@ -154,6 +154,9 @@ type AddressBookEntryChannelsUpdatedChannel struct {
 	ID uuid.UUID `json:"id"`
 	// Entry is the id of the entry the channel is assigned to.
 	Entry uuid.UUID `json:"entry"`
+	// IsActive describes whether the channel is active and therefore available for
+	// delivery.
+	IsActive bool `json:"is_active"`
 	// Label of the channel for better human-readability.
 	Label string `json:"label"`
 	// Type of the channel.
