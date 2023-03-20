@@ -28,15 +28,15 @@ type Client interface {
 	// RunAndClose runs lifesupport for the connection and closes it after the
 	// connection lifetime is done.
 	RunAndClose() error
-	Connection() Connection
 	RawConnection() RawConnection
+	Close()
 }
 
 // client is a container for an actual WebSocket connection and the internal
 // processing connection.
 type client struct {
 	wsConn *websocket.Conn
-	conn   *connection
+	conn   *rawConnection
 }
 
 // NewClient creates a new Client. Do not forget to call Client.RunAndClose!
@@ -51,7 +51,8 @@ func NewClient(lifetime context.Context, logger *zap.Logger, authToken auth.Toke
 	connLifetime, cancel := context.WithCancel(lifetime)
 	return &client{
 		wsConn: wsConn,
-		conn: &connection{
+		conn: &rawConnection{
+			id:        id,
 			lifetime:  connLifetime,
 			cancel:    cancel,
 			authToken: authToken,
@@ -60,6 +61,10 @@ func NewClient(lifetime context.Context, logger *zap.Logger, authToken auth.Toke
 			send:      make(chan json.RawMessage, 0),
 		},
 	}
+}
+
+func (c *client) Close() {
+	c.conn.cancel()
 }
 
 // RunAndClose runs WebSocket lifesupport and closes after the set lifetime
@@ -76,11 +81,20 @@ func (c *client) RunAndClose() error {
 	eg, egCtx := errgroup.WithContext(c.conn.lifetime)
 	eg.Go(func() error {
 		defer close(c.conn.receive)
-		return meh.NilOrWrap(c.readPump(egCtx), "read pump", nil)
+		err := c.readPump(egCtx)
+		if err != nil {
+			return meh.Wrap(err, "read pump", nil)
+		}
+		return nil
 	})
 	eg.Go(func() error {
-		return meh.NilOrWrap(c.writePump(egCtx), "write pump", nil)
+		err := c.writePump(egCtx)
+		if err != nil {
+			return meh.Wrap(err, "write pump", nil)
+		}
+		return nil
 	})
+	// TODO: Move out of eg?
 	eg.Go(func() error {
 		<-egCtx.Done()
 		err := c.wsConn.Close()
@@ -92,7 +106,7 @@ func (c *client) RunAndClose() error {
 	return eg.Wait()
 }
 
-func (c *client) Connection() Connection {
+func (c *client) Connection() BaseConnection {
 	return c.conn
 }
 
@@ -108,7 +122,7 @@ func (c *client) readPump(ctx context.Context) error {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				return meh.NewErrFromErr(err, ErrWSCommunication, "unexpected close", nil)
 			}
-			return nil
+			return meh.NewErrFromErr(err, ErrWSCommunication, "regular close", nil)
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, NewLine, Space, -1))
 		select {
@@ -133,6 +147,13 @@ func (c *client) writePump(ctx context.Context) error {
 		return nil
 	}
 	for {
+		err := resetWriteDeadline()
+		if err != nil {
+			return meh.Wrap(err, "reset write-deadline", nil)
+		}
+		if err := c.wsConn.WriteMessage(websocket.PingMessage, nil); err != nil {
+			return meh.NewErrFromErr(err, ErrWSCommunication, "write ping-message", nil)
+		}
 		select {
 		case <-ctx.Done():
 			return nil
@@ -150,13 +171,7 @@ func (c *client) writePump(ctx context.Context) error {
 				return meh.NewErrFromErr(err, ErrWSCommunication, "write message", nil)
 			}
 		case <-ticker.C:
-			err := resetWriteDeadline()
-			if err != nil {
-				return meh.Wrap(err, "reset write-deadline", nil)
-			}
-			if err := c.wsConn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				return meh.NewErrFromErr(err, ErrWSCommunication, "write ping-message", nil)
-			}
+			// Loop over.
 		}
 	}
 }

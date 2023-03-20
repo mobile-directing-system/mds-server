@@ -14,26 +14,32 @@ import (
 )
 
 func TestConnection_UserID(t *testing.T) {
+	timeout, cancel, _ := testutil.NewTimeout(testutil.TestFailerFromT(t), timeout)
+	defer cancel()
 	authToken := auth.Token{UserID: testutil.NewUUIDV4()}
-	conn := newConnection(wstest.NewConnectionMock(context.Background(), authToken))
+	conn := newConnection(wsutil.NewAutoParserConnection(wstest.NewConnectionMock(timeout, authToken)))
 	assert.Equal(t, authToken.UserID, conn.UserID(), "should return the correct user id")
 }
 
 // connectionNotifyNewAvailableSuite tests connection.NotifyNewAvailable.
 type connectionNotifyNewAvailableSuite struct {
 	suite.Suite
-	wsConn                   *wstest.Connection
+	wsConn                   *wstest.RawConnection
 	conn                     *connection
 	sampleOperation          uuid.UUID
 	samplePublicNotification publicNewRadioDeliveriesAvailable
 }
 
 func (suite *connectionNotifyNewAvailableSuite) SetupTest() {
-	suite.wsConn = wstest.NewConnectionMock(context.Background(), auth.Token{
+	connLifetime, shutdownConn, _ := testutil.NewTimeout(suite, timeout)
+	suite.T().Cleanup(func() {
+		shutdownConn()
+	})
+	suite.wsConn = wstest.NewConnectionMock(connLifetime, auth.Token{
 		IsAuthenticated: true,
 		Permissions:     []permission.Permission{{Name: permission.DeliverAnyRadioDeliveryPermissionName}},
 	})
-	suite.conn = newConnection(suite.wsConn)
+	suite.conn = newConnection(wsutil.NewAutoParserConnection(suite.wsConn))
 	suite.sampleOperation = testutil.NewUUIDV4()
 	suite.samplePublicNotification = publicNewRadioDeliveriesAvailable{
 		Operation: suite.sampleOperation,
@@ -48,10 +54,7 @@ func (suite *connectionNotifyNewAvailableSuite) TestSendFail() {
 }
 
 func (suite *connectionNotifyNewAvailableSuite) TestMissingPermission() {
-	suite.wsConn = wstest.NewConnectionMock(context.Background(), auth.Token{
-		Permissions: []permission.Permission{},
-	})
-	suite.conn = newConnection(suite.wsConn)
+	suite.wsConn.SetPermissions([]permission.Permission{})
 	err := suite.conn.NotifyNewAvailable(context.Background(), suite.sampleOperation)
 	suite.Require().NoError(err, "should not fail")
 	outbox := suite.wsConn.Outbox()

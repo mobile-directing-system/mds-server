@@ -1,6 +1,11 @@
 package wsutil
 
-import "time"
+import (
+	"encoding/json"
+	"github.com/lefinal/meh"
+	"reflect"
+	"time"
+)
 
 const (
 	// WriteWait is the time allowed to write a message to the peer.
@@ -23,3 +28,18 @@ var (
 	// Space for reading.
 	Space = []byte{' '}
 )
+
+// ParseAndHandle parses the given Message for the target handler function. If
+// parse failes, an error with code meh.ErrBadInput is returned.
+func ParseAndHandle[T any](message Message, handler func(T) error) error {
+	var parsedPayload T
+	err := json.Unmarshal(message.Payload, &parsedPayload)
+	if err != nil {
+		return meh.NewBadInputErrFromErr(err, "parse message payload", meh.Details{
+			"message_type":    message.Type,
+			"message_payload": string(message.Payload),
+			"parse_type":      reflect.TypeOf(parsedPayload),
+		})
+	}
+	return handler(parsedPayload)
+}

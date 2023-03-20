@@ -146,11 +146,11 @@ func mapStoreOutgoingIntelDeliveryNotificationToPublic(s store.OutgoingIntelDeli
 // connection implements controller.Connection and maps notifications from the
 // store-representation to the public one.
 type connection struct {
-	conn wsutil.Connection
+	conn wsutil.AutoParserConnection
 }
 
 // newConnection returns a new connection.
-func newConnection(conn wsutil.Connection) *connection {
+func newConnection(conn wsutil.AutoParserConnection) *connection {
 	return &connection{conn: conn}
 }
 

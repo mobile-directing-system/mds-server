@@ -3,11 +3,13 @@ package ws
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/lefinal/meh"
 	"github.com/lefinal/meh/mehlog"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/auth"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/logging"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/wshub"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/wsutil"
 	"go.uber.org/zap"
@@ -17,6 +19,8 @@ import (
 	"sync"
 	"time"
 )
+
+const controlChannel = "_control"
 
 // Gate holds information regarding connection fan-out.
 type Gate struct {
@@ -190,6 +194,8 @@ func (h *hub) Serve(clientWriter http.ResponseWriter, clientRequest *http.Reques
 	return nil
 }
 
+// TODO: Add global flag for omitting error details for security reasons.
+
 func route(lifetime context.Context, logger *zap.Logger, session session) error {
 	// Create client's client (lol).
 	clientClient := wsutil.NewClient(lifetime, logger.Named("client"), auth.Token{}, session.client)
@@ -201,6 +207,7 @@ func route(lifetime context.Context, logger *zap.Logger, session session) error 
 	// Run all.
 	eg, egCtx := errgroup.WithContext(lifetime)
 	eg.Go(func() error {
+		defer logger.Debug("client listener down")
 		for {
 			select {
 			case <-egCtx.Done():
@@ -215,8 +222,12 @@ func route(lifetime context.Context, logger *zap.Logger, session session) error 
 				// Forward to channel.
 				channel, ok := channelClients[mc.Channel]
 				if !ok {
-					return meh.NewBadInputErr("unknown channel", meh.Details{"channel_label": mc.Channel})
+					sendErrOverControlChannel(egCtx, clientClient.RawConnection(), meh.NewBadInputErr("unknown channel", meh.Details{"channel_label": mc.Channel}))
+					continue
 				}
+				session.logger.Debug("forward message from client to channel",
+					zap.String("channel", string(mc.Channel)),
+					zap.String("message", string(mc.Payload)))
 				select {
 				case <-egCtx.Done():
 					session.logger.Debug("dropping received message from client due to context done", zap.Any("message", string(messageRaw)))
@@ -230,6 +241,7 @@ func route(lifetime context.Context, logger *zap.Logger, session session) error 
 		channelLabel := channelLabel
 		channelClient := channelClient
 		eg.Go(func() error {
+			defer logger.Debug("channel listener down", zap.String("channel", string(channelLabel)))
 			for {
 				select {
 				case <-egCtx.Done():
@@ -247,6 +259,9 @@ func route(lifetime context.Context, logger *zap.Logger, session session) error 
 						return meh.NewBadInputErrFromErr(err, "marshal message container", nil)
 					}
 					// Forward to client.
+					logger.Debug("forward message from channel to client",
+						zap.String("channel", string(channelLabel)),
+						zap.String("message", string(messageRaw)))
 					select {
 					case <-egCtx.Done():
 						session.logger.Debug("dropping outgoing message from channel due to context done",
@@ -258,13 +273,53 @@ func route(lifetime context.Context, logger *zap.Logger, session session) error 
 			}
 		})
 		eg.Go(func() error {
+			<-egCtx.Done()
+			channelClient.Close()
+			return nil
+		})
+		eg.Go(func() error {
 			return meh.NilOrWrap(channelClient.RunAndClose(), "run and close channel-client",
 				meh.Details{"channel_label": channelLabel})
 		})
 	}
 	// Launch client.
 	eg.Go(func() error {
+		<-egCtx.Done()
+		clientClient.Close()
+		return nil
+	})
+	eg.Go(func() error {
 		return meh.NilOrWrap(clientClient.RunAndClose(), "run and close client-client", nil)
 	})
 	return eg.Wait()
+}
+
+func sendErrOverControlChannel(ctx context.Context, c wsutil.RawConnection, err error) {
+	errorMessageContentRaw, err := json.Marshal(wsutil.ErrorMessageFromErr(err))
+	if err != nil {
+		mehlog.Log(logging.DebugLogger(), meh.NewInternalErrFromErr(err, "marshal error message content",
+			meh.Details{"error_message_from_err": fmt.Sprintf("%+v", wsutil.ErrorMessageFromErr(err))}))
+	}
+	payloadRaw, err := json.Marshal(wsutil.Message{
+		Type:    wsutil.TypeError,
+		Payload: errorMessageContentRaw,
+	})
+	if err != nil {
+		mehlog.Log(logging.DebugLogger(), meh.NewInternalErrFromErr(err, "marshal message payload",
+			meh.Details{"raw_error_message_from_err": string(errorMessageContentRaw)}))
+	}
+	finalMessageRaw, err := json.Marshal(wshub.MessageContainer{
+		Channel: controlChannel,
+		Payload: payloadRaw,
+	})
+	if err != nil {
+		mehlog.Log(logging.DebugLogger(), meh.NewInternalErrFromErr(err, "marshal final message",
+			meh.Details{"channel": controlChannel, "payload": string(payloadRaw)}))
+	}
+	// Forward to client.
+	select {
+	case <-ctx.Done():
+		return
+	case c.SendRaw() <- finalMessageRaw:
+	}
 }

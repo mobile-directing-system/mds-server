@@ -210,18 +210,18 @@ func (suite *hubServeSuite) TestMulti() {
 	defer func() { _ = serverConn.Close() }()
 
 	// Send message to server, read response and check to see if it's what we expect.
-	err = serverConn.WriteMessage(websocket.TextMessage, []byte(`{"channel":"chan_1","payload":{"for":"my_beautiful_channel"}}`))
-	suite.Require().NoError(err, "write client-message should not fail")
-	err = serverConn.WriteMessage(websocket.TextMessage, []byte(`{"channel":"chan_2","payload":{"for":"my_beautiful_channel_2"}}`))
-	suite.Require().NoError(err, "write client-message should not fail")
-	err = serverConn.WriteMessage(websocket.TextMessage, []byte(`{"channel":"chan_1","payload":{"for":"my_beautiful_channel"}}`))
-	suite.Require().NoError(err, "write client-message should not fail")
 	clientReceived := make([]json.RawMessage, 0, 2)
 	for i := 0; i < 3; i++ {
 		_, p, err := serverConn.ReadMessage()
 		suite.Require().NoError(err, "read client-message should not fail")
 		clientReceived = append(clientReceived, p)
 	}
+	err = serverConn.WriteMessage(websocket.TextMessage, []byte(`{"channel":"chan_1","payload":{"for":"my_beautiful_channel"}}`))
+	suite.Require().NoError(err, "write client-message should not fail")
+	err = serverConn.WriteMessage(websocket.TextMessage, []byte(`{"channel":"chan_2","payload":{"for":"my_beautiful_channel_2"}}`))
+	suite.Require().NoError(err, "write client-message should not fail")
+	err = serverConn.WriteMessage(websocket.TextMessage, []byte(`{"channel":"chan_1","payload":{"for":"my_beautiful_channel"}}`))
+	suite.Require().NoError(err, "write client-message should not fail")
 	var wg sync.WaitGroup
 	wg.Add(2)
 	go func() {
@@ -342,8 +342,7 @@ func (suite *hubServeSuite) TestChannelUnexpectedClose() {
 	cancel()
 	allStuff.Wait()
 	for {
-		_, m, err := serverConn.ReadMessage()
-		fmt.Println(string(m))
+		_, _, err := serverConn.ReadMessage()
 		if err == nil {
 			continue
 		}

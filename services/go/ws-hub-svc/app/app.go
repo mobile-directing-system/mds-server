@@ -37,7 +37,7 @@ func Run(ctx context.Context) error {
 		// Check hosts.
 		eg.Go(func() error {
 			err := connectutil.AwaitHostsReachable(egCtx, forwardURLs...)
-			return meh.NilOrWrap(err, "await forward urls reachable", nil)
+			return meh.NilOrWrap(err, "await forward urls reachable", meh.Details{"forward_urls": forwardURLs})
 		})
 		return eg.Wait()
 	}
@@ -65,7 +65,7 @@ func extractForwardChannelURLs(gateConfigs []gateConfig) []string {
 		}
 	}
 	// Convert to slice.
-	forwardURLs := make([]string, len(forwardURLsMap))
+	forwardURLs := make([]string, 0, len(forwardURLsMap))
 	for url := range forwardURLsMap {
 		forwardURLs = append(forwardURLs, url)
 	}
