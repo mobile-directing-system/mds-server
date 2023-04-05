@@ -27,6 +27,9 @@ type Store interface {
 	handleInvalidateIntelByIDStore
 	handleRebuildIntelSearchStore
 	handleGetAllIntelStore
+	handleCreateIntelDeliveryAttemptForDeliveryStore
+	handleGetIntelDeliveryAttemptsByDeliveryStore
+	handleSetAddressBookEntriesWithAutoDeliveryEnabledStore
 }
 
 // Serve the endpoints via HTTP.
@@ -42,6 +45,7 @@ func Serve(lifetime context.Context, logger *zap.Logger, addr string, authSecret
 }
 
 func populateRoutes(r *gin.Engine, logger *zap.Logger, secret string, s Store) {
+	r.PUT("/address-book/entries-with-auto-intel-delivery", httpendpoints.GinHandlerFunc(logger, secret, handleSetAddressBookEntriesWithAutoDeliveryEnabled(s)))
 	r.GET("/address-book/entries/search", httpendpoints.GinHandlerFunc(logger, secret, handleSearchAddressBookEntries(s)))
 	r.POST("/address-book/entries/search/rebuild", httpendpoints.GinHandlerFunc(logger, secret, handleRebuildAddressBookEntrySearch(s)))
 	r.GET("/address-book/entries/:entryID", httpendpoints.GinHandlerFunc(logger, secret, handleGetAddressBookEntryByID(s)))
@@ -57,6 +61,8 @@ func populateRoutes(r *gin.Engine, logger *zap.Logger, secret string, s Store) {
 	r.POST("/intel/search/rebuild", httpendpoints.GinHandlerFunc(logger, secret, handleRebuildIntelSearch(s)))
 	r.GET("/intel/:intelID", httpendpoints.GinHandlerFunc(logger, secret, handleGetIntelByID(s)))
 	r.POST("/intel/:intelID/invalidate", httpendpoints.GinHandlerFunc(logger, secret, handleInvalidateIntelByID(s)))
+	r.GET("/intel-deliveries/:deliveryID/attempts", httpendpoints.GinHandlerFunc(logger, secret, handleGetIntelDeliveryAttemptsByDelivery(s)))
 	r.POST("/intel-deliveries/:deliveryID/delivered", httpendpoints.GinHandlerFunc(logger, secret, handleMarkIntelDeliveryAsDelivered(s)))
+	r.POST("/intel-deliveries/:deliveryID/deliver/channel/:channelID", httpendpoints.GinHandlerFunc(logger, secret, handleCreateIntelDeliveryAttemptForDelivery(s)))
 	r.POST("/intel-delivery-attempts/:attemptID/delivered", httpendpoints.GinHandlerFunc(logger, secret, handleMarkIntelDeliveryAttemptAsDelivered(s)))
 }

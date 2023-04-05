@@ -30,6 +30,10 @@ profiles:
           context: ./
           docker:
             dockerfile: services/go/logistics-svc/Dockerfile
+        - image: mds-open-intel-delivery-notifier-svc
+          context: ./
+          docker:
+            dockerfile: services/go/open-intel-delivery-notifier-svc/Dockerfile
         - image: mds-in-app-notifier-svc
           context: ./
           docker:
@@ -71,6 +75,7 @@ profiles:
           - k8s/520_mds-operation-svc.yaml
           - k8s/521_mds-group-svc.yaml
           - k8s/530_mds-logistics-svc.yaml
+          - k8s/531_mds-open-intel-delivery-notifier-svc.yaml
           - k8s/540_mds-in-app-notifier-svc.yaml
           - k8s/541_mds-radio-delivery-svc.yaml
           - k8s/811_public-ingress.yaml

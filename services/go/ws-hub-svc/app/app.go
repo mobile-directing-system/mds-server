@@ -6,7 +6,7 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/shared/connectutil"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/logging"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/ready"
-	"github.com/mobile-directing-system/mds-server/services/go/shared/wshub"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/wsutil"
 	"github.com/mobile-directing-system/mds-server/services/go/ws-hub-svc/endpoints"
 	"github.com/mobile-directing-system/mds-server/services/go/ws-hub-svc/ws"
 	"golang.org/x/sync/errgroup"
@@ -75,9 +75,9 @@ func extractForwardChannelURLs(gateConfigs []gateConfig) []string {
 func gateConfigsFromConfig(gateConfigs []gateConfig) map[string]ws.Gate {
 	out := make(map[string]ws.Gate, len(gateConfigs))
 	for _, gc := range gateConfigs {
-		channels := make(map[wshub.Channel]ws.Channel, len(gc.Channels))
+		channels := make(map[wsutil.Channel]ws.Channel, len(gc.Channels))
 		for _, agent := range gc.Channels {
-			channels[wshub.Channel(agent.Name)] = ws.Channel{
+			channels[wsutil.Channel(agent.Name)] = ws.Channel{
 				URL: agent.URL,
 			}
 		}

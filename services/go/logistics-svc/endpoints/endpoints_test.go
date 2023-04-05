@@ -100,3 +100,21 @@ func (m *StoreMock) Intel(ctx context.Context, filters store.IntelFilters, pagin
 	args := m.Called(ctx, filters, paginationParams, limitToUser)
 	return args.Get(0).(pagination.Paginated[store.Intel]), args.Error(1)
 }
+
+func (m *StoreMock) CreateIntelDeliveryAttempt(ctx context.Context, deliveryID uuid.UUID, channelID uuid.UUID) (store.IntelDeliveryAttempt, error) {
+	args := m.Called(ctx, deliveryID, channelID)
+	return args.Get(0).(store.IntelDeliveryAttempt), args.Error(1)
+}
+
+func (m *StoreMock) IntelDeliveryAttemptsByDelivery(ctx context.Context, deliveryID uuid.UUID) ([]store.IntelDeliveryAttempt, error) {
+	args := m.Called(ctx, deliveryID)
+	var attempts []store.IntelDeliveryAttempt
+	if a := args.Get(0); a != nil {
+		attempts = a.([]store.IntelDeliveryAttempt)
+	}
+	return attempts, args.Error(1)
+}
+
+func (m *StoreMock) SetAddressBookEntriesWithAutoDeliveryEnabled(ctx context.Context, entryIDs []uuid.UUID) error {
+	return m.Called(ctx, entryIDs).Error(0)
+}

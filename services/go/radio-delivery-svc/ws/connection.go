@@ -63,5 +63,5 @@ func (conn *connection) NotifyNewAvailable(ctx context.Context, operationID uuid
 
 // Done returns the done-channel from the connection.
 func (conn *connection) Done() <-chan struct{} {
-	return conn.conn.Done()
+	return conn.conn.Lifetime().Done()
 }

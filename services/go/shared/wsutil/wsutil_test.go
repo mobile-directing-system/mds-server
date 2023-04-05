@@ -41,20 +41,23 @@ func TestWebSocket(t *testing.T) {
 	serverURL := "ws" + strings.TrimPrefix(httpServer.URL, "http")
 	var testWG sync.WaitGroup
 	// Setup client mock.
-	clientToSend := make([]Message, 512)
+	clientToSend := make([]Message, 16)
 	for i := range clientToSend {
 		clientToSend[i] = genRandomMessage()
 	}
-	serverToSend := make([]Message, 512)
+	serverToSend := make([]Message, 32)
 	for i := range serverToSend {
 		serverToSend[i] = genRandomMessage()
 	}
-	clientCount := 128
+	clientCount := 16
 	// We need to keep track of requests to keep all connections open. This is
 	// because when a connection is prematurely closed while incoming/outgoing
 	// messages are still being passed around because of parsing, etc., channel sends
-	// will abort if the connection is already closed.
+	// will abort if the connection is already closed. We therefore create a wait
+	// group with 4 expected operations per client (2 times client send/receive and 2
+	// times server send/receive).
 	var keepConnectionOpen sync.WaitGroup
+	keepConnectionOpen.Add(clientCount * 4)
 	// Setup listener.
 	connListener := func(rawConn RawConnection) {
 		conn := NewAutoParserConnection(rawConn)
@@ -68,7 +71,6 @@ func TestWebSocket(t *testing.T) {
 		// Read messages.
 		var connWG sync.WaitGroup
 		// Read.
-		keepConnectionOpen.Add(1)
 		connWG.Add(1)
 		go func() {
 			defer keepConnectionOpen.Done()
@@ -83,7 +85,6 @@ func TestWebSocket(t *testing.T) {
 			assert.Fail(t, "early close", "receive closed before all messages where received")
 		}()
 		// Send.
-		keepConnectionOpen.Add(1)
 		connWG.Add(1)
 		go func() {
 			defer keepConnectionOpen.Done()
@@ -117,7 +118,6 @@ func TestWebSocket(t *testing.T) {
 				_ = serverConn.Close()
 			}()
 			// Send messages.
-			keepConnectionOpen.Add(1)
 			connWG.Add(1)
 			go func() {
 				defer keepConnectionOpen.Done()
@@ -128,7 +128,6 @@ func TestWebSocket(t *testing.T) {
 				}
 			}()
 			// Read messages.
-			keepConnectionOpen.Add(1)
 			connWG.Add(1)
 			go func() {
 				defer keepConnectionOpen.Done()

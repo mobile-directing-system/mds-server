@@ -130,6 +130,9 @@ type AddressBookEntryFilters struct {
 	VisibleBy uuid.NullUUID
 	// IncludeForInactiveUsers includes entries, associated with inactive users.
 	IncludeForInactiveUsers bool
+	// AutoDeliveryEnabled excludes entries with auto-delivery being
+	// enabled/disabled.
+	AutoDeliveryEnabled nulls.Bool
 }
 
 // documentFromAddressBookEntryByID generates the search.Document from the
@@ -252,6 +255,11 @@ func (m *Mall) AddressBookEntries(ctx context.Context, tx pgx.Tx, filters Addres
 	if !filters.IncludeForInactiveUsers {
 		whereAnd = append(whereAnd, goqu.Or(goqu.I("address_book_entries.user").IsNull(),
 			goqu.I("users.is_active").IsTrue()))
+	}
+	if filters.AutoDeliveryEnabled.Valid {
+		whereAnd = append(whereAnd, goqu.I("address_book_entries.id").
+			In(m.dialect.From(goqu.T("auto_intel_delivery_address_book_entries")).
+				Select(goqu.I("auto_intel_delivery_address_book_entries.entry"))))
 	}
 	if len(whereAnd) > 0 {
 		qb = qb.Where(goqu.And(whereAnd...))
@@ -543,6 +551,10 @@ func (m *Mall) SearchAddressBookEntries(ctx context.Context, tx pgx.Tx, filters 
 			fmt.Sprintf("%s = true", abEntrySearchAttrUserIsActive),
 		})
 	}
+	if filters.AutoDeliveryEnabled.Valid {
+		return search.Result[AddressBookEntryDetailed]{},
+			meh.NewBadInputErr("auto-delivery-enabled-filter is not available in search", nil)
+	}
 	resultUUIDs, err := search.UUIDSearch(m.searchClient, abEntrySearchIndex, searchParams, search.Request{
 		Filter: searchFilters,
 	})
@@ -670,4 +682,88 @@ func (m *Mall) associatedUsersByAddressBookEntries(ctx context.Context, tx pgx.T
 		users = append(users, id)
 	}
 	return users, nil
+}
+
+// IsAutoDeliveryEnabledForAddressBookEntry checks whether the address book entry
+// with the given id is marked for auto-delivery.
+func (m *Mall) IsAutoDeliveryEnabledForAddressBookEntry(ctx context.Context, tx pgx.Tx, entryID uuid.UUID) (bool, error) {
+	q, _, err := m.dialect.From(goqu.T("auto_intel_delivery_address_book_entries")).
+		Select(goqu.C("entry")).
+		Where(goqu.C("entry").Eq(entryID)).ToSQL()
+	if err != nil {
+		return false, meh.NewInternalErrFromErr(err, "query to sql", nil)
+	}
+	rows, err := tx.Query(ctx, q)
+	if err != nil {
+		return false, mehpg.NewQueryDBErr(err, "query db", q)
+	}
+	defer rows.Close()
+	enabled := rows.Next()
+	return enabled, nil
+}
+
+// clearAutoDeliveryEnabledForAllAddressBookEntries removes all address book
+// entries from the list with auto-delivery enabled ones. The ids of all address
+// book entries are returned that have been cleared of auto delivery.
+func (m *Mall) clearAutoDeliveryEnabledForAllAddressBookEntries(ctx context.Context, tx pgx.Tx) ([]uuid.UUID, error) {
+	q, _, err := m.dialect.Delete(goqu.T("auto_intel_delivery_address_book_entries")).
+		Returning(goqu.C("entry")).ToSQL()
+	if err != nil {
+		return nil, meh.NewInternalErrFromErr(err, "query to sql", nil)
+	}
+	rows, err := tx.Query(ctx, q)
+	if err != nil {
+		return nil, mehpg.NewQueryDBErr(err, "exec query", q)
+	}
+	defer rows.Close()
+	cleared := make([]uuid.UUID, 0)
+	for rows.Next() {
+		var entryID uuid.UUID
+		err = rows.Scan(&entryID)
+		if err != nil {
+			return nil, mehpg.NewScanRowsErr(err, "scan row", q)
+		}
+		cleared = append(cleared, entryID)
+	}
+	return cleared, nil
+}
+
+// SetAddressBookEntriesWithAutoDeliveryEnabled sets the list of address book
+// entries with auto-delivery being enabled to the given ones. The returned list
+// of ids are of address book entries that had previously auto delivery enabled,
+// but now disabled.
+func (m *Mall) SetAddressBookEntriesWithAutoDeliveryEnabled(ctx context.Context, tx pgx.Tx, entryIDs []uuid.UUID) ([]uuid.UUID, error) {
+	// Clear all and collect entry ids for removing the 'new' ones.
+	cleared, err := m.clearAutoDeliveryEnabledForAllAddressBookEntries(ctx, tx)
+	if err != nil {
+		return nil, meh.Wrap(err, "clear auto-delivery-enabled for all address book entries", nil)
+	}
+	clearedWithoutReenabled := make(map[uuid.UUID]struct{}, len(cleared))
+	for _, entryID := range cleared {
+		clearedWithoutReenabled[entryID] = struct{}{}
+	}
+	// Enabled auto delivery for the given entries.
+	rows := make([]any, 0, len(entryIDs))
+	for _, entryID := range entryIDs {
+		rows = append(rows, goqu.Record{
+			"entry": entryID,
+		})
+		delete(clearedWithoutReenabled, entryID)
+	}
+	if len(rows) == 0 {
+		return cleared, nil
+	}
+	q, _, err := m.dialect.Insert("auto_intel_delivery_address_book_entries").Rows(rows...).ToSQL()
+	if err != nil {
+		return nil, meh.NewInternalErrFromErr(err, "query to sql", nil)
+	}
+	_, err = tx.Exec(ctx, q)
+	if err != nil {
+		return nil, mehpg.NewQueryDBErr(err, "exec query", q)
+	}
+	clearedClean := make([]uuid.UUID, 0, len(clearedWithoutReenabled))
+	for entryID := range clearedWithoutReenabled {
+		clearedClean = append(clearedClean, entryID)
+	}
+	return cleared, nil
 }

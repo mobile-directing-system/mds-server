@@ -13,6 +13,9 @@ import (
 type DBTxSupplier struct {
 	// BeginFail describes whether calls to Begin should fail.
 	BeginFail bool
+	// GenTx describes whether transactions should be generated automatically when
+	// required.
+	GenTx bool
 	// Tx are the DBTx to return in calls to Begin.
 	Tx []*DBTx
 	// txOffset keeps track of the current tx in Tx.
@@ -29,6 +32,9 @@ func (supplier *DBTxSupplier) Begin(_ context.Context) (pgx.Tx, error) {
 	supplier.txOffsetMutex.Lock()
 	defer supplier.txOffsetMutex.Unlock()
 	if supplier.txOffset >= len(supplier.Tx) {
+		if supplier.GenTx {
+			return &DBTx{}, nil
+		}
 		panic("out of tx")
 	}
 	tx := supplier.Tx[supplier.txOffset]

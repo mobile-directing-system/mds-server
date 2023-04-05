@@ -26,6 +26,7 @@ forwardPostgreSQLInBackground "service/mds-operation-svc-postgres-service"
 forwardPostgreSQLInBackground "service/mds-logistics-svc-postgres-service"
 forwardPostgreSQLInBackground "service/mds-in-app-notifier-svc-postgres-service"
 forwardPostgreSQLInBackground "service/mds-radio-delivery-svc-postgres-service"
+forwardPostgreSQLInBackground "service/mds-open-intel-delivery-notif-postgres-service"
 
 sleep 1
 echo "*********************************"

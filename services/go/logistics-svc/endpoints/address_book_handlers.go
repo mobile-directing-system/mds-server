@@ -168,6 +168,14 @@ func addressBookEntryFiltersFromQuery(q url.Values) (store.AddressBookEntryFilte
 		}
 		filters.IncludeForInactiveUsers = includeForInactiveUsers
 	}
+	if autoDeliveryEnabledStr := q.Get("auto_delivery_enabled"); autoDeliveryEnabledStr != "" {
+		autoDeliveryEnabled, err := strconv.ParseBool(autoDeliveryEnabledStr)
+		if err != nil {
+			return store.AddressBookEntryFilters{}, meh.NewBadInputErrFromErr(err, "parse auto-delivery-enabled from string",
+				meh.Details{"was": autoDeliveryEnabledStr})
+		}
+		filters.AutoDeliveryEnabled = nulls.NewBool(autoDeliveryEnabled)
+	}
 	return filters, nil
 }
 
@@ -406,6 +414,36 @@ func handleRebuildAddressBookEntrySearch(s handleRebuildAddressBookEntrySearchSt
 			return meh.Wrap(err, "check permissions", nil)
 		}
 		go s.RebuildAddressBookEntrySearch(context.Background())
+		c.Status(http.StatusOK)
+		return nil
+	}
+}
+
+// handleSetAddressBookEntriesWithAutoDeliveryEnabledStore are the dependencies
+// needed for handleSetAddressBookEntriesWithAutoDeliveryEnabled.
+type handleSetAddressBookEntriesWithAutoDeliveryEnabledStore interface {
+	SetAddressBookEntriesWithAutoDeliveryEnabled(ctx context.Context, entryIDs []uuid.UUID) error
+}
+
+// handleSetAddressBookEntriesWithAutoDeliveryEnabled sets auto intel-delivery
+// enabled for the given address book entries and disabled for all other ones.
+func handleSetAddressBookEntriesWithAutoDeliveryEnabled(s handleSetAddressBookEntriesWithAutoDeliveryEnabledStore) httpendpoints.HandlerFunc {
+	return func(c *gin.Context, token auth.Token) error {
+		err := auth.AssurePermission(token, permission.ManageIntelDelivery())
+		if err != nil {
+			return meh.Wrap(err, "check permissions", nil)
+		}
+		// Parse address book entries.
+		var entries []uuid.UUID
+		err = c.BindJSON(&entries)
+		if err != nil {
+			return meh.NewBadInputErrFromErr(err, "parse body", nil)
+		}
+		// Update.
+		err = s.SetAddressBookEntriesWithAutoDeliveryEnabled(c.Request.Context(), entries)
+		if err != nil {
+			return meh.Wrap(err, "set address book entries with auto delivery enabled", meh.Details{"new_entries": entries})
+		}
 		c.Status(http.StatusOK)
 		return nil
 	}

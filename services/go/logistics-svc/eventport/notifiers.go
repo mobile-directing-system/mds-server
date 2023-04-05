@@ -599,3 +599,22 @@ func (p *Port) NotifyIntelDeliveryAttemptStatusUpdated(ctx context.Context, tx p
 	}
 	return nil
 }
+
+// NotifyAddressBookEntryAutoDeliveryUpdated emits an
+// event.TypeAddressBookEntryAutoDeliveryUpdated event.
+func (p *Port) NotifyAddressBookEntryAutoDeliveryUpdated(ctx context.Context, tx pgx.Tx, entryID uuid.UUID, isAutoDeliveryEnabled bool) error {
+	message := kafkautil.OutboundMessage{
+		Topic:     event.IntelDeliveriesTopic,
+		Key:       entryID.String(),
+		EventType: event.TypeAddressBookEntryAutoDeliveryUpdated,
+		Value: event.AddressBookEntryAutoDeliveryUpdated{
+			ID:                    entryID,
+			IsAutoDeliveryEnabled: isAutoDeliveryEnabled,
+		},
+	}
+	err := p.writer.AddOutboxMessages(ctx, tx, message)
+	if err != nil {
+		return meh.Wrap(err, "add outbox messages", meh.Details{"message": message})
+	}
+	return nil
+}

@@ -190,3 +190,17 @@ type IntelDeliveryStatusUpdated struct {
 	// Note contains optional human-readable information regarding the delivery.
 	Note nulls.String `json:"note"`
 }
+
+// TypeAddressBookEntryAutoDeliveryUpdated for when auto intel delivery for an
+// address book entry is enabled/disabled.
+const TypeAddressBookEntryAutoDeliveryUpdated Type = "address-book-entry-auto-delivery-updated"
+
+// AddressBookEntryAutoDeliveryUpdated for
+// TypeAddressBookEntryAutoDeliveryUpdated.
+type AddressBookEntryAutoDeliveryUpdated struct {
+	// ID is the id of the address book entry the update is for.
+	ID uuid.UUID `json:"id"`
+	// IsAutoDeliveryEnabled describes whether auto intel delivery is now enabled for
+	// the address book entry with ID.
+	IsAutoDeliveryEnabled bool `json:"is_auto_delivery_enabled"`
+}

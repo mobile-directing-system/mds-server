@@ -215,3 +215,13 @@ create index intel_delivery_attempts_delivery_ix on intel_delivery_attempts (del
 create index intel_delivery_attempts_channel_ix on intel_delivery_attempts (channel);
 create index intel_delivery_attempts_active_ix on intel_delivery_attempts (is_active)
     where is_active = true or is_active is true;
+
+-- Create table for auto-delivery.
+
+create table auto_intel_delivery_address_book_entries
+(
+    entry uuid primary key not null references address_book_entries (id)
+        on delete cascade on update cascade
+);
+
+comment on table auto_intel_delivery_address_book_entries is 'Address book entries for which auto-intel-delivery is enabled.';

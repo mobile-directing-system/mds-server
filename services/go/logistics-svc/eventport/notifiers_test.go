@@ -1,6 +1,7 @@
 package eventport
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/gofrs/uuid"
 	"github.com/lefinal/nulls"
@@ -1201,4 +1202,48 @@ func (suite *PortNotifyIntelDeliveryStatusUpdatedSuite) TestOK() {
 
 func TestPort_NotifyIntelDeliveryStatusUpdated(t *testing.T) {
 	suite.Run(t, new(PortNotifyIntelDeliveryStatusUpdatedSuite))
+}
+
+// PortNotifyAddressBookEntryAutoDeliveryUpdatedSuite tests
+// Port.NotifyAddressBookEntryAutoDeliveryUpdated.
+type PortNotifyAddressBookEntryAutoDeliveryUpdatedSuite struct {
+	suite.Suite
+	port             *PortMock
+	entryID          uuid.UUID
+	isEnabled        bool
+	expectedMessages []kafkautil.OutboundMessage
+}
+
+func (suite *PortNotifyAddressBookEntryAutoDeliveryUpdatedSuite) SetupTest() {
+	suite.port = newMockPort()
+	suite.entryID = testutil.NewUUIDV4()
+	suite.isEnabled = true
+	suite.expectedMessages = []kafkautil.OutboundMessage{
+		{
+			Topic:     event.IntelDeliveriesTopic,
+			Key:       suite.entryID.String(),
+			EventType: event.TypeAddressBookEntryAutoDeliveryUpdated,
+			Value: event.AddressBookEntryAutoDeliveryUpdated{
+				ID:                    suite.entryID,
+				IsAutoDeliveryEnabled: suite.isEnabled,
+			},
+			Headers: nil,
+		},
+	}
+}
+
+func (suite *PortNotifyAddressBookEntryAutoDeliveryUpdatedSuite) TestWriteFail() {
+	suite.port.recorder.WriteFail = true
+	err := suite.port.Port.NotifyAddressBookEntryAutoDeliveryUpdated(context.Background(), &testutil.DBTx{}, suite.entryID, suite.isEnabled)
+	suite.Error(err, "should fail")
+}
+
+func (suite *PortNotifyAddressBookEntryAutoDeliveryUpdatedSuite) TestOK() {
+	err := suite.port.Port.NotifyAddressBookEntryAutoDeliveryUpdated(context.Background(), &testutil.DBTx{}, suite.entryID, suite.isEnabled)
+	suite.Require().NoError(err, "should not fail")
+	suite.Equal(suite.expectedMessages, suite.port.recorder.Recorded, "should write correct messages")
+}
+
+func TestPort_NotifyAddressBookEntryAutoDeliveryUpdated(t *testing.T) {
+	suite.Run(t, new(PortNotifyAddressBookEntryAutoDeliveryUpdatedSuite))
 }

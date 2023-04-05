@@ -4,16 +4,22 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid"
 	"github.com/lefinal/meh"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/auth"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/httpendpoints"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/permission"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/wsutil"
+	"go.uber.org/atomic"
 	"go.uber.org/zap"
+	"net/http"
 	"sync"
 )
 
-// RawConnection mocks wsutil.Connection for testing purposes.
+// RawConnection mocks wsutil.Connection for testing purposes. If a call to
+// OutboxChan was made, messages to send will also be forwarded to the returned
+// channel. Otherwise, they will only be added to the Outbox.
 type RawConnection struct {
 	id         uuid.UUID
 	lifetime   context.Context
@@ -26,6 +32,12 @@ type RawConnection struct {
 	// outbox holds all messages from Send and SendDirect where sending was
 	// successful.
 	outbox []wsutil.Message
+	// outboxChan is the channel to send outgoing messages to, if a call to
+	// ReceiveRaw was made.
+	outboxChan chan wsutil.Message
+	// forwardToOutboxChan describes whether outgoing messages should also be routed
+	// to outboxChan.
+	forwardToOutboxChan *atomic.Bool
 	// outboxMutex locks outbox
 	outboxMutex sync.RWMutex
 }
@@ -38,13 +50,15 @@ func NewConnectionMock(lifetime context.Context, authToken auth.Token) *RawConne
 	lifetime, disconnect := context.WithCancel(lifetime)
 	id, _ := uuid.NewV4()
 	return &RawConnection{
-		id:         id,
-		lifetime:   lifetime,
-		disconnect: disconnect,
-		authToken:  authToken,
-		SendFail:   false,
-		receive:    make(chan json.RawMessage),
-		outbox:     make([]wsutil.Message, 0),
+		id:                  id,
+		lifetime:            lifetime,
+		disconnect:          disconnect,
+		authToken:           authToken,
+		SendFail:            false,
+		receive:             make(chan json.RawMessage),
+		outbox:              make([]wsutil.Message, 0),
+		outboxChan:          make(chan wsutil.Message),
+		forwardToOutboxChan: atomic.NewBool(false),
 	}
 }
 
@@ -53,9 +67,17 @@ func (m *RawConnection) SetPermissions(newPermissions []permission.Permission) {
 	m.authToken.Permissions = newPermissions
 }
 
-// NextReceive passes the given wsutil.Message to the channel from Receive.
-func (m *RawConnection) NextReceive(ctx context.Context, message wsutil.Message) {
-	raw, err := json.Marshal(message)
+// NextReceive marshals and passes the given wsutil.Message to the channel from
+// ReceiveRaw.
+func (m *RawConnection) NextReceive(ctx context.Context, messageType wsutil.MessageType, payload any) {
+	rawPayload, err := json.Marshal(payload)
+	if err != nil {
+		panic(err)
+	}
+	raw, err := json.Marshal(wsutil.Message{
+		Type:    messageType,
+		Payload: rawPayload,
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -75,6 +97,13 @@ func (m *RawConnection) Outbox() []wsutil.Message {
 		outboxCopy = append(outboxCopy, message)
 	}
 	return outboxCopy
+}
+
+// OutboxChan enables forwarding of outbox messages and returns the channel that
+// outbox messages are being forwarded to.
+func (m *RawConnection) OutboxChan() <-chan wsutil.Message {
+	m.forwardToOutboxChan.Store(true)
+	return m.outboxChan
 }
 
 // ID returns the id of the connection.
@@ -100,13 +129,20 @@ func (m *RawConnection) Send(ctx context.Context, messageType wsutil.MessageType
 }
 
 // SendDirect adds the given wsutil.Message to the outbox if SendFail is not set.
-func (m *RawConnection) SendDirect(_ context.Context, message wsutil.Message) error {
+func (m *RawConnection) SendDirect(ctx context.Context, message wsutil.Message) error {
 	if m.SendFail {
 		return errors.New("send fail")
 	}
 	m.outboxMutex.Lock()
 	defer m.outboxMutex.Unlock()
 	m.outbox = append(m.outbox, message)
+	if m.forwardToOutboxChan.Load() {
+		select {
+		case <-ctx.Done():
+			return errors.New("context done")
+		case m.outboxChan <- message:
+		}
+	}
 	return nil
 }
 
@@ -115,9 +151,9 @@ func (m *RawConnection) Disconnect() {
 	m.disconnect()
 }
 
-// Done receives when the connection is done.
-func (m *RawConnection) Done() <-chan struct{} {
-	return m.lifetime.Done()
+// Lifetime of the connection.
+func (m *RawConnection) Lifetime() context.Context {
+	return m.lifetime
 }
 
 // Logger returns a zap.NewNop-logger.
@@ -138,4 +174,26 @@ func (m *RawConnection) SendRaw() chan<- json.RawMessage {
 // ReceiveRaw is not implemented.
 func (m *RawConnection) ReceiveRaw() <-chan json.RawMessage {
 	return m.receive
+}
+
+// HubMock mocks wsutil.Hub.
+type HubMock struct {
+	// UpgradeCalled is the amount of times the upgrade handler was called.
+	UpgradeCalled int
+	// UpgradeFail describes whether upgrade should succeed (return http.StatusOK) or
+	// fail (return http.StatusInternalServerError).
+	UpgradeFail bool
+}
+
+// UpgradeHandler increments UpgradeCalled and returns an error if UpgradeFail is
+// set to true. Otherwise, responds with http.StatusOK..
+func (m *HubMock) UpgradeHandler() httpendpoints.HandlerFunc {
+	return func(c *gin.Context, _ auth.Token) error {
+		m.UpgradeCalled++
+		if m.UpgradeFail {
+			return errors.New("sad life")
+		}
+		c.Status(http.StatusOK)
+		return nil
+	}
 }

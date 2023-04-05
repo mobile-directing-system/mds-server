@@ -10,7 +10,6 @@ import (
 	"github.com/lefinal/meh/mehlog"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/auth"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/logging"
-	"github.com/mobile-directing-system/mds-server/services/go/shared/wshub"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/wsutil"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -27,7 +26,7 @@ type Gate struct {
 	// Name of the gate.
 	Name string
 	// Channels for the gate.
-	Channels map[wshub.Channel]Channel
+	Channels map[wsutil.Channel]Channel
 }
 
 // Channel holds configuration regarding a channel in a Gate.
@@ -83,7 +82,7 @@ type session struct {
 	logger     *zap.Logger
 	gateConfig Gate
 	client     *websocket.Conn
-	channels   map[wshub.Channel]*websocket.Conn
+	channels   map[wsutil.Channel]*websocket.Conn
 }
 
 var headersToRemoveLower = map[string]struct{}{
@@ -109,9 +108,9 @@ func headersWithoutWS(h http.Header) http.Header {
 // connectChannels connects to all channels in the given Gate. If one fails, all
 // connections are closed. Otherwise, a map with the connections by channel-name
 // is returned. The cancel-func closes all channel-connections.
-func (h *hub) connectChannels(ctx context.Context, sessionLogger *zap.Logger, channels map[wshub.Channel]Channel,
-	requestHeader http.Header) (map[wshub.Channel]*websocket.Conn, error) {
-	connections := make(map[wshub.Channel]*websocket.Conn, len(channels))
+func (h *hub) connectChannels(ctx context.Context, sessionLogger *zap.Logger, channels map[wsutil.Channel]Channel,
+	requestHeader http.Header) (map[wsutil.Channel]*websocket.Conn, error) {
+	connections := make(map[wsutil.Channel]*websocket.Conn, len(channels))
 	var connectionsMutex sync.Mutex
 	eg, egCtx := errgroup.WithContext(ctx)
 	for channelLabel, channel := range channels {
@@ -200,7 +199,7 @@ func route(lifetime context.Context, logger *zap.Logger, session session) error 
 	// Create client's client (lol).
 	clientClient := wsutil.NewClient(lifetime, logger.Named("client"), auth.Token{}, session.client)
 	// Create channel clients.
-	channelClients := make(map[wshub.Channel]wsutil.Client, len(session.channels))
+	channelClients := make(map[wsutil.Channel]wsutil.Client, len(session.channels))
 	for channelLabel, channelConn := range session.channels {
 		channelClients[channelLabel] = wsutil.NewClient(lifetime, logger.Named("channel").Named(string(channelLabel)), auth.Token{}, channelConn)
 	}
@@ -214,7 +213,7 @@ func route(lifetime context.Context, logger *zap.Logger, session session) error 
 				return nil
 			case messageRaw := <-clientClient.RawConnection().ReceiveRaw():
 				// Parse message.
-				var mc wshub.MessageContainer
+				var mc wsutil.MessageContainer
 				err := json.Unmarshal(messageRaw, &mc)
 				if err != nil {
 					return meh.NewBadInputErrFromErr(err, "parse as message-container", meh.Details{"was": string(messageRaw)})
@@ -251,7 +250,7 @@ func route(lifetime context.Context, logger *zap.Logger, session session) error 
 						return nil
 					}
 					// Generate message for client.
-					messageRaw, err := json.Marshal(wshub.MessageContainer{
+					messageRaw, err := json.Marshal(wsutil.MessageContainer{
 						Channel: channelLabel,
 						Payload: message,
 					})
@@ -308,7 +307,7 @@ func sendErrOverControlChannel(ctx context.Context, c wsutil.RawConnection, err 
 		mehlog.Log(logging.DebugLogger(), meh.NewInternalErrFromErr(err, "marshal message payload",
 			meh.Details{"raw_error_message_from_err": string(errorMessageContentRaw)}))
 	}
-	finalMessageRaw, err := json.Marshal(wshub.MessageContainer{
+	finalMessageRaw, err := json.Marshal(wsutil.MessageContainer{
 		Channel: controlChannel,
 		Payload: payloadRaw,
 	})

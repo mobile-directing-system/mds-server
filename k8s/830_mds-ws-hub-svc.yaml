@@ -30,6 +30,10 @@ data:
             {
               "name": "radio-delivery",
               "url": "ws://mds-radio-delivery-svc-service:3000/ws"
+            },
+            {
+              "name": "open-intel-delivery-notifier",
+              "url": "ws://mds-open-intel-delivery-notifier-svc-service:3000/ws"
             }
           ]
         }

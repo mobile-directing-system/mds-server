@@ -59,3 +59,18 @@ func ViewAnyAddressBookEntry() Matcher {
 		},
 	}
 }
+
+// ManageIntelDeliveryPermissionName for ManageIntelDelivery.
+const ManageIntelDeliveryPermissionName Name = "logistics.intel-delivery.manage"
+
+// ManageIntelDelivery allows full control over creating intel deliveries,
+// including attempt creation, marking as delivered, etc.
+func ManageIntelDelivery() Matcher {
+	return Matcher{
+		Name: "manage-intel-delivery",
+		MatchFn: func(granted map[Name]Permission) (bool, error) {
+			_, ok := granted[ManageIntelDeliveryPermissionName]
+			return ok, nil
+		},
+	}
+}

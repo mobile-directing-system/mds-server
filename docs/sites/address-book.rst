@@ -148,6 +148,7 @@ Additionally, query parameters can be applied in order to filter entries:
 - ``exclude_global=true``: Exclude entries with have no operation assigned.
 - ``visible_by=<user_id>``: Only include entries, being visible to the user with the given id. If the :ref:`permission.logistics.address-book.entry.view.any` permission is not granted, this will have no effect, as the requesting users id is used here by default.
 - ``include_for_inactive_users=false``: Includes entries, associated with inactive users.
+- ``auto_delivery_enabled=false``: Whether to filter entries by having auto-delivery being enabled. This parameter is not allowed with search!
 
 :ref:`Search <http-api.search>` allows using these filters as well and is available via:
 

@@ -9,7 +9,6 @@ import (
 	"github.com/lefinal/meh"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/auth"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
-	"github.com/mobile-directing-system/mds-server/services/go/shared/wshub"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/wsutil"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -122,7 +121,7 @@ func (suite *hubServeSuite) TestSingle() {
 	hub := NewNetHub(timeout, zap.NewNop(), map[string]Gate{
 		"g": {
 			Name: "test_gate",
-			Channels: map[wshub.Channel]Channel{
+			Channels: map[wsutil.Channel]Channel{
 				"chan_1": {
 					URL: fmt.Sprintf("%s/channels/chan_1", serverURL),
 				},
@@ -178,7 +177,7 @@ func (suite *hubServeSuite) TestMulti() {
 	hub := NewNetHub(timeout, zap.NewNop(), map[string]Gate{
 		"g": {
 			Name: "test_gate",
-			Channels: map[wshub.Channel]Channel{
+			Channels: map[wsutil.Channel]Channel{
 				"chan_1": {
 					URL: fmt.Sprintf("%s/channels/chan_1", serverURL),
 				},
@@ -257,7 +256,7 @@ func (suite *hubServeSuite) TestChannelNotAvailable() {
 	hub := NewNetHub(timeout, zap.NewNop(), map[string]Gate{
 		"g": {
 			Name: "test_gate",
-			Channels: map[wshub.Channel]Channel{
+			Channels: map[wsutil.Channel]Channel{
 				"chan_1": {
 					URL: fmt.Sprintf("%s/channels/chan_1", serverURL),
 				},
@@ -295,7 +294,7 @@ func (suite *hubServeSuite) TestChannelUnexpectedClose() {
 	hub := NewNetHub(timeout, zap.NewNop(), map[string]Gate{
 		"g": {
 			Name: "test_gate",
-			Channels: map[wshub.Channel]Channel{
+			Channels: map[wsutil.Channel]Channel{
 				"chan_1": {
 					URL: fmt.Sprintf("%s/channels/chan_1", serverURL),
 				},
@@ -356,3 +355,5 @@ func (suite *hubServeSuite) TestChannelUnexpectedClose() {
 func Test_hubServe(t *testing.T) {
 	suite.Run(t, new(hubServeSuite))
 }
+
+// TODO: FIX BROKEN TESTS WITH WEBSOKCET (SEE GITHUB CI)

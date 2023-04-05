@@ -290,6 +290,29 @@ func (m *StoreMock) Intel(ctx context.Context, tx pgx.Tx, filters store.IntelFil
 	return args.Get(0).(pagination.Paginated[store.Intel]), args.Error(1)
 }
 
+func (m *StoreMock) IsAutoDeliveryEnabledForAddressBookEntry(ctx context.Context, tx pgx.Tx, entryID uuid.UUID) (bool, error) {
+	args := m.Called(ctx, tx, entryID)
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *StoreMock) SetAddressBookEntriesWithAutoDeliveryEnabled(ctx context.Context, tx pgx.Tx, entryIDs []uuid.UUID) ([]uuid.UUID, error) {
+	args := m.Called(ctx, tx, entryIDs)
+	var disabled []uuid.UUID
+	if a := args.Get(0); a != nil {
+		disabled = a.([]uuid.UUID)
+	}
+	return disabled, args.Error(1)
+}
+
+func (m *StoreMock) IntelDeliveryAttemptsByDelivery(ctx context.Context, tx pgx.Tx, deliveryID uuid.UUID) ([]store.IntelDeliveryAttempt, error) {
+	args := m.Called(ctx, tx, deliveryID)
+	var attempts []store.IntelDeliveryAttempt
+	if a := args.Get(0); a != nil {
+		attempts = a.([]store.IntelDeliveryAttempt)
+	}
+	return attempts, args.Error(1)
+}
+
 // NotifierMock mocks Notifier.
 type NotifierMock struct {
 	mock.Mock
@@ -335,4 +358,8 @@ func (m *NotifierMock) NotifyIntelCreated(ctx context.Context, tx pgx.Tx, create
 
 func (m *NotifierMock) NotifyIntelInvalidated(ctx context.Context, tx pgx.Tx, intelID uuid.UUID, by uuid.UUID) error {
 	return m.Called(ctx, tx, intelID, by).Error(0)
+}
+
+func (m *NotifierMock) NotifyAddressBookEntryAutoDeliveryUpdated(ctx context.Context, tx pgx.Tx, entryID uuid.UUID, isAutoDeliveryEnabled bool) error {
+	return m.Called(ctx, tx, entryID, isAutoDeliveryEnabled).Error(0)
 }

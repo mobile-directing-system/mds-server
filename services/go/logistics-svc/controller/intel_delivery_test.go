@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"errors"
 	"github.com/gofrs/uuid"
 	"github.com/lefinal/meh"
@@ -98,6 +99,8 @@ func (suite *controllerLookAfterDeliverySuite) SetupTest() {
 		Details:       nil,
 		Timeout:       59 * time.Second,
 	}
+	suite.ctrl.Store.On("IsAutoDeliveryEnabledForAddressBookEntry", mock.Anything, mock.Anything, mock.Anything).
+		Return(true, nil).Maybe()
 }
 
 func (suite *controllerLookAfterDeliverySuite) TestRetrieveIntelFail() {
@@ -252,6 +255,52 @@ func (suite *controllerLookAfterDeliverySuite) TestActiveDeliveryAttempts() {
 		Return(nil, nil)
 	suite.ctrl.Store.On("ActiveIntelDeliveryAttemptsByDelivery", timeout, suite.tx, suite.sampleID).
 		Return(suite.sampleDeliveryAttempts, nil)
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.lookAfterDelivery(timeout, suite.tx, suite.sampleID)
+		suite.NoError(err, "should not fail")
+	}()
+
+	wait()
+}
+
+func (suite *controllerLookAfterDeliverySuite) TestCheckAutoDeliveryFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.Store.On("IntelDeliveryByID", timeout, suite.tx, suite.sampleID).
+		Return(suite.sampleDelivery, nil)
+	suite.ctrl.Store.On("TimedOutIntelDeliveryAttemptsByDelivery", timeout, suite.tx, suite.sampleID).
+		Return(nil, nil)
+	suite.ctrl.Store.On("ActiveIntelDeliveryAttemptsByDelivery", timeout, suite.tx, suite.sampleID).
+		Return(nil, nil)
+	testutil.UnsetCallByMethod(&suite.ctrl.Store.Mock, "IsAutoDeliveryEnabledForAddressBookEntry")
+	suite.ctrl.Store.On("IsAutoDeliveryEnabledForAddressBookEntry", mock.Anything, mock.Anything, mock.Anything).
+		Return(false, errors.New("sad life")).Once()
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.lookAfterDelivery(timeout, suite.tx, suite.sampleID)
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *controllerLookAfterDeliverySuite) TestAutoDeliveryDisabled() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.Store.On("IntelDeliveryByID", timeout, suite.tx, suite.sampleID).
+		Return(suite.sampleDelivery, nil)
+	suite.ctrl.Store.On("TimedOutIntelDeliveryAttemptsByDelivery", timeout, suite.tx, suite.sampleID).
+		Return(nil, nil)
+	suite.ctrl.Store.On("ActiveIntelDeliveryAttemptsByDelivery", timeout, suite.tx, suite.sampleID).
+		Return(nil, nil)
+	testutil.UnsetCallByMethod(&suite.ctrl.Store.Mock, "IsAutoDeliveryEnabledForAddressBookEntry")
+	suite.ctrl.Store.On("IsAutoDeliveryEnabledForAddressBookEntry", mock.Anything, suite.tx, suite.sampleDelivery.To).
+		Return(false, nil).Once()
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
@@ -1425,4 +1474,172 @@ func (suite *ControllerMarkIntelDeliveryAttemptAsFailedSuite) TestOK() {
 
 func TestController_MarkIntelDeliveryAttemptAsFailed(t *testing.T) {
 	suite.Run(t, new(ControllerMarkIntelDeliveryAttemptAsFailedSuite))
+}
+
+// ControllerCreateIntelDeliveryAttemptSuite tests
+// Controller.CreateIntelDeliveryAttempt.
+type ControllerCreateIntelDeliveryAttemptSuite struct {
+	suite.Suite
+	ctrl       *ControllerMock
+	tx         *testutil.DBTx
+	deliveryID uuid.UUID
+	channelID  uuid.UUID
+	created    store.IntelDeliveryAttempt
+}
+
+func (suite *ControllerCreateIntelDeliveryAttemptSuite) SetupTest() {
+	suite.ctrl = NewMockController()
+	suite.tx = &testutil.DBTx{}
+	suite.ctrl.DB.Tx = []*testutil.DBTx{suite.tx}
+	suite.deliveryID = suite.deliveryID
+	suite.channelID = suite.channelID
+	suite.created = store.IntelDeliveryAttempt{
+		ID:        testutil.NewUUIDV4(),
+		Delivery:  suite.deliveryID,
+		Channel:   suite.channelID,
+		CreatedAt: time.Now(),
+		IsActive:  true,
+		Status:    store.IntelDeliveryStatusOpen,
+		StatusTS:  time.Now(),
+		Note:      nulls.String{},
+	}
+	delivery := store.IntelDelivery{IsActive: true}
+
+	suite.ctrl.Store.On("LockIntelDeliveryByIDOrWait", mock.Anything, suite.tx, suite.deliveryID).
+		Return(nil).Maybe()
+	suite.ctrl.Store.On("ActiveIntelDeliveryAttemptsByDelivery", mock.Anything, suite.tx, suite.deliveryID).
+		Return([]store.IntelDeliveryAttempt{}, nil).Maybe()
+	suite.ctrl.Store.On("IntelDeliveryByID", mock.Anything, suite.tx, suite.deliveryID).
+		Return(delivery, nil).Maybe()
+	suite.ctrl.Store.On("CreateIntelDeliveryAttempt", mock.Anything, suite.tx, mock.Anything).
+		Return(suite.created, nil).Maybe()
+	suite.ctrl.Store.On("IntelByID", mock.Anything, suite.tx, mock.Anything).
+		Return(store.Intel{}, nil).Maybe()
+	suite.ctrl.Store.On("AddressBookEntryByID", mock.Anything, suite.tx, mock.Anything, mock.Anything).
+		Return(store.AddressBookEntryDetailed{}, nil).Maybe()
+	suite.ctrl.Notifier.On("NotifyIntelDeliveryAttemptCreated",
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(nil).Maybe()
+	suite.T().Cleanup(func() {
+		suite.ctrl.Store.AssertExpectations(suite.T())
+		suite.ctrl.Notifier.AssertExpectations(suite.T())
+	})
+}
+
+func (suite *ControllerCreateIntelDeliveryAttemptSuite) TestBeginTxFail() {
+	suite.ctrl.DB.BeginFail = true
+
+	_, err := suite.ctrl.Ctrl.CreateIntelDeliveryAttempt(context.Background(), suite.deliveryID, suite.channelID)
+	suite.Error(err, "should fail")
+}
+
+func (suite *ControllerCreateIntelDeliveryAttemptSuite) TestLockDeliveryFail() {
+	testutil.UnsetCallByMethod(&suite.ctrl.Store.Mock, "LockIntelDeliveryByIDOrWait")
+	suite.ctrl.Store.On("LockIntelDeliveryByIDOrWait", mock.Anything, mock.Anything, mock.Anything).
+		Return(errors.New("sad life")).Once()
+
+	_, err := suite.ctrl.Ctrl.CreateIntelDeliveryAttempt(context.Background(), suite.deliveryID, suite.channelID)
+	suite.Error(err, "should fail")
+}
+
+func (suite *ControllerCreateIntelDeliveryAttemptSuite) TestRetrieveActiveAttemptsFail() {
+	testutil.UnsetCallByMethod(&suite.ctrl.Store.Mock, "ActiveIntelDeliveryAttemptsByDelivery")
+	suite.ctrl.Store.On("ActiveIntelDeliveryAttemptsByDelivery", mock.Anything, mock.Anything, mock.Anything).
+		Return(nil, errors.New("sad life")).Once()
+
+	_, err := suite.ctrl.Ctrl.CreateIntelDeliveryAttempt(context.Background(), suite.deliveryID, suite.channelID)
+	suite.Error(err, "should fail")
+}
+
+func (suite *ControllerCreateIntelDeliveryAttemptSuite) TestCreateFail() {
+	testutil.UnsetCallByMethod(&suite.ctrl.Store.Mock, "CreateIntelDeliveryAttempt")
+	suite.ctrl.Store.On("CreateIntelDeliveryAttempt", mock.Anything, mock.Anything, mock.Anything).
+		Return(store.IntelDeliveryAttempt{}, errors.New("sad life")).Once()
+
+	_, err := suite.ctrl.Ctrl.CreateIntelDeliveryAttempt(context.Background(), suite.deliveryID, suite.channelID)
+	suite.Error(err, "should fail")
+}
+
+func (suite *ControllerCreateIntelDeliveryAttemptSuite) TestOK() {
+	testutil.UnsetCallByMethod(&suite.ctrl.Store.Mock, "LockIntelDeliveryByIDOrWait")
+	suite.ctrl.Store.On("LockIntelDeliveryByIDOrWait", mock.Anything, suite.tx, suite.deliveryID).
+		Return(nil).Once()
+	testutil.UnsetCallByMethod(&suite.ctrl.Store.Mock, "ActiveIntelDeliveryAttemptsByDelivery")
+	suite.ctrl.Store.On("ActiveIntelDeliveryAttemptsByDelivery", mock.Anything, suite.tx, suite.deliveryID).
+		Return([]store.IntelDeliveryAttempt{}, nil).Once()
+	testutil.UnsetCallByMethod(&suite.ctrl.Store.Mock, "CreateIntelDeliveryAttempt")
+	suite.ctrl.Store.On("CreateIntelDeliveryAttempt", mock.Anything, suite.tx, mock.MatchedBy(func(a store.IntelDeliveryAttempt) bool {
+		if !suite.Equal(suite.deliveryID, a.Delivery, "should create attempt with correct delivery") {
+			return false
+		}
+		if !suite.Equal(suite.channelID, a.Channel, "should create attempt with correct channel") {
+			return false
+		}
+		return true
+	})).Return(suite.created, nil).Once()
+
+	created, err := suite.ctrl.Ctrl.CreateIntelDeliveryAttempt(context.Background(), suite.deliveryID, suite.channelID)
+	suite.Require().NoError(err, "should not fail")
+	suite.Equal(suite.created, created, "should return correct value")
+}
+
+func TestController_CreateIntelDeliveryAttempt(t *testing.T) {
+	suite.Run(t, new(ControllerCreateIntelDeliveryAttemptSuite))
+}
+
+// ControllerIntelDeliveryAttemptsByDeliverySuite tests
+// Controller.IntelDeliveryAttemptsByDelivery.
+type ControllerIntelDeliveryAttemptsByDeliverySuite struct {
+	suite.Suite
+	ctrl       *ControllerMock
+	tx         *testutil.DBTx
+	deliveryID uuid.UUID
+	attempts   []store.IntelDeliveryAttempt
+}
+
+func (suite *ControllerIntelDeliveryAttemptsByDeliverySuite) SetupTest() {
+	suite.ctrl = NewMockController()
+	suite.tx = &testutil.DBTx{}
+	suite.ctrl.DB.Tx = []*testutil.DBTx{suite.tx}
+	suite.deliveryID = testutil.NewUUIDV4()
+	suite.attempts = []store.IntelDeliveryAttempt{
+		{
+			ID:       testutil.NewUUIDV4(),
+			Delivery: suite.deliveryID,
+		},
+		{
+			ID:       testutil.NewUUIDV4(),
+			Delivery: suite.deliveryID,
+		},
+	}
+}
+
+func (suite *ControllerIntelDeliveryAttemptsByDeliverySuite) TestBeginTxFail() {
+	suite.ctrl.DB.BeginFail = true
+
+	_, err := suite.ctrl.Ctrl.IntelDeliveryAttemptsByDelivery(context.Background(), suite.deliveryID)
+	suite.Error(err, "should fail")
+}
+
+func (suite *ControllerIntelDeliveryAttemptsByDeliverySuite) TestRetrieveFail() {
+	suite.ctrl.Store.On("IntelDeliveryAttemptsByDelivery", mock.Anything, mock.Anything, mock.Anything).
+		Return(nil, errors.New("sad life")).Once()
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	_, err := suite.ctrl.Ctrl.IntelDeliveryAttemptsByDelivery(context.Background(), suite.deliveryID)
+	suite.Error(err, "should fail")
+}
+
+func (suite *ControllerIntelDeliveryAttemptsByDeliverySuite) TestOK() {
+	suite.ctrl.Store.On("IntelDeliveryAttemptsByDelivery", mock.Anything, suite.tx, suite.deliveryID).
+		Return(suite.attempts, nil).Once()
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	got, err := suite.ctrl.Ctrl.IntelDeliveryAttemptsByDelivery(context.Background(), suite.deliveryID)
+	suite.Require().NoError(err, "should not fail")
+	suite.Equal(suite.attempts, got, "should return correct value")
+}
+
+func TestController_IntelDeliveryAttemptsByDelivery(t *testing.T) {
+	suite.Run(t, new(ControllerIntelDeliveryAttemptsByDeliverySuite))
 }

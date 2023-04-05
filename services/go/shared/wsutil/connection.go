@@ -34,9 +34,8 @@ type BaseConnection interface {
 	SendDirect(ctx context.Context, message Message) error
 	// SendRaw returns the raw channel for sending messages.
 	SendRaw() chan<- json.RawMessage
-	// Done receives, when the connection is closed. You can also read from Receive
-	// as the channel is closed as well, when the connection is so.
-	Done() <-chan struct{}
+	// Lifetime of the connection.
+	Lifetime() context.Context
 }
 
 // RawConnection is the regular connection for receiving raw messages. If you
@@ -123,8 +122,8 @@ func (conn *rawConnection) SendDirect(ctx context.Context, message Message) erro
 	return nil
 }
 
-func (conn *rawConnection) Done() <-chan struct{} {
-	return conn.lifetime.Done()
+func (conn *rawConnection) Lifetime() context.Context {
+	return conn.lifetime
 }
 
 func (conn *rawConnection) ReceiveRaw() <-chan json.RawMessage {
@@ -161,7 +160,7 @@ func (apConn *autoParserConnection) receiveParseAndForward() {
 		var messageRaw json.RawMessage
 		var more bool
 		select {
-		case <-apConn.Done():
+		case <-apConn.Lifetime().Done():
 			return
 		case messageRaw, more = <-apConn.ReceiveRaw():
 		}
@@ -177,7 +176,7 @@ func (apConn *autoParserConnection) receiveParseAndForward() {
 		}
 		// Forward.
 		select {
-		case <-apConn.Done():
+		case <-apConn.Lifetime().Done():
 			apConn.Logger().Debug("dropping message to forward because of connection being closed",
 				zap.Any("message", message))
 			return
