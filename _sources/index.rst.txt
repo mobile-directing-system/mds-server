@@ -16,6 +16,7 @@ Welcome to MDS Server's documentation!
     sites/groups
     sites/address-book
     sites/intelligence
+    sites/manual-intel-delivery
     sites/in-app-notifications
     sites/radio-delivery
     sites/development

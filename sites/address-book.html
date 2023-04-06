@@ -5,10 +5,10 @@
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Intelligence" href="intelligence.html" /><link rel="prev" title="Groups" href="groups.html" />
 
-    <!-- Generated with Sphinx 6.0.0 and Furo 2022.12.07 -->
+    <!-- Generated with Sphinx 6.0.0 and Furo 2023.03.27 -->
         <title>Address Book - MDS Server documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=fad236701ea90a88636c2a8c73b44ae642ed2a53" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
     
     
@@ -165,6 +165,7 @@
 <li class="toctree-l1"><a class="reference internal" href="groups.html">Groups</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Address Book</a></li>
 <li class="toctree-l1"><a class="reference internal" href="intelligence.html">Intelligence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="manual-intel-delivery.html">Manual Intel Delivery</a></li>
 <li class="toctree-l1"><a class="reference internal" href="in-app-notifications.html">In-App Notifications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="radio-delivery.html">Radio Delivery</a></li>
 <li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
@@ -328,6 +329,7 @@ Regarding entry visibility, the same regulations apply as for retrieving single 
 <li><p><code class="docutils literal notranslate"><span class="pre">exclude_global=true</span></code>: Exclude entries with have no operation assigned.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">visible_by=&lt;user_id&gt;</span></code>: Only include entries, being visible to the user with the given id. If the <a class="reference internal" href="permissions.html#permission-logistics-address-book-entry-view-any"><span class="std std-ref">logistics.address-book.entry.view.any</span></a> permission is not granted, this will have no effect, as the requesting users id is used here by default.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">include_for_inactive_users=false</span></code>: Includes entries, associated with inactive users.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">auto_delivery_enabled=false</span></code>: Whether to filter entries by having auto-delivery being enabled. This parameter is not allowed with search!</p></li>
 </ul>
 <p><a class="reference internal" href="general-http-api.html#http-api-search"><span class="std std-ref">Search</span></a> allows using these filters as well and is available via:</p>
 <p><cite>GET /address-book/entries/search</cite></p>
