@@ -15,7 +15,7 @@ require (
 	github.com/mobile-directing-system/mds-server/services/go/shared v0.0.0-20220608131122-5219f744f834
 	github.com/stretchr/testify v1.8.1
 	go.uber.org/zap v1.21.0
-	golang.org/x/net v0.0.0-20220607020251-c690dde0001d
+	golang.org/x/net v0.7.0
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
 )
 
@@ -58,8 +58,8 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
-	golang.org/x/sys v0.0.0-20220608164250-635b8c9b7f68 // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
