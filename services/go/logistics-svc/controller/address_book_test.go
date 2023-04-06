@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"errors"
 	"github.com/gofrs/uuid"
 	"github.com/lefinal/nulls"
@@ -9,6 +10,7 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/search"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap/zapcore"
 	"testing"
@@ -783,4 +785,86 @@ func (suite *ControllerRebuildAddressBookEntrySearchSuite) TestOK() {
 
 func TestController_RebuildAddressBookEntrySearch(t *testing.T) {
 	suite.Run(t, new(ControllerRebuildAddressBookEntrySearchSuite))
+}
+
+// ControllerSetAddressBookEntriesWithAutoDeliveryEnabledSuite tests
+// Controller.SetAddressBookEntriesWithAutoDeliveryEnabled.
+type ControllerSetAddressBookEntriesWithAutoDeliveryEnabledSuite struct {
+	suite.Suite
+	ctrl     *ControllerMock
+	tx       *testutil.DBTx
+	disabled []uuid.UUID
+	entryIDs []uuid.UUID
+}
+
+func (suite *ControllerSetAddressBookEntriesWithAutoDeliveryEnabledSuite) SetupTest() {
+	suite.ctrl = NewMockController()
+	suite.tx = &testutil.DBTx{}
+	suite.ctrl.DB.Tx = []*testutil.DBTx{suite.tx}
+	suite.entryIDs = []uuid.UUID{
+		testutil.NewUUIDV4(),
+		testutil.NewUUIDV4(),
+		testutil.NewUUIDV4(),
+	}
+	suite.disabled = []uuid.UUID{
+		testutil.NewUUIDV4(),
+		testutil.NewUUIDV4(),
+		testutil.NewUUIDV4(),
+	}
+
+	suite.ctrl.Store.On("SetAddressBookEntriesWithAutoDeliveryEnabled", mock.Anything, suite.tx, suite.entryIDs).
+		Return(suite.disabled, nil).Maybe()
+	for _, entryID := range suite.disabled {
+		suite.ctrl.Notifier.On("NotifyAddressBookEntryAutoDeliveryUpdated", mock.Anything, suite.tx, entryID, false).
+			Return(nil).Maybe()
+	}
+	for _, entryID := range suite.entryIDs {
+		suite.ctrl.Notifier.On("NotifyAddressBookEntryAutoDeliveryUpdated", mock.Anything, suite.tx, entryID, true).
+			Return(nil).Maybe()
+	}
+}
+
+func (suite *ControllerSetAddressBookEntriesWithAutoDeliveryEnabledSuite) TeardownTest() {
+	suite.ctrl.Store.AssertExpectations(suite.T())
+	suite.ctrl.Notifier.AssertExpectations(suite.T())
+}
+
+func (suite *ControllerSetAddressBookEntriesWithAutoDeliveryEnabledSuite) TestBeginTxFail() {
+	suite.ctrl.DB.BeginFail = true
+
+	err := suite.ctrl.Ctrl.SetAddressBookEntriesWithAutoDeliveryEnabled(context.Background(), suite.entryIDs)
+	suite.Error(err, "should fail")
+}
+
+func (suite *ControllerSetAddressBookEntriesWithAutoDeliveryEnabledSuite) TestSetEntriesEnabledFail() {
+	testutil.UnsetAndOn(&suite.ctrl.Store.Mock, "SetAddressBookEntriesWithAutoDeliveryEnabled", mock.Anything, mock.Anything, mock.Anything).
+		Return(nil, errors.New("sad life"))
+
+	err := suite.ctrl.Ctrl.SetAddressBookEntriesWithAutoDeliveryEnabled(context.Background(), suite.entryIDs)
+	suite.Error(err, "should fail")
+}
+
+func (suite *ControllerSetAddressBookEntriesWithAutoDeliveryEnabledSuite) TestNotifyFail1() {
+	testutil.UnsetAndOn(&suite.ctrl.Notifier.Mock, "NotifyAddressBookEntryAutoDeliveryUpdated", mock.Anything, suite.tx, suite.disabled[1]).
+		Return(errors.New("sad life"))
+
+	err := suite.ctrl.Ctrl.SetAddressBookEntriesWithAutoDeliveryEnabled(context.Background(), suite.entryIDs)
+	suite.NoError(err, "should not fail")
+}
+
+func (suite *ControllerSetAddressBookEntriesWithAutoDeliveryEnabledSuite) TestNotifyFail2() {
+	testutil.UnsetAndOn(&suite.ctrl.Notifier.Mock, "NotifyAddressBookEntryAutoDeliveryUpdated", mock.Anything, suite.tx, suite.entryIDs[1]).
+		Return(errors.New("sad life"))
+
+	err := suite.ctrl.Ctrl.SetAddressBookEntriesWithAutoDeliveryEnabled(context.Background(), suite.entryIDs)
+	suite.NoError(err, "should not fail")
+}
+
+func (suite *ControllerSetAddressBookEntriesWithAutoDeliveryEnabledSuite) TestOK() {
+	err := suite.ctrl.Ctrl.SetAddressBookEntriesWithAutoDeliveryEnabled(context.Background(), suite.entryIDs)
+	suite.NoError(err, "should not fail")
+}
+
+func TestController_SetAddressBookEntriesWithAutoDeliveryEnabled(t *testing.T) {
+	suite.Run(t, new(ControllerSetAddressBookEntriesWithAutoDeliveryEnabledSuite))
 }

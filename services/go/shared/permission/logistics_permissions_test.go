@@ -60,3 +60,17 @@ func TestViewAnyAddressBookEntry(t *testing.T) {
 		},
 	})
 }
+
+func TestManageIntelDelivery(t *testing.T) {
+	suite.Run(t, &NameMatcherSuite{
+		MatcherName: "manage-intel-delivery",
+		Matcher:     ManageIntelDelivery(),
+		Granted:     ManageIntelDeliveryPermissionName,
+		Others: []Name{
+			CreateAnyAddressBookEntryPermissionName,
+			UpdateAnyAddressBookEntryPermissionName,
+			DeleteAnyAddressBookEntryPermissionName,
+			ViewAnyOperationPermissionName,
+		},
+	})
+}

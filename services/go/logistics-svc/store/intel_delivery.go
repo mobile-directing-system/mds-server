@@ -418,6 +418,22 @@ func (m *Mall) UpdateIntelDeliveryStatusByDelivery(ctx context.Context, tx pgx.T
 // ActiveIntelDeliveryAttemptsByDelivery retrieves an IntelDeliveryAttempt list
 // with attempts for the delivery with the given id, that are currently active.
 func (m *Mall) ActiveIntelDeliveryAttemptsByDelivery(ctx context.Context, tx pgx.Tx, deliveryID uuid.UUID) ([]IntelDeliveryAttempt, error) {
+	attempts, err := m.IntelDeliveryAttemptsByDelivery(ctx, tx, deliveryID)
+	if err != nil {
+		return nil, meh.Wrap(err, "intel delivery attempts by delivery", meh.Details{"delivery_id": deliveryID})
+	}
+	activeAttempts := make([]IntelDeliveryAttempt, 0, len(attempts))
+	for _, attempt := range attempts {
+		if attempt.IsActive {
+			activeAttempts = append(activeAttempts, attempt)
+		}
+	}
+	return attempts, nil
+}
+
+// IntelDeliveryAttemptsByDelivery retrieves an IntelDeliveryAttempt list with
+// attempts for the delivery with the given id.
+func (m *Mall) IntelDeliveryAttemptsByDelivery(ctx context.Context, tx pgx.Tx, deliveryID uuid.UUID) ([]IntelDeliveryAttempt, error) {
 	q, _, err := m.dialect.From(goqu.T("intel_delivery_attempts")).
 		Select(goqu.C("id"),
 			goqu.C("delivery"),
@@ -427,8 +443,8 @@ func (m *Mall) ActiveIntelDeliveryAttemptsByDelivery(ctx context.Context, tx pgx
 			goqu.C("status"),
 			goqu.C("status_ts"),
 			goqu.C("note")).
-		Where(goqu.C("delivery").Eq(deliveryID),
-			goqu.C("is_active").IsTrue()).ToSQL()
+		Where(goqu.C("delivery").Eq(deliveryID)).
+		Order(goqu.C("created_at").Asc()).ToSQL()
 	if err != nil {
 		return nil, meh.NewInternalErrFromErr(err, "query to sql", nil)
 	}
@@ -600,6 +616,45 @@ func (m *Mall) ActiveIntelDeliveriesAndLockOrSkip(ctx context.Context, tx pgx.Tx
 			goqu.C("note")).
 		ForUpdate(exp.SkipLocked).
 		Where(goqu.C("is_active").IsTrue()).ToSQL()
+	if err != nil {
+		return nil, meh.NewInternalErrFromErr(err, "query to sql", nil)
+	}
+	rows, err := tx.Query(ctx, q)
+	if err != nil {
+		return nil, mehpg.NewQueryDBErr(err, "query db", q)
+	}
+	defer rows.Close()
+	deliveries := make([]IntelDelivery, 0)
+	for rows.Next() {
+		var delivery IntelDelivery
+		err = rows.Scan(&delivery.ID,
+			&delivery.Intel,
+			&delivery.To,
+			&delivery.IsActive,
+			&delivery.Success,
+			&delivery.Note)
+		if err != nil {
+			return nil, mehpg.NewScanRowsErr(err, "scan row", q)
+		}
+		deliveries = append(deliveries, delivery)
+	}
+	rows.Close()
+	return deliveries, nil
+}
+
+// ActiveIntelDeliveriesForOperation retrieves the IntelDelivery list for active
+// deliveries for intel for the operation with the given id.
+func (m *Mall) ActiveIntelDeliveriesForOperation(ctx context.Context, tx pgx.Tx, operationID uuid.UUID) ([]IntelDelivery, error) {
+	q, _, err := m.dialect.From(goqu.T("intel_deliveries")).
+		InnerJoin(goqu.T("intel"), goqu.On(goqu.I("intel_deliveries.intel").Eq(goqu.I("intel.id")))).
+		Select(goqu.I("intel_deliveries.id"),
+			goqu.I("intel_deliveries.intel"),
+			goqu.I("intel_deliveries.to"),
+			goqu.I("intel_deliveries.is_active"),
+			goqu.I("intel_deliveries.success"),
+			goqu.I("intel_deliveries.note")).
+		Where(goqu.I("intel_deliveries.is_active").IsTrue(),
+			goqu.I("intel.operation").Eq(operationID)).ToSQL()
 	if err != nil {
 		return nil, meh.NewInternalErrFromErr(err, "query to sql", nil)
 	}

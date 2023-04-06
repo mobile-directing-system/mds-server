@@ -126,8 +126,17 @@ func (c *Controller) lookAfterDelivery(ctx context.Context, tx pgx.Tx, deliveryI
 	if len(activeAttempts) > 0 {
 		return nil
 	}
-	// If no attempts are active anymore, we check for the next channel, that could
-	// be used for the next delivery attempt.
+	// No attempts are active anymore, so we check if auto-delivery is enabled for
+	// this delivery.
+	isAutoDeliveryEnabled, err := c.Store.IsAutoDeliveryEnabledForAddressBookEntry(ctx, tx, delivery.To)
+	if err != nil {
+		return meh.Wrap(err, "check if auto-delivery enabled for address book entry in store", meh.Details{"entry_id": delivery.To})
+	}
+	if !isAutoDeliveryEnabled {
+		// Nothing to do.
+		return nil
+	}
+	// Check for the next channel, that could be used for the next delivery attempt.
 	nextChannel, ok, err := c.Store.NextChannelForDeliveryAttempt(ctx, tx, deliveryID)
 	if err != nil {
 		return meh.Wrap(err, "next channel for delivery attempt from store", meh.Details{"delivery_id": deliveryID})
@@ -142,43 +151,88 @@ func (c *Controller) lookAfterDelivery(ctx context.Context, tx pgx.Tx, deliveryI
 		return nil
 	}
 	// Create attempt with this channel.
+	_, err = c.createIntelDeliveryAttempt(ctx, tx, delivery.ID, nextChannel.ID)
+	if err != nil {
+		return meh.Wrap(err, "create intel delivery attempt", meh.Details{
+			"delivery_id":     deliveryID,
+			"next_channel_id": nextChannel.ID,
+		})
+	}
+	return nil
+}
+
+// createIntelDeliveryAttempt creates and notifies about the given
+// store.IntelDeliveryAttempt. If the delivery is inactive, a meh.ErrBadInput
+// will be returned. Keep in mind, that we will not check, whether other attempts
+// are ongoing/active.
+func (c *Controller) createIntelDeliveryAttempt(ctx context.Context, tx pgx.Tx, deliveryID uuid.UUID, channelID uuid.UUID) (store.IntelDeliveryAttempt, error) {
 	attemptToCreate := store.IntelDeliveryAttempt{
 		Delivery:  deliveryID,
-		Channel:   nextChannel.ID,
+		Channel:   channelID,
 		CreatedAt: time.Now(),
 		IsActive:  true,
 		Status:    store.IntelDeliveryStatusOpen,
 		StatusTS:  time.Now(),
 		Note:      nulls.String{},
 	}
-	err = c.createIntelDeliveryAttempt(ctx, tx, attemptToCreate, delivery)
+	delivery, err := c.Store.IntelDeliveryByID(ctx, tx, deliveryID)
 	if err != nil {
-		return meh.Wrap(err, "create intel delivery attempt", meh.Details{"to_create": attemptToCreate})
+		return store.IntelDeliveryAttempt{}, meh.Wrap(err, "intel delivery by id from store", meh.Details{"delivery_id": deliveryID})
 	}
-	return nil
-}
-
-// createIntelDeliveryAttempt creates and notifies about the given
-// store.IntelDeliveryAttempt.
-func (c *Controller) createIntelDeliveryAttempt(ctx context.Context, tx pgx.Tx, attemptToCreate store.IntelDeliveryAttempt,
-	delivery store.IntelDelivery) error {
+	if !delivery.IsActive {
+		return store.IntelDeliveryAttempt{}, meh.NewBadInputErr("delivery inactive", meh.Details{"delivery": delivery})
+	}
 	createdAttempt, err := c.Store.CreateIntelDeliveryAttempt(ctx, tx, attemptToCreate)
 	if err != nil {
-		return meh.Wrap(err, "create intel delivery attempt", meh.Details{"to_create": attemptToCreate})
+		return store.IntelDeliveryAttempt{}, meh.Wrap(err, "create intel delivery attempt", meh.Details{"to_create": attemptToCreate})
 	}
 	intel, err := c.Store.IntelByID(ctx, tx, delivery.Intel)
 	if err != nil {
-		return meh.Wrap(err, "intel by id from store", meh.Details{"intel_id": delivery.Intel})
+		return store.IntelDeliveryAttempt{}, meh.Wrap(err, "intel by id from store", meh.Details{"intel_id": delivery.Intel})
 	}
 	assignedEntry, err := c.Store.AddressBookEntryByID(ctx, tx, delivery.To, uuid.NullUUID{})
 	if err != nil {
-		return meh.Wrap(err, "address book entry from store", meh.Details{"entry_id": delivery.To})
+		return store.IntelDeliveryAttempt{}, meh.Wrap(err, "address book entry from store", meh.Details{"entry_id": delivery.To})
 	}
 	err = c.Notifier.NotifyIntelDeliveryAttemptCreated(ctx, tx, createdAttempt, delivery, assignedEntry, intel)
 	if err != nil {
-		return meh.Wrap(err, "notify intel delivery attempt created", meh.Details{"created": createdAttempt})
+		return store.IntelDeliveryAttempt{}, meh.Wrap(err, "notify intel delivery attempt created", meh.Details{"created": createdAttempt})
 	}
-	return nil
+	return createdAttempt, nil
+}
+
+// CreateIntelDeliveryAttempt schedules a delivery attempt for the delivery with
+// the given id using the given channel.
+func (c *Controller) CreateIntelDeliveryAttempt(ctx context.Context, deliveryID uuid.UUID, channelID uuid.UUID) (store.IntelDeliveryAttempt, error) {
+	var createdAttempt store.IntelDeliveryAttempt
+	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
+		err := c.Store.LockIntelDeliveryByIDOrWait(ctx, tx, deliveryID)
+		if err != nil {
+			return meh.Wrap(err, "lock intel-delivery by id or wait", meh.Details{"delivery_id": deliveryID})
+		}
+		// Check for active attempts as parallel delivery attempts are not allowed.
+		activeAttempts, err := c.Store.ActiveIntelDeliveryAttemptsByDelivery(ctx, tx, deliveryID)
+		if err != nil {
+			return meh.Wrap(err, "active intel delivery attempts by delivery", meh.Details{"delivery_id": deliveryID})
+		}
+		if len(activeAttempts) > 0 {
+			return meh.NewBadInputErr(fmt.Sprintf("%d attempts still active", len(activeAttempts)),
+				meh.Details{"active_attempts": len(activeAttempts)})
+		}
+		// Create.
+		createdAttempt, err = c.createIntelDeliveryAttempt(ctx, tx, deliveryID, channelID)
+		if err != nil {
+			return meh.Wrap(err, "create intel delivery attempt", meh.Details{
+				"delivery_id": deliveryID,
+				"channel_id":  channelID,
+			})
+		}
+		return nil
+	})
+	if err != nil {
+		return store.IntelDeliveryAttempt{}, meh.Wrap(err, "run in tx", nil)
+	}
+	return createdAttempt, nil
 }
 
 // markDeliveryAsFailed marks the delivery with the given id as failed and
@@ -242,6 +296,7 @@ func (c *Controller) handleTimedOutDeliveryAttempts(ctx context.Context, tx pgx.
 		if err != nil {
 			return meh.Wrap(err, "notify intel delivery attempt status updated", meh.Details{"updated_attempt": updatedAttempt})
 		}
+		// TODO: notify for manual delviery
 	}
 	return nil
 }
@@ -499,3 +554,23 @@ func (c *Controller) MarkIntelDeliveryAndAttemptAsDelivered(ctx context.Context,
 	}
 	return nil
 }
+
+// IntelDeliveryAttemptsByDelivery retrieves a store.IntelDeliveryAttempt list
+// with attempts for the delivery with the given id.
+func (c *Controller) IntelDeliveryAttemptsByDelivery(ctx context.Context, deliveryID uuid.UUID) ([]store.IntelDeliveryAttempt, error) {
+	var attempts []store.IntelDeliveryAttempt
+	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
+		var err error
+		attempts, err = c.Store.IntelDeliveryAttemptsByDelivery(ctx, tx, deliveryID)
+		if err != nil {
+			return meh.Wrap(err, "intel delivery attempts by delivery", meh.Details{"delivery_id": deliveryID})
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, meh.Wrap(err, "run in tx", nil)
+	}
+	return attempts, nil
+}
+
+// TODO: notify on intel delivery creation/updates for manual delivery

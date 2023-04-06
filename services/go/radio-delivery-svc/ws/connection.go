@@ -24,11 +24,11 @@ type publicNewRadioDeliveriesAvailable struct {
 // connection implements controller.Connection and maps notifications from the
 // store-representation to the public one.
 type connection struct {
-	conn wsutil.Connection
+	conn wsutil.AutoParserConnection
 }
 
 // newConnection returns a new connection.
-func newConnection(conn wsutil.Connection) *connection {
+func newConnection(conn wsutil.AutoParserConnection) *connection {
 	return &connection{conn: conn}
 }
 
@@ -63,5 +63,5 @@ func (conn *connection) NotifyNewAvailable(ctx context.Context, operationID uuid
 
 // Done returns the done-channel from the connection.
 func (conn *connection) Done() <-chan struct{} {
-	return conn.conn.Done()
+	return conn.conn.Lifetime().Done()
 }

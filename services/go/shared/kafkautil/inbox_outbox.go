@@ -21,6 +21,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"io/fs"
+	"math/rand"
 	"time"
 )
 
@@ -296,11 +297,12 @@ const (
 
 func (c *connector) ProcessIncoming(ctx context.Context, txSupplier pgutil.DBTxSupplier, handlerFn HandlerFunc) error {
 	logger := c.logger.Named("process-incoming")
+	lastProcessFailed := false
 	for {
 		wait := time.Duration(0)
 		err := pgutil.RunInTx(ctx, txSupplier, func(ctx context.Context, tx pgx.Tx) error {
 			// Retrieve next.
-			next, ok, err := c.store.nextInboxMessage(ctx, tx)
+			next, ok, err := c.store.nextInboxMessage(ctx, tx, lastProcessFailed)
 			if err != nil {
 				return meh.Wrap(err, "next inbox message from store", nil)
 			}
@@ -324,6 +326,7 @@ func (c *connector) ProcessIncoming(ctx context.Context, txSupplier pgutil.DBTxS
 			}
 			return nil
 		})
+		lastProcessFailed = err != nil
 		if err != nil {
 			mehlog.Log(logger, meh.Wrap(err, "run in tx", nil))
 			wait = processIncomingErrorCooldown
@@ -343,9 +346,12 @@ func (c *connector) ProcessIncoming(ctx context.Context, txSupplier pgutil.DBTxS
 type store interface {
 	// addInboxMessages adds the given messages to the inbox.
 	addInboxMessages(ctx context.Context, tx pgx.Tx, instanceID uuid.UUID, messages ...InboundMessage) error
-	// nextInboxMessage retrieves the next message to process and allows
-	// concurrency.
-	nextInboxMessage(ctx context.Context, tx pgx.Tx) (InboundMessage, bool, error)
+	// nextInboxMessage retrieves the next inbox message to process and locks it. If
+	// the random-flag is set, a random one of possible messages will be chosen. This
+	// may lead to falsy return values but is an accepted tradeoff when handling
+	// processing errors. The target use-case is a message that cannot be processed
+	// because of requiring one from another topic and therefore creating a deadlock.
+	nextInboxMessage(ctx context.Context, tx pgx.Tx, selectRandomSegment bool) (InboundMessage, bool, error)
 	// setInboxMessageStatus updates the status for the given message.
 	setInboxMessageStatus(ctx context.Context, tx pgx.Tx, instanceID uuid.UUID, messageID int, status inboxMessageStatus) error
 	// addOutboxMessages adds the given messages to the message outbox.
@@ -401,8 +407,12 @@ func (s *dbStore) addInboxMessages(ctx context.Context, tx pgx.Tx, instanceID uu
 	return nil
 }
 
-// nextInboxMessage retrieves the next inbox message to process and locks it.
-func (s *dbStore) nextInboxMessage(ctx context.Context, tx pgx.Tx) (InboundMessage, bool, error) {
+// nextInboxMessage retrieves the next inbox message to process and locks it. If
+// the random-flag is set, a random one of possible messages will be chosen. This
+// may lead to falsy return values but is an accepted tradeoff when handling
+// processing errors. The target use-case is a message that cannot be processed
+// because of requiring one from another topic and therefore creating a deadlock.
+func (s *dbStore) nextInboxMessage(ctx context.Context, tx pgx.Tx, selectRandomSegment bool) (InboundMessage, bool, error) {
 	oldestPendingPerSegment := s.dialect.From(goqu.T("__message_inbox")).As("oldest_pending").
 		Select(goqu.I("__message_inbox.topic"),
 			goqu.I("__message_inbox.partition"),
@@ -441,6 +451,10 @@ func (s *dbStore) nextInboxMessage(ctx context.Context, tx pgx.Tx) (InboundMessa
 	possibleNextQueryRows.Close()
 	if len(possibleNext) == 0 {
 		return InboundMessage{}, false, nil
+	}
+	if selectRandomSegment {
+		i := rand.Intn(len(possibleNext))
+		possibleNext = possibleNext[i : i+1]
 	}
 	// Choose the oldest one that matches conditions.
 	nextQuery, _, err := s.dialect.From(goqu.T("__message_inbox")).

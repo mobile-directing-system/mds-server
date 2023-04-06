@@ -72,8 +72,8 @@ func (m *storeMock) addInboxMessages(ctx context.Context, tx pgx.Tx, instanceID 
 	return m.Called(ctx, tx, instanceID, messages).Error(0)
 }
 
-func (m *storeMock) nextInboxMessage(ctx context.Context, tx pgx.Tx) (InboundMessage, bool, error) {
-	args := m.Called(ctx, tx)
+func (m *storeMock) nextInboxMessage(ctx context.Context, tx pgx.Tx, selectRandomSegment bool) (InboundMessage, bool, error) {
+	args := m.Called(ctx, tx, selectRandomSegment)
 	return args.Get(0).(InboundMessage), args.Bool(1), args.Error(2)
 }
 
@@ -534,7 +534,7 @@ func (suite *connectorProcessIncomingSuite) TestTxFail() {
 func (suite *connectorProcessIncomingSuite) TestNextFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.txSupplier.Tx = []*testutil.DBTx{{}}
-	suite.store.On("nextInboxMessage", mock.Anything, suite.txSupplier.Tx[0]).
+	suite.store.On("nextInboxMessage", mock.Anything, suite.txSupplier.Tx[0], false).
 		Return(InboundMessage{}, false, errors.New("sad life"))
 	defer suite.store.AssertExpectations(suite.T())
 
@@ -552,7 +552,7 @@ func (suite *connectorProcessIncomingSuite) TestNextFail() {
 func (suite *connectorProcessIncomingSuite) TestNoNext() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.txSupplier.Tx = []*testutil.DBTx{{}}
-	suite.store.On("nextInboxMessage", mock.Anything, suite.txSupplier.Tx[0]).
+	suite.store.On("nextInboxMessage", mock.Anything, suite.txSupplier.Tx[0], false).
 		Return(InboundMessage{}, false, nil)
 	defer suite.store.AssertExpectations(suite.T())
 
@@ -570,7 +570,7 @@ func (suite *connectorProcessIncomingSuite) TestNoNext() {
 func (suite *connectorProcessIncomingSuite) TestHandleFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.txSupplier.Tx = []*testutil.DBTx{{}}
-	suite.store.On("nextInboxMessage", mock.Anything, suite.txSupplier.Tx[0]).
+	suite.store.On("nextInboxMessage", mock.Anything, suite.txSupplier.Tx[0], false).
 		Return(suite.sampleMessage, true, nil).Once()
 	suite.handler.On("fn", mock.Anything, suite.txSupplier.Tx[0], suite.sampleMessage).
 		Return(errors.New("sad life"))
@@ -591,7 +591,7 @@ func (suite *connectorProcessIncomingSuite) TestHandleFail() {
 func (suite *connectorProcessIncomingSuite) TestProcessedStatusUpdateFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.txSupplier.Tx = []*testutil.DBTx{{}}
-	suite.store.On("nextInboxMessage", mock.Anything, suite.txSupplier.Tx[0]).
+	suite.store.On("nextInboxMessage", mock.Anything, suite.txSupplier.Tx[0], false).
 		Return(suite.sampleMessage, true, nil).Once()
 	suite.handler.On("fn", mock.Anything, suite.txSupplier.Tx[0], suite.sampleMessage).
 		Return(nil)
@@ -615,14 +615,14 @@ func (suite *connectorProcessIncomingSuite) TestProcessedStatusUpdateFail() {
 func (suite *connectorProcessIncomingSuite) TestOK() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.txSupplier.Tx = []*testutil.DBTx{{}, {}} // 2 because of no cooldown.
-	suite.store.On("nextInboxMessage", mock.Anything, suite.txSupplier.Tx[0]).
+	suite.store.On("nextInboxMessage", mock.Anything, suite.txSupplier.Tx[0], false).
 		Return(suite.sampleMessage, true, nil).Once()
 	suite.handler.On("fn", mock.Anything, suite.txSupplier.Tx[0], suite.sampleMessage).
 		Return(nil)
 	suite.store.On("setInboxMessageStatus", mock.Anything, suite.txSupplier.Tx[0], suite.c.id,
 		suite.sampleMessage.id, inboxMessageStatusProcessed).
 		Return(nil)
-	suite.store.On("nextInboxMessage", mock.Anything, suite.txSupplier.Tx[1]).
+	suite.store.On("nextInboxMessage", mock.Anything, suite.txSupplier.Tx[1], false).
 		Return(InboundMessage{}, false, nil).Once()
 	defer suite.store.AssertExpectations(suite.T())
 	defer suite.handler.AssertExpectations(suite.T())

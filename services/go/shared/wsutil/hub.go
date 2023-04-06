@@ -14,6 +14,15 @@ import (
 	"time"
 )
 
+// Channel is identifier for the channel to use.
+type Channel string
+
+// MessageContainer holds the Channel to route the Payload to.
+type MessageContainer struct {
+	Channel Channel         `json:"channel"`
+	Payload json.RawMessage `json:"payload"`
+}
+
 // Hub provides an UpgradeHandler that accepts websocket connections. Create one
 // using NewHub.
 type Hub interface {
@@ -32,7 +41,7 @@ type Message struct {
 }
 
 // ConnListener for accepting new connections.
-type ConnListener func(conn Connection)
+type ConnListener func(conn RawConnection)
 
 // Gatekeeper is used for checking whether WebSocket upgrade is permitted. If no
 // error is returned, the connection upgrade is permitted.
@@ -79,7 +88,7 @@ func (h *hub) acceptNewWSConn(authToken auth.Token, wsConn *websocket.Conn) erro
 	}
 	c := NewClient(h.connLifetime, h.logger.Named("client").Named(id.String()), authToken, wsConn)
 	if h.connListener != nil {
-		go h.connListener(c.Connection())
+		go h.connListener(c.RawConnection())
 	}
 	err = c.RunAndClose()
 	if err != nil {

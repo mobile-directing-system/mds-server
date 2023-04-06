@@ -9,7 +9,6 @@ import (
 	"github.com/lefinal/meh"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/auth"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
-	"github.com/mobile-directing-system/mds-server/services/go/shared/wshub"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/wsutil"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -122,7 +121,7 @@ func (suite *hubServeSuite) TestSingle() {
 	hub := NewNetHub(timeout, zap.NewNop(), map[string]Gate{
 		"g": {
 			Name: "test_gate",
-			Channels: map[wshub.Channel]Channel{
+			Channels: map[wsutil.Channel]Channel{
 				"chan_1": {
 					URL: fmt.Sprintf("%s/channels/chan_1", serverURL),
 				},
@@ -178,7 +177,7 @@ func (suite *hubServeSuite) TestMulti() {
 	hub := NewNetHub(timeout, zap.NewNop(), map[string]Gate{
 		"g": {
 			Name: "test_gate",
-			Channels: map[wshub.Channel]Channel{
+			Channels: map[wsutil.Channel]Channel{
 				"chan_1": {
 					URL: fmt.Sprintf("%s/channels/chan_1", serverURL),
 				},
@@ -210,18 +209,18 @@ func (suite *hubServeSuite) TestMulti() {
 	defer func() { _ = serverConn.Close() }()
 
 	// Send message to server, read response and check to see if it's what we expect.
-	err = serverConn.WriteMessage(websocket.TextMessage, []byte(`{"channel":"chan_1","payload":{"for":"my_beautiful_channel"}}`))
-	suite.Require().NoError(err, "write client-message should not fail")
-	err = serverConn.WriteMessage(websocket.TextMessage, []byte(`{"channel":"chan_2","payload":{"for":"my_beautiful_channel_2"}}`))
-	suite.Require().NoError(err, "write client-message should not fail")
-	err = serverConn.WriteMessage(websocket.TextMessage, []byte(`{"channel":"chan_1","payload":{"for":"my_beautiful_channel"}}`))
-	suite.Require().NoError(err, "write client-message should not fail")
 	clientReceived := make([]json.RawMessage, 0, 2)
 	for i := 0; i < 3; i++ {
 		_, p, err := serverConn.ReadMessage()
 		suite.Require().NoError(err, "read client-message should not fail")
 		clientReceived = append(clientReceived, p)
 	}
+	err = serverConn.WriteMessage(websocket.TextMessage, []byte(`{"channel":"chan_1","payload":{"for":"my_beautiful_channel"}}`))
+	suite.Require().NoError(err, "write client-message should not fail")
+	err = serverConn.WriteMessage(websocket.TextMessage, []byte(`{"channel":"chan_2","payload":{"for":"my_beautiful_channel_2"}}`))
+	suite.Require().NoError(err, "write client-message should not fail")
+	err = serverConn.WriteMessage(websocket.TextMessage, []byte(`{"channel":"chan_1","payload":{"for":"my_beautiful_channel"}}`))
+	suite.Require().NoError(err, "write client-message should not fail")
 	var wg sync.WaitGroup
 	wg.Add(2)
 	go func() {
@@ -257,7 +256,7 @@ func (suite *hubServeSuite) TestChannelNotAvailable() {
 	hub := NewNetHub(timeout, zap.NewNop(), map[string]Gate{
 		"g": {
 			Name: "test_gate",
-			Channels: map[wshub.Channel]Channel{
+			Channels: map[wsutil.Channel]Channel{
 				"chan_1": {
 					URL: fmt.Sprintf("%s/channels/chan_1", serverURL),
 				},
@@ -295,7 +294,7 @@ func (suite *hubServeSuite) TestChannelUnexpectedClose() {
 	hub := NewNetHub(timeout, zap.NewNop(), map[string]Gate{
 		"g": {
 			Name: "test_gate",
-			Channels: map[wshub.Channel]Channel{
+			Channels: map[wsutil.Channel]Channel{
 				"chan_1": {
 					URL: fmt.Sprintf("%s/channels/chan_1", serverURL),
 				},
@@ -342,8 +341,7 @@ func (suite *hubServeSuite) TestChannelUnexpectedClose() {
 	cancel()
 	allStuff.Wait()
 	for {
-		_, m, err := serverConn.ReadMessage()
-		fmt.Println(string(m))
+		_, _, err := serverConn.ReadMessage()
 		if err == nil {
 			continue
 		}
@@ -357,3 +355,5 @@ func (suite *hubServeSuite) TestChannelUnexpectedClose() {
 func Test_hubServe(t *testing.T) {
 	suite.Run(t, new(hubServeSuite))
 }
+
+// TODO: FIX BROKEN TESTS WITH WEBSOKCET (SEE GITHUB CI)

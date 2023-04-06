@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"context"
+	"pgregory.net/rapid"
 	"testing"
 	"time"
 )
@@ -21,9 +22,24 @@ func (tf *tfailer) FailNow(s string, i ...interface{}) bool {
 	return true
 }
 
+// rapidTFailer implements TestFailer for rapid.T.
+type rapidTFailer struct {
+	t *rapid.T
+}
+
+func (tf rapidTFailer) FailNow(s string, i ...interface{}) bool {
+	tf.t.Fatalf(s, i...)
+	return true
+}
+
 // TestFailerFromT creates a TestFailer from the given testing.T.
 func TestFailerFromT(t *testing.T) TestFailer {
 	return &tfailer{t: t}
+}
+
+// TestFailerFromRapidT creates a TestFailer from the given rapid.T.
+func TestFailerFromRapidT(t *rapid.T) TestFailer {
+	return rapidTFailer{t: t}
 }
 
 // NewTimeout wraps timeout-detection-functionality. It creates a

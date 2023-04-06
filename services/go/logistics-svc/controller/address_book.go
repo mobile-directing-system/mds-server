@@ -186,3 +186,32 @@ func (c *Controller) RebuildAddressBookEntrySearch(ctx context.Context) {
 	}
 	c.Logger.Debug("address-book-entry-search rebuilt", zap.Duration("took", time.Since(start)))
 }
+
+// SetAddressBookEntriesWithAutoDeliveryEnabled sets the list of address book
+// entries with auto-delivery being enabled to the given ones.
+func (c *Controller) SetAddressBookEntriesWithAutoDeliveryEnabled(ctx context.Context, entryIDs []uuid.UUID) error {
+	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
+		disabled, err := c.Store.SetAddressBookEntriesWithAutoDeliveryEnabled(ctx, tx, entryIDs)
+		if err != nil {
+			return meh.Wrap(err, "set address book entries with auto-delivery enabled in store",
+				meh.Details{"new_entries_with_auto_delivery_enabled": entryIDs})
+		}
+		for _, enabledEntryID := range entryIDs {
+			err = c.Notifier.NotifyAddressBookEntryAutoDeliveryUpdated(ctx, tx, enabledEntryID, true)
+			if err != nil {
+				return meh.Wrap(err, "notify address book entry auto delivery enabled", meh.Details{"entry_id": enabledEntryID})
+			}
+		}
+		for _, disabledEntryID := range disabled {
+			err = c.Notifier.NotifyAddressBookEntryAutoDeliveryUpdated(ctx, tx, disabledEntryID, false)
+			if err != nil {
+				return meh.Wrap(err, "notify address book entry auto delivery enabled", meh.Details{"entry_id": disabledEntryID})
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return meh.Wrap(err, "run in tx", nil)
+	}
+	return nil
+}

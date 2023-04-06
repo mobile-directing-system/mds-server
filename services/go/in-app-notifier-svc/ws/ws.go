@@ -28,11 +28,11 @@ func Gatekeeper() wsutil.Gatekeeper {
 // ConnListener is the listener for ws.ConnListener that forwards created and
 // mapped connections to the given ForwardListener.
 func ConnListener(logger *zap.Logger, forwardListener ForwardListener) wsutil.ConnListener {
-	return func(conn wsutil.Connection) {
+	return func(conn wsutil.RawConnection) {
 		if !conn.AuthToken().IsAuthenticated {
 			mehlog.Log(logger, meh.NewInternalErr("websocket connection listener received unauthenticated connection", nil))
 			return
 		}
-		forwardListener.AcceptNewConnection(newConnection(conn))
+		forwardListener.AcceptNewConnection(newConnection(wsutil.NewAutoParserConnection(conn)))
 	}
 }

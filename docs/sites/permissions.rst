@@ -123,6 +123,15 @@ This also includes associating entries with operations, the requesting client is
 
 Options: `none`
 
+.. _permission.logistics.intel-delivery.manage:
+
+logistics.intel-delivery.manage
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Allows full control over intel delivery, including attempt creation and marking intel as delivered.
+
+Options: `none`
+
 Groups
 ------
 

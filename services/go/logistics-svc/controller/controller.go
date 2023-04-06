@@ -170,6 +170,17 @@ type Store interface {
 	//
 	// Warning: Sorting via pagination.Params is discarded!
 	Intel(ctx context.Context, tx pgx.Tx, filters store.IntelFilters, paginationParams pagination.Params) (pagination.Paginated[store.Intel], error)
+	// IsAutoDeliveryEnabledForAddressBookEntry checks whether the address book entry
+	// with the given id is marked for auto-delivery.
+	IsAutoDeliveryEnabledForAddressBookEntry(ctx context.Context, tx pgx.Tx, entryID uuid.UUID) (bool, error)
+	// SetAddressBookEntriesWithAutoDeliveryEnabled sets the list of address book
+	// entries with auto-delivery being enabled to the given ones. The returned list
+	// of ids are of address book entries that had previously auto delivery enabled,
+	// but now disabled.
+	SetAddressBookEntriesWithAutoDeliveryEnabled(ctx context.Context, tx pgx.Tx, entryIDs []uuid.UUID) ([]uuid.UUID, error)
+	// IntelDeliveryAttemptsByDelivery retrieves an IntelDeliveryAttempt list with
+	// attempts for the delivery with the given id.
+	IntelDeliveryAttemptsByDelivery(ctx context.Context, tx pgx.Tx, deliveryID uuid.UUID) ([]store.IntelDeliveryAttempt, error)
 }
 
 // Notifier sends event messages.
@@ -200,4 +211,7 @@ type Notifier interface {
 	// intel-delivery.
 	NotifyIntelDeliveryStatusUpdated(ctx context.Context, tx pgx.Tx, deliveryID uuid.UUID, newIsActive bool,
 		newSuccess bool, newNote nulls.String) error
+	// NotifyAddressBookEntryAutoDeliveryUpdated emits an
+	// event.TypeAddressBookEntryAutoDeliveryUpdated event.
+	NotifyAddressBookEntryAutoDeliveryUpdated(ctx context.Context, tx pgx.Tx, entryID uuid.UUID, isAutoDeliveryEnabled bool) error
 }

@@ -11,7 +11,10 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"testing"
+	"time"
 )
+
+const timeout = 5 * time.Second
 
 // ForwardListenerMock mocks ForwardListener.
 type ForwardListenerMock struct {
@@ -26,7 +29,7 @@ func (m *ForwardListenerMock) AcceptNewConnection(connection controller.Connecti
 type ConnListenerSuite struct {
 	suite.Suite
 	forwardListener *ForwardListenerMock
-	sampleConn      wsutil.Connection
+	sampleConn      wsutil.RawConnection
 	listener        wsutil.ConnListener
 }
 

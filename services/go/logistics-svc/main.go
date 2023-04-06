@@ -5,7 +5,6 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/logistics-svc/app"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/waitforterminate"
 	"log"
-	_ "net/http/pprof"
 )
 
 func main() {

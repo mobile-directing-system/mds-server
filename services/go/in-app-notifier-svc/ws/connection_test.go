@@ -16,23 +16,29 @@ import (
 )
 
 func TestConnection_UserID(t *testing.T) {
+	timeout, cancel, _ := testutil.NewTimeout(testutil.TestFailerFromT(t), timeout)
+	defer cancel()
 	authToken := auth.Token{UserID: testutil.NewUUIDV4()}
-	conn := newConnection(wstest.NewConnectionMock(context.Background(), authToken))
+	conn := newConnection(wsutil.NewAutoParserConnection(wstest.NewConnectionMock(timeout, authToken)))
 	assert.Equal(t, authToken.UserID, conn.UserID(), "should return the correct user id")
 }
 
 // connectionNotifySuite tests connection.Notify.
 type connectionNotifySuite struct {
 	suite.Suite
-	wsConn                   *wstest.Connection
+	wsConn                   *wstest.RawConnection
 	conn                     *connection
 	sampleNotification       store.OutgoingIntelDeliveryNotification
 	samplePublicNotification publicIntelDeliveryNotification
 }
 
 func (suite *connectionNotifySuite) SetupTest() {
-	suite.wsConn = wstest.NewConnectionMock(context.Background(), auth.Token{})
-	suite.conn = newConnection(suite.wsConn)
+	connLifetime, shutdownConn := context.WithCancel(context.Background())
+	suite.T().Cleanup(func() {
+		shutdownConn()
+	})
+	suite.wsConn = wstest.NewConnectionMock(connLifetime, auth.Token{})
+	suite.conn = newConnection(wsutil.NewAutoParserConnection(suite.wsConn))
 	attemptID := testutil.NewUUIDV4()
 	assignedToUser := testutil.NewUUIDV4()
 	suite.sampleNotification = store.OutgoingIntelDeliveryNotification{
