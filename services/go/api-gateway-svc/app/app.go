@@ -117,11 +117,19 @@ func Run(ctx context.Context) error {
 		}
 		return nil
 	})
-	// Serve endpoints.
+	// Serve public endpoints.
 	eg.Go(func() error {
-		err := endpoints.Serve(egCtx, logger.Named("endpoints"), c.ServeAddr, c.ForwardAddr, ctrl)
+		err := endpoints.Serve(egCtx, logger.Named("public-endpoints"), c.ServeAddr, c.ForwardAddr, ctrl)
 		if err != nil {
-			return meh.Wrap(err, "serve endpoints", nil)
+			return meh.Wrap(err, "serve public endpoints", nil)
+		}
+		return nil
+	})
+	// Serve internal endpoints
+	eg.Go(func() error {
+		err := endpoints.ServeInternal(egCtx, logger.Named("internal-endpoints"), c.InternalServeAddr, ctrl)
+		if err != nil {
+			return meh.Wrap(err, "serve internal endpoints", nil)
 		}
 		return nil
 	})

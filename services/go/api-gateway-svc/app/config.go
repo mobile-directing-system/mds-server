@@ -9,6 +9,8 @@ import (
 )
 
 const (
+	// envInternalServeAddr for config.InternalServeAddr.
+	envInternalServeAddr = "MDS_INTERNAL_SERVE_ADDR"
 	// envRedisAddr for config.RedisAddr.
 	envRedisAddr = "MDS_REDIS_ADDR"
 	// envForwardAddr for config.ForwardAddr.
@@ -19,6 +21,8 @@ const (
 
 type config struct {
 	basicconfig.Config
+	// InternalServeAddr is the address under which to serve internal endpoints.
+	InternalServeAddr string `json:"internal_serve_addr"`
 	// RedisAddr is the address under which Redis is reachable.
 	RedisAddr string `json:"redis_addr"`
 	// ForwardAddr is the address to forward handled requests to.
@@ -34,6 +38,8 @@ func parseConfigFromEnv() (config, error) {
 	if err != nil {
 		return config{}, meh.Wrap(err, "parse basic config from env", nil)
 	}
+	// Internal serve address.
+	c.InternalServeAddr = os.Getenv(envInternalServeAddr)
 	// Redis address.
 	c.RedisAddr = os.Getenv(envRedisAddr)
 	if c.RedisAddr == "" {

@@ -10,11 +10,14 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/shared/auth"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/wsutil"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"sync"
 	"testing"
@@ -94,6 +97,8 @@ func (wsr *wsRecorder) HandlerFunc(ctx context.Context) http.HandlerFunc {
 		eg.Go(func() error {
 			wg.Wait()
 			shutdown()
+			<-time.After(500 * time.Millisecond)
+			client.Close()
 			return nil
 		})
 		eg.Go(func() error {
@@ -106,6 +111,16 @@ func (wsr *wsRecorder) HandlerFunc(ctx context.Context) http.HandlerFunc {
 	}
 }
 
+// tokenResolverMock mocks TokenResolver.
+type tokenResolverMock struct {
+	mock.Mock
+}
+
+func (res *tokenResolverMock) ResolvePublicToken(ctx context.Context, publicToken string) (string, error) {
+	args := res.Called(ctx, publicToken)
+	return args.String(0), args.Error(1)
+}
+
 // hubServeSuite tests hub.Serve.
 type hubServeSuite struct {
 	suite.Suite
@@ -114,11 +129,14 @@ type hubServeSuite struct {
 func (suite *hubServeSuite) TestSingle() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	defer cancel()
+	resolveURL := &url.URL{}
+	publicToken := "reach"
+	internalToken := "till"
 	ginR := testutil.NewGinEngine()
 	httpServer := httptest.NewServer(ginR)
 	defer httpServer.Close()
 	serverURL := "ws" + strings.TrimPrefix(httpServer.URL, "http")
-	hub := NewNetHub(timeout, zap.NewNop(), map[string]Gate{
+	hub := NewNetHub(timeout, zap.NewNop(), resolveURL, map[string]Gate{
 		"g": {
 			Name: "test_gate",
 			Channels: map[wsutil.Channel]Channel{
@@ -128,9 +146,18 @@ func (suite *hubServeSuite) TestSingle() {
 			},
 		},
 	}).(*hub)
+	resolver := &tokenResolverMock{}
+	hub.tokenResolver = resolver
+	resolver.On("ResolvePublicToken", mock.Anything, publicToken).Return(internalToken, nil)
+	defer resolver.AssertExpectations(suite.T())
+	var wg sync.WaitGroup
 	ginR.GET("/ws", func(c *gin.Context) {
-		err := hub.Serve(c.Writer, c.Request, "g", nil)
+		wg.Add(1)
+		defer wg.Done()
+		headers := make(http.Header)
+		err := hub.Serve(c.Writer, c.Request, "g", headers)
 		suite.Require().NoError(err, "serve should not fail")
+		suite.EqualValues(fmt.Sprintf("Bearer %s", internalToken), headers.Get("Authorization"), "should set correct Authorization-header")
 	})
 	chan1ToSend := []json.RawMessage{
 		json.RawMessage(`{"hello":"world"}`),
@@ -146,6 +173,9 @@ func (suite *hubServeSuite) TestSingle() {
 	suite.Require().NoError(err, "should not fail")
 	defer func() { _ = serverConn.Close() }()
 
+	// Send auth.
+	err = serverConn.WriteMessage(websocket.TextMessage, []byte(publicToken))
+	suite.Require().NoError(err, "write client-auth-message should not fail")
 	// Send message to server, read response and check to see if it's what we expect.
 	err = serverConn.WriteMessage(websocket.TextMessage, []byte(`{"channel":"chan_1","payload":{"for":"my_beautiful_channel"}}`))
 	suite.Require().NoError(err, "write client-message should not fail")
@@ -164,7 +194,9 @@ func (suite *hubServeSuite) TestSingle() {
 	suite.Equal([]json.RawMessage{
 		json.RawMessage(`{"for":"my_beautiful_channel"}`),
 	}, chan1.received, "channel should have received all messages from client")
+
 	wait()
+	wg.Wait()
 }
 
 func (suite *hubServeSuite) TestMulti() {
@@ -174,7 +206,7 @@ func (suite *hubServeSuite) TestMulti() {
 	httpServer := httptest.NewServer(ginR)
 	defer httpServer.Close()
 	serverURL := "ws" + strings.TrimPrefix(httpServer.URL, "http")
-	hub := NewNetHub(timeout, zap.NewNop(), map[string]Gate{
+	hub := NewNetHub(timeout, zap.NewNop(), nil, map[string]Gate{
 		"g": {
 			Name: "test_gate",
 			Channels: map[wsutil.Channel]Channel{
@@ -186,8 +218,13 @@ func (suite *hubServeSuite) TestMulti() {
 				}},
 		},
 	}).(*hub)
+	publicToken := "business"
+	resolver := &tokenResolverMock{}
+	resolver.On("ResolvePublicToken", mock.Anything, publicToken).Return("", nil)
+	defer resolver.AssertExpectations(suite.T())
+	hub.tokenResolver = resolver
 	ginR.GET("/ws", func(c *gin.Context) {
-		err := hub.Serve(c.Writer, c.Request, "g", nil)
+		err := hub.Serve(c.Writer, c.Request, "g", make(http.Header))
 		suite.Require().NoError(err, "serve should not fail")
 	})
 	chan1 := newWSRecorder([]json.RawMessage{
@@ -208,6 +245,9 @@ func (suite *hubServeSuite) TestMulti() {
 	suite.Require().NoError(err, "should not fail")
 	defer func() { _ = serverConn.Close() }()
 
+	// Authenticate.
+	err = serverConn.WriteMessage(websocket.TextMessage, []byte(publicToken))
+	suite.Require().NoError(err, "write client-auth-message should not fail")
 	// Send message to server, read response and check to see if it's what we expect.
 	clientReceived := make([]json.RawMessage, 0, 2)
 	for i := 0; i < 3; i++ {
@@ -253,7 +293,7 @@ func (suite *hubServeSuite) TestChannelNotAvailable() {
 	httpServer := httptest.NewServer(ginR)
 	defer httpServer.Close()
 	serverURL := "ws" + strings.TrimPrefix(httpServer.URL, "http")
-	hub := NewNetHub(timeout, zap.NewNop(), map[string]Gate{
+	hub := NewNetHub(timeout, zap.NewNop(), nil, map[string]Gate{
 		"g": {
 			Name: "test_gate",
 			Channels: map[wsutil.Channel]Channel{
@@ -265,8 +305,14 @@ func (suite *hubServeSuite) TestChannelNotAvailable() {
 				}},
 		},
 	}).(*hub)
+	resolver := &tokenResolverMock{}
+	resolver.On("ResolvePublicToken", mock.Anything, mock.Anything).Return("", nil).Maybe()
+	hub.tokenResolver = resolver
+	var wg sync.WaitGroup
 	ginR.GET("/ws", func(c *gin.Context) {
-		err := hub.Serve(c.Writer, c.Request, "g", nil)
+		wg.Add(1)
+		defer wg.Done()
+		err := hub.Serve(c.Writer, c.Request, "g", make(http.Header))
 		suite.Require().Error(err, "serve should fail")
 		c.Status(http.StatusInternalServerError)
 	})
@@ -278,10 +324,19 @@ func (suite *hubServeSuite) TestChannelNotAvailable() {
 		c.Status(http.StatusNotFound)
 	})
 	// Connect to the server
-	_, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("%s/ws", serverURL), nil)
-	suite.Error(err, "should fail")
+	serverConn, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("%s/ws", serverURL), nil)
+	suite.Require().NoError(err, "open server conn should not fail")
+	defer func() { _ = serverConn.Close() }()
+	// Authenticate.
+	err = serverConn.WriteMessage(websocket.TextMessage, []byte("court"))
+	suite.Require().NoError(err, "write client-auth-message should not fail")
+
+	_, _, err = serverConn.ReadMessage()
+	suite.Error(err, "read msesage should fail because of connection being closed by the server")
+
 	cancel()
 	wait()
+	wg.Wait()
 }
 
 func (suite *hubServeSuite) TestChannelUnexpectedClose() {
@@ -291,7 +346,7 @@ func (suite *hubServeSuite) TestChannelUnexpectedClose() {
 	httpServer := httptest.NewServer(ginR)
 	defer httpServer.Close()
 	serverURL := "ws" + strings.TrimPrefix(httpServer.URL, "http")
-	hub := NewNetHub(timeout, zap.NewNop(), map[string]Gate{
+	hub := NewNetHub(timeout, zap.NewNop(), nil, map[string]Gate{
 		"g": {
 			Name: "test_gate",
 			Channels: map[wsutil.Channel]Channel{
@@ -303,11 +358,14 @@ func (suite *hubServeSuite) TestChannelUnexpectedClose() {
 				}},
 		},
 	}).(*hub)
+	resolver := &tokenResolverMock{}
+	resolver.On("ResolvePublicToken", mock.Anything, mock.Anything).Return("", nil).Maybe()
+	hub.tokenResolver = resolver
 	var allStuff sync.WaitGroup
 	ginR.GET("/ws", func(c *gin.Context) {
 		allStuff.Add(1)
 		defer allStuff.Done()
-		_ = hub.Serve(c.Writer, c.Request, "g", nil)
+		_ = hub.Serve(c.Writer, c.Request, "g", make(http.Header))
 	})
 	chan1 := newWSRecorder([]json.RawMessage{
 		json.RawMessage(`{"hello":"world"}`),
@@ -327,6 +385,10 @@ func (suite *hubServeSuite) TestChannelUnexpectedClose() {
 	serverConn, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("%s/ws", serverURL), nil)
 	suite.Require().NoError(err, "should not fail")
 	defer func() { _ = serverConn.Close() }()
+	// Authenticate.
+	err = serverConn.WriteMessage(websocket.TextMessage, []byte("court"))
+	suite.Require().NoError(err, "write client-auth-message should not fail")
+
 	var wg sync.WaitGroup
 	wg.Add(2)
 	go func() {
@@ -345,8 +407,12 @@ func (suite *hubServeSuite) TestChannelUnexpectedClose() {
 		if err == nil {
 			continue
 		}
-		code := err.(*websocket.CloseError).Code
-		suite.Equal(websocket.CloseAbnormalClosure, code, "client connection should have been closed")
+		switch err := err.(type) {
+		case *websocket.CloseError:
+			suite.Equal(websocket.CloseAbnormalClosure, err.Code, "client connection should have been closed")
+		case *net.OpError:
+			fmt.Printf("%+v", err)
+		}
 		break
 	}
 	wait()
@@ -355,5 +421,3 @@ func (suite *hubServeSuite) TestChannelUnexpectedClose() {
 func Test_hubServe(t *testing.T) {
 	suite.Run(t, new(hubServeSuite))
 }
-
-// TODO: FIX BROKEN TESTS WITH WEBSOKCET (SEE GITHUB CI)

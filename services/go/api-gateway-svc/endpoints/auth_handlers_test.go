@@ -2,7 +2,6 @@ package endpoints
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"github.com/gin-gonic/gin"
@@ -14,34 +13,24 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
 )
 
-// handleLoginStoreMock mocks handleLoginStore.
-type handleLoginStoreMock struct {
-	mock.Mock
-}
-
-func (m *handleLoginStoreMock) Login(ctx context.Context, username string, pass string,
-	requestMetadata controller.AuthRequestMetadata) (uuid.UUID, string, bool, error) {
-	args := m.Called(ctx, username, pass, requestMetadata)
-	return args.Get(0).(uuid.UUID), args.String(1), args.Bool(2), args.Error(3)
-}
-
 // handleLoginSuite tests handleLogin.
 type handleLoginSuite struct {
 	suite.Suite
-	s             *handleLoginStoreMock
+	s             *StoreMock
 	r             *gin.Engine
 	sampleRequest loginPayload
 }
 
 func (suite *handleLoginSuite) SetupTest() {
-	suite.s = &handleLoginStoreMock{}
+	suite.s = &StoreMock{}
 	suite.r = testutil.NewGinEngine()
-	suite.r.POST("/login", handleLogin(zap.NewNop(), suite.s))
+	populateAPIV1Routes(suite.r, zap.NewNop(), suite.s, "")
 	suite.sampleRequest = loginPayload{
 		Username: "sweat",
 		Pass:     "bind",
@@ -129,29 +118,19 @@ func Test_extractAuthRequestMetadataFromRequest(t *testing.T) {
 	}, got, "should extract correct metadata")
 }
 
-// handleLogoutStoreMock mocks handleLogoutStore.
-type handleLogoutStoreMock struct {
-	mock.Mock
-}
-
-func (m *handleLogoutStoreMock) Logout(ctx context.Context, publicToken string,
-	requestMetadata controller.AuthRequestMetadata) error {
-	return m.Called(ctx, publicToken, requestMetadata).Error(0)
-}
-
 // handleLogoutSuite tests handleLogout.
 type handleLogoutSuite struct {
 	suite.Suite
-	s              *handleLogoutStoreMock
+	s              *StoreMock
 	r              *gin.Engine
 	sampleToken    auth.Token
 	sampleTokenStr string
 }
 
 func (suite *handleLogoutSuite) SetupTest() {
-	suite.s = &handleLogoutStoreMock{}
+	suite.s = &StoreMock{}
 	suite.r = testutil.NewGinEngine()
-	suite.r.POST("/logout", handleLogout(zap.NewNop(), suite.s))
+	populateAPIV1Routes(suite.r, zap.NewNop(), suite.s, "")
 	suite.sampleToken = auth.Token{
 		UserID: testutil.NewUUIDV4(),
 	}
@@ -188,4 +167,56 @@ func (suite *handleLogoutSuite) TestOK() {
 
 func Test_handleLogout(t *testing.T) {
 	suite.Run(t, new(handleLogoutSuite))
+}
+
+// handleResolvePublicTokenSuite tests handleResolvePublicToken.
+type handleResolvePublicTokenSuite struct {
+	suite.Suite
+	r                   *gin.Engine
+	s                   *StoreMock
+	samplePublicToken   string
+	sampleResolvedToken string
+}
+
+func (suite *handleResolvePublicTokenSuite) SetupTest() {
+	suite.s = &StoreMock{}
+	suite.r = testutil.NewGinEngine()
+	populateInternalAPIV1Routes(suite.r, zap.NewNop(), suite.s)
+	suite.samplePublicToken = "servant"
+	suite.sampleResolvedToken = "swear"
+}
+
+func (suite *handleResolvePublicTokenSuite) TestProxyFail() {
+	suite.s.On("Proxy", mock.Anything, mock.Anything).
+		Return("", errors.New("sad life"))
+	defer suite.s.AssertExpectations(suite.T())
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    "/tokens/resolve-public",
+		Body:   bytes.NewReader([]byte(suite.samplePublicToken)),
+	})
+	suite.Equal(http.StatusInternalServerError, rr.Code, "should return correct status code")
+}
+
+func (suite *handleResolvePublicTokenSuite) TestOK() {
+	suite.s.On("Proxy", mock.Anything, mock.Anything).
+		Return(suite.sampleResolvedToken, nil)
+	defer suite.s.AssertExpectations(suite.T())
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    "/tokens/resolve-public",
+		Body:   bytes.NewReader([]byte(suite.samplePublicToken)),
+	})
+	suite.Require().Equal(http.StatusOK, rr.Code, "should return correct status code")
+	got, err := io.ReadAll(rr.Body)
+	suite.Require().NoError(err, "read body should not fail")
+	suite.EqualValues(suite.sampleResolvedToken, got, "should return correct token")
+}
+
+func Test_handleResolvePublicToken(t *testing.T) {
+	suite.Run(t, new(handleResolvePublicTokenSuite))
 }

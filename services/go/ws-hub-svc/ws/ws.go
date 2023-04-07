@@ -14,6 +14,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -52,7 +53,8 @@ type hub struct {
 	// gateConfigs are the configs to use for retrieving channel-information, etc.
 	gateConfigs map[string]Gate
 	// upgrader to upgrade to WebSocket connections.
-	upgrader websocket.Upgrader
+	upgrader      websocket.Upgrader
+	tokenResolver TokenResolver
 }
 
 // Dialer is an abstraction of websocket.Dialer. See websocket.Dialer for
@@ -63,7 +65,7 @@ type Dialer interface {
 
 // NewNetHub creates a new Hub with the given config and connection lifetime.
 // When it is done, all active clients will be disconnected.
-func NewNetHub(connLifetime context.Context, logger *zap.Logger, gateConfigs map[string]Gate) Hub {
+func NewNetHub(connLifetime context.Context, logger *zap.Logger, tokenResolveURL *url.URL, gateConfigs map[string]Gate) Hub {
 	return &hub{
 		connLifetime: connLifetime,
 		logger:       logger,
@@ -74,6 +76,10 @@ func NewNetHub(connLifetime context.Context, logger *zap.Logger, gateConfigs map
 			WriteBufferSize:  wsutil.WriteBufferSize,
 			HandshakeTimeout: 2 * time.Second,
 		},
+		tokenResolver: &tokenResolver{
+			httpClient: &http.Client{},
+			resolveURL: tokenResolveURL,
+		},
 	}
 }
 
@@ -81,7 +87,6 @@ func NewNetHub(connLifetime context.Context, logger *zap.Logger, gateConfigs map
 type session struct {
 	logger     *zap.Logger
 	gateConfig Gate
-	client     *websocket.Conn
 	channels   map[wsutil.Channel]*websocket.Conn
 }
 
@@ -160,6 +165,32 @@ func (h *hub) Serve(clientWriter http.ResponseWriter, clientRequest *http.Reques
 	defer func() {
 		h.logger.Debug("closing gate", zap.Any("was_open", time.Since(start)))
 	}()
+	// Upgrade the client's connection.
+	clientConn, err := h.upgrader.Upgrade(clientWriter, clientRequest, nil)
+	if err != nil {
+		return meh.NewErrFromErr(err, wsutil.ErrWSCommunication, "upgrade client connection", nil)
+	}
+	defer func() {
+		_ = clientConn.Close()
+	}()
+	sessionLogger.Debug("awaiting authentication message")
+	// Create client's client (lol).
+	clientClient := wsutil.NewClient(sessionLifetime, sessionLogger.Named("client"), auth.Token{}, clientConn)
+	go func() {
+		defer closeSession()
+		err := clientClient.RunAndClose()
+		if err != nil {
+			mehlog.Log(sessionLogger, meh.NilOrWrap(err, "run and close client-client", nil))
+		}
+	}()
+	// Read authentication data before opening connections because we want to pass it
+	// in opening HTTP requests.
+	authorization, err := readAuth(clientRequest.Context(), clientClient, h.tokenResolver)
+	if err != nil {
+		return meh.Wrap(err, "read auth", nil)
+	}
+	requestHeader.Set("Authorization", fmt.Sprintf("Bearer %s", authorization))
+	sessionLogger.Debug("connecting channels")
 	// Connect all channels.
 	channelConns, err := h.connectChannels(sessionLifetime, sessionLogger, gateConfig.Channels, requestHeader)
 	if err != nil {
@@ -170,23 +201,14 @@ func (h *hub) Serve(clientWriter http.ResponseWriter, clientRequest *http.Reques
 			_ = conn.Close()
 		}
 	}()
-	// Now, we can upgrade the client's connection.
-	clientConn, err := h.upgrader.Upgrade(clientWriter, clientRequest, nil)
-	if err != nil {
-		return meh.NewErrFromErr(err, wsutil.ErrWSCommunication, "upgrade client connection", nil)
-	}
-	defer func() {
-		_ = clientConn.Close()
-	}()
 	sessionLogger.Debug("client connection ready")
 	// Route.
 	session := session{
 		logger:     sessionLogger,
 		gateConfig: gateConfig,
-		client:     clientConn,
 		channels:   channelConns,
 	}
-	err = route(sessionLifetime, sessionLogger, session)
+	err = route(sessionLifetime, sessionLogger, session, clientClient)
 	if err != nil {
 		mehlog.Log(sessionLogger, meh.Wrap(err, "route", nil))
 	}
@@ -195,9 +217,7 @@ func (h *hub) Serve(clientWriter http.ResponseWriter, clientRequest *http.Reques
 
 // TODO: Add global flag for omitting error details for security reasons.
 
-func route(lifetime context.Context, logger *zap.Logger, session session) error {
-	// Create client's client (lol).
-	clientClient := wsutil.NewClient(lifetime, logger.Named("client"), auth.Token{}, session.client)
+func route(lifetime context.Context, logger *zap.Logger, session session, clientClient wsutil.Client) error {
 	// Create channel clients.
 	channelClients := make(map[wsutil.Channel]wsutil.Client, len(session.channels))
 	for channelLabel, channelConn := range session.channels {
@@ -286,9 +306,6 @@ func route(lifetime context.Context, logger *zap.Logger, session session) error 
 		<-egCtx.Done()
 		clientClient.Close()
 		return nil
-	})
-	eg.Go(func() error {
-		return meh.NilOrWrap(clientClient.RunAndClose(), "run and close client-client", nil)
 	})
 	return eg.Wait()
 }
