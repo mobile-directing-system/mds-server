@@ -20,3 +20,10 @@ Each message is of the following format:
     }
 
 Based on the channel, the hub will forward to the correct service and for messages from a service, the channel will be set accordingly.
+
+Authentication
+==============
+
+Authentication via HTTP request headers when initiating the WebSocket connection is not possible with the Browser WebSocket API.
+Therefore, the first client message over the WebSocket connection is expected to consist of the authentication token.
+This message must not be in the format described above but in plain-text.
