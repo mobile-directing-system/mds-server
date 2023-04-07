@@ -8,6 +8,7 @@ metadata:
 data:
   MDS_SERVE_ADDR: :8080
   MDS_LOG_LEVEL: debug
+  MDS_AUTH_TOKEN_RESOLVE_URL: http://mds-api-gateway-svc-service:2090/tokens/resolve-public
   MDS_ROUTER_CONFIG_PATH: /app-config/router.json
 ---
 apiVersion: v1

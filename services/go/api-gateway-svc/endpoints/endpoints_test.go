@@ -2,9 +2,11 @@ package endpoints
 
 import (
 	"context"
+	"github.com/gofrs/uuid"
 	"github.com/mobile-directing-system/mds-server/services/go/api-gateway-svc/controller"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"net/http"
@@ -14,6 +16,25 @@ import (
 )
 
 const timeout = 5 * time.Second
+
+// StoreMock mocks Store.
+type StoreMock struct {
+	mock.Mock
+}
+
+func (m *StoreMock) Login(ctx context.Context, username string, pass string, requestMetadata controller.AuthRequestMetadata) (uuid.UUID, string, bool, error) {
+	args := m.Called(ctx, username, pass, requestMetadata)
+	return args.Get(0).(uuid.UUID), args.String(1), args.Bool(2), args.Error(3)
+}
+
+func (m *StoreMock) Logout(ctx context.Context, publicToken string, requestMetadata controller.AuthRequestMetadata) error {
+	return m.Called(ctx, publicToken, requestMetadata).Error(0)
+}
+
+func (m *StoreMock) Proxy(ctx context.Context, token string) (string, error) {
+	args := m.Called(ctx, token)
+	return args.String(0), args.Error(1)
+}
 
 func Test_populateAPIV1Routes(t *testing.T) {
 	r := testutil.NewGinEngine()

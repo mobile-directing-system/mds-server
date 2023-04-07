@@ -5,6 +5,7 @@ import (
 	"github.com/lefinal/meh"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/ready"
 	"go.uber.org/zap/zapcore"
+	"net/url"
 	"os"
 )
 
@@ -15,6 +16,8 @@ const (
 	envServeAddr = "MDS_SERVE_ADDR"
 	// envReadyProbeServeAddr for config.ReadyProbeServeAddr.
 	envReadyProbeServeAddr = "MDS_READY_PROBE_SERVE_ADDR"
+	// envAuthTokenResolveURL for config.AuthTokenResolveURL.
+	envAuthTokenResolveURL = "MDS_AUTH_TOKEN_RESOLVE_URL"
 	// envRouterConfigPath holds the filepath of the router config.
 	envRouterConfigPath = "MDS_ROUTER_CONFIG_PATH"
 )
@@ -28,6 +31,9 @@ type config struct {
 	// ready-probe-endpoints. parseFromEnv will set this to ready.DefaultServeAddr
 	// if not provided otherwise.
 	ReadyProbeServeAddr string `json:"ready_probe_serve_addr"`
+	// AuthTokenResolveURL is the URL under which public authentication tokens can be
+	// resolved to internal ones.
+	AuthTokenResolveURL *url.URL `json:"auth_token_resolve_url"`
 	// Router is the config for the router.
 	Router routerConfig `json:"router"`
 }
@@ -76,6 +82,16 @@ func parseConfig() (config, error) {
 	c.ReadyProbeServeAddr = os.Getenv(envReadyProbeServeAddr)
 	if c.ReadyProbeServeAddr == "" {
 		c.ReadyProbeServeAddr = ready.DefaultServeAddr
+	}
+	// Auth token resolve URL.
+	authTokenResolveURLStr := os.Getenv(envAuthTokenResolveURL)
+	if authTokenResolveURLStr == "" {
+		return config{}, meh.NewBadInputErr("missing authentication token resolve url", meh.Details{"env": envAuthTokenResolveURL})
+	}
+	var err error
+	c.AuthTokenResolveURL, err = url.Parse(authTokenResolveURLStr)
+	if err != nil {
+		return config{}, meh.NewBadInputErrFromErr(err, "parse authentication token resolve url", meh.Details{"was": authTokenResolveURLStr})
 	}
 	// Read and parse router config.
 	routerConfigPath := os.Getenv(envRouterConfigPath)

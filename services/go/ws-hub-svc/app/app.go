@@ -47,7 +47,7 @@ func Run(ctx context.Context) error {
 	}
 	// Setup hub.
 	gateConfigs := gateConfigsFromConfig(c.Router.Gates)
-	wsHub := ws.NewNetHub(egCtx, logger.Named("ws"), gateConfigs)
+	wsHub := ws.NewNetHub(egCtx, logger.Named("ws"), c.AuthTokenResolveURL, gateConfigs)
 	// Serve endpoints.
 	eg.Go(func() error {
 		err := endpoints.Serve(egCtx, logger.Named("endpoints"), c.ServeAddr, wsHub)

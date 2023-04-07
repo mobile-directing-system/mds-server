@@ -7,6 +7,7 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/lefinal/meh"
+	"github.com/lefinal/meh/mehlog"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/auth"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/logging"
 	"go.uber.org/zap"
@@ -28,6 +29,7 @@ type Client interface {
 	// RunAndClose runs lifesupport for the connection and closes it after the
 	// connection lifetime is done.
 	RunAndClose() error
+	Run() error
 	RawConnection() RawConnection
 	Close()
 }
@@ -65,13 +67,15 @@ func NewClient(lifetime context.Context, logger *zap.Logger, authToken auth.Toke
 
 func (c *client) Close() {
 	c.conn.cancel()
+	err := c.wsConn.Close()
+	if err != nil {
+		mehlog.Log(c.conn.logger, meh.NewErrFromErr(err, ErrWSCommunication, "close connection", nil))
+	}
 }
 
-// RunAndClose runs WebSocket lifesupport and closes after the set lifetime
-// context is done.
-func (c *client) RunAndClose() error {
-	defer c.conn.cancel()
-	defer func() { _ = c.wsConn.Close() }()
+// Run runs WebSocket lifesupport and returns when no lifesupport is needed
+// anymore, e.g., the set lifetime context is done.
+func (c *client) Run() error {
 	c.wsConn.SetReadLimit(MaxMessageSize)
 	err := pongHandler(c.wsConn)("")
 	if err != nil {
@@ -94,16 +98,18 @@ func (c *client) RunAndClose() error {
 		}
 		return nil
 	})
-	// TODO: Move out of eg?
-	eg.Go(func() error {
-		<-egCtx.Done()
-		err := c.wsConn.Close()
-		if err != nil {
-			return meh.NewErrFromErr(err, ErrWSCommunication, "close connection", nil)
-		}
-		return nil
-	})
 	return eg.Wait()
+}
+
+// RunAndClose runs WebSocket lifesupport and closes after the set lifetime
+// context is done.
+func (c *client) RunAndClose() error {
+	defer c.Close()
+	err := c.Run()
+	if err != nil {
+		return meh.Wrap(err, "run", nil)
+	}
+	return nil
 }
 
 func (c *client) Connection() BaseConnection {

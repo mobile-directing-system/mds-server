@@ -9,9 +9,8 @@ import (
 	"math/rand"
 )
 
-// Proxy checks if the user is logged in (returned as second return value) and
-// generates an internal authentication token, which will be passed with the
-// forwarded request.
+// Proxy checks if the user is logged in and generates an internal authentication
+// token, which will be passed with the forwarded request.
 func (c *Controller) Proxy(ctx context.Context, publicToken string) (string, error) {
 	authToken, err := c.gatherProxyToken(ctx, publicToken)
 	if err != nil {

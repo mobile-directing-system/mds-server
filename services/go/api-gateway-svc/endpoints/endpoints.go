@@ -12,6 +12,13 @@ import (
 	"time"
 )
 
+// Store holds all dependencise for handlers.
+type Store interface {
+	handleLoginStore
+	handleLogoutStore
+	handleProxyController
+}
+
 // Serve endpoints over HTTP.
 func Serve(lifetime context.Context, logger *zap.Logger, serveAddr string, forwardAddr string, ctrl *controller.Controller) error {
 	httpendpoints.ApplyDefaultErrorHTTPMapping()
@@ -31,8 +38,31 @@ func Serve(lifetime context.Context, logger *zap.Logger, serveAddr string, forwa
 	return nil
 }
 
-func populateAPIV1Routes(router *gin.Engine, logger *zap.Logger, ctrl *controller.Controller, forwardAddr string) {
-	router.POST("/login", handleLogin(logger, ctrl))
-	router.POST("/logout", handleLogout(logger, ctrl))
-	router.NoRoute(handleProxy(logger, ctrl, forwardAddr))
+func populateAPIV1Routes(router *gin.Engine, logger *zap.Logger, s Store, forwardAddr string) {
+	router.POST("/login", handleLogin(logger, s))
+	router.POST("/logout", handleLogout(logger, s))
+	router.NoRoute(handleProxy(logger, s, forwardAddr))
+}
+
+// ServeInternal endpoints over HTTP.
+func ServeInternal(lifetime context.Context, logger *zap.Logger, serveAddr string, ctrl *controller.Controller) error {
+	httpendpoints.ApplyDefaultErrorHTTPMapping()
+	router := httpendpoints.NewEngine(logger)
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{http.MethodOptions, http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete},
+		AllowHeaders:     []string{"*"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
+	populateInternalAPIV1Routes(router, logger.Named("api-v1"), ctrl)
+	err := httpendpoints.Serve(lifetime, router, serveAddr)
+	if err != nil {
+		return meh.Wrap(err, "serve", meh.Details{"addr": serveAddr})
+	}
+	return nil
+}
+
+func populateInternalAPIV1Routes(router *gin.Engine, logger *zap.Logger, s Store) {
+	router.POST("/tokens/resolve-public", handleResolvePublicToken(logger, s))
 }

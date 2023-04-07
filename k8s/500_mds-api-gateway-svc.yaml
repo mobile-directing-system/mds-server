@@ -147,6 +147,7 @@ metadata:
 data:
   MDS_DB_CONN_STRING: postgresql://mds:mds@mds-api-gateway-svc-postgres-service/mds-api-gateway-svc
   MDS_KAFKA_ADDR: kafka-cluster-kafka-bootstrap.kafka:9092
+  MDS_INTERNAL_SERVE_ADDR: :8070
   MDS_REDIS_ADDR: mds-api-gateway-svc-redis-service:6379
   MDS_SERVE_ADDR: :8080
   MDS_FORWARD_ADDR: internal-ingress-nginx-controller.internal-ingress-nginx
@@ -162,8 +163,12 @@ spec:
   selector:
     app: mds-api-gateway-svc
   ports:
-    - port: 3000
+    - name: public-endpionts
+      port: 3000
       targetPort: 8080
+    - name: internal-endpoints
+      port: 2090
+      targetPort: 8070
 ---
 # API Gateway svc deployment.
 apiVersion: apps/v1
@@ -189,6 +194,7 @@ spec:
                 name: mds-api-gateway-svc-config
           ports:
             - containerPort: 8080
+            - containerPort: 8070
           livenessProbe:
             httpGet:
               port: 31234

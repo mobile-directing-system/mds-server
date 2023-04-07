@@ -8,6 +8,7 @@ import (
 	"github.com/lefinal/meh/mehgin"
 	"github.com/mobile-directing-system/mds-server/services/go/api-gateway-svc/controller"
 	"go.uber.org/zap"
+	"io"
 	"net/http"
 	"strings"
 )
@@ -98,5 +99,25 @@ func handleLogout(logger *zap.Logger, s handleLogoutStore) gin.HandlerFunc {
 			return
 		}
 		c.Status(http.StatusOK)
+	}
+}
+
+// handleResolvePublicToken expects the public token and resolves it using the
+// controller. The resolved token is then returned as plaintext.
+func handleResolvePublicToken(logger *zap.Logger, s handleProxyController) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Extract public token from request.
+		authHeader, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			mehgin.LogAndRespondError(logger, c, meh.Wrap(err, "read body", nil))
+			return
+		}
+		publicToken := strings.TrimPrefix(string(authHeader), "Bearer ")
+		internalToken, err := s.Proxy(c.Request.Context(), publicToken)
+		if err != nil {
+			mehgin.LogAndRespondError(logger, c, meh.Wrap(err, "proxy", nil))
+			return
+		}
+		c.String(http.StatusOK, internalToken)
 	}
 }
