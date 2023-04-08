@@ -26,7 +26,7 @@ func Serve(lifetime context.Context, logger *zap.Logger, addr string, wsHub ws.H
 func populateRoutes(r *gin.Engine, logger *zap.Logger, wsHub ws.Hub) {
 	r.GET("/ws/:gate", func(c *gin.Context) {
 		gate := c.Param("gate")
-		err := wsHub.Serve(c.Writer, c.Request, gate, c.Request.Header)
+		err := wsHub.Serve(c.Writer, c.Request, gate, make(http.Header)) // Clear headers for security reasons.
 		if err != nil {
 			mehhttp.LogAndRespondError(logger, c.Writer, c.Request, meh.Wrap(err, "serve with websocket hub", meh.Details{"gate": gate}))
 			return
