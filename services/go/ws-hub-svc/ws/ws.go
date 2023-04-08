@@ -72,6 +72,10 @@ func NewNetHub(connLifetime context.Context, logger *zap.Logger, tokenResolveURL
 		dialer:       websocket.DefaultDialer,
 		gateConfigs:  gateConfigs,
 		upgrader: websocket.Upgrader{
+			CheckOrigin: func(_ *http.Request) bool {
+				// TODO: Add check for production.
+				return true
+			},
 			ReadBufferSize:   wsutil.ReadBufferSize,
 			WriteBufferSize:  wsutil.WriteBufferSize,
 			HandshakeTimeout: 2 * time.Second,
