@@ -53,7 +53,7 @@ Open intel deliveries for subscribed operations are then received on updates in 
                         "created_at": "<timestamp_of_creation>",
                         "created_by": "<user_id_of_creator>",
                         "operation": "<referenced_operation_id>",
-                        "imporatnce": 0,
+                        "importance": 0,
                         "is_valid": true
                     }
                 }
