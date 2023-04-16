@@ -428,7 +428,7 @@ func (m *Mall) ActiveIntelDeliveryAttemptsByDelivery(ctx context.Context, tx pgx
 			activeAttempts = append(activeAttempts, attempt)
 		}
 	}
-	return attempts, nil
+	return activeAttempts, nil
 }
 
 // IntelDeliveryAttemptsByDelivery retrieves an IntelDeliveryAttempt list with
