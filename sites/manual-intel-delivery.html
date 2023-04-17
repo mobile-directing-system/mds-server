@@ -317,6 +317,22 @@ Updating the list of address book entries with auto delivery enabled can be done
 </div>
 <p>Response (200)</p>
 </section>
+<section id="cancel-active-intel-delivery">
+<h2>Cancel active intel delivery<a class="headerlink" href="#cancel-active-intel-delivery" title="Permalink to this heading">#</a></h2>
+<p>Cancelling an active intel delivery requires the <a class="reference internal" href="permissions.html#permission-logistics-intel-delivery-manage"><span class="std std-ref">logistics.intel-delivery.manage</span></a> permission and can be done via:</p>
+<p><cite>POST /intel-deliveries/&lt;delivery_id&gt;/cancel</cite></p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;success&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;note&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;option_note&gt;&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Set <code class="docutils literal notranslate"><span class="pre">success</span></code> to <code class="docutils literal notranslate"><span class="pre">true</span></code> if the delivery should be marked as successful.
+This means that the intel to be delivered via this delivery as confirmed to be delivered and read by the recipient.
+Otherwise, set this to <code class="docutils literal notranslate"><span class="pre">false</span></code>.
+It is good practise to provide a note as well, describing why the delivery was cancelled.</p>
+<p>Note: All active delivery attempts will be cancelled as well.</p>
+</section>
 </section>
 
         </article>
@@ -379,6 +395,7 @@ Updating the list of address book entries with auto delivery enabled can be done
 <li><a class="reference internal" href="#retrieve-delivery-attempts">Retrieve delivery attempts</a></li>
 <li><a class="reference internal" href="#manually-schedule-a-delivery-attempt">Manually schedule a delivery attempt</a></li>
 <li><a class="reference internal" href="#enable-auto-intel-delivery-for-address-book-entries">Enable auto intel delivery for address book entries</a></li>
+<li><a class="reference internal" href="#cancel-active-intel-delivery">Cancel active intel delivery</a></li>
 </ul>
 </li>
 </ul>
