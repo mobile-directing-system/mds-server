@@ -797,9 +797,9 @@ func TestController_UpdateIntelDeliveryAttemptStatusForActive(t *testing.T) {
 	suite.Run(t, new(ControllerUpdateIntelDeliveryAttemptStatusForActiveSuite))
 }
 
-// ControllerMarkIntelAsDeliveredSuite tests
+// ControllerMarkIntelDeliveryAndAttemptAsDeliveredSuite tests
 // Controller.MarkIntelDeliveryAndAttemptAsDelivered.
-type ControllerMarkIntelAsDeliveredSuite struct {
+type ControllerMarkIntelDeliveryAndAttemptAsDeliveredSuite struct {
 	suite.Suite
 	ctrl                 *ControllerMock
 	tx                   *testutil.DBTx
@@ -809,7 +809,7 @@ type ControllerMarkIntelAsDeliveredSuite struct {
 	sampleActiveAttempts []store.IntelDeliveryAttempt
 }
 
-func (suite *ControllerMarkIntelAsDeliveredSuite) SetupTest() {
+func (suite *ControllerMarkIntelDeliveryAndAttemptAsDeliveredSuite) SetupTest() {
 	suite.tx = &testutil.DBTx{}
 	suite.ctrl = NewMockController()
 	suite.sampleDeliveryID = testutil.NewUUIDV4()
@@ -846,7 +846,7 @@ func (suite *ControllerMarkIntelAsDeliveredSuite) SetupTest() {
 	}
 }
 
-func (suite *ControllerMarkIntelAsDeliveredSuite) TestRetrieveDeliveryFail() {
+func (suite *ControllerMarkIntelDeliveryAndAttemptAsDeliveredSuite) TestRetrieveDeliveryFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.ctrl.Store.On("IntelDeliveryByIDAndLockOrWait", timeout, suite.tx, suite.sampleDeliveryID).
 		Return(store.IntelDelivery{}, errors.New("sad life")).Once()
@@ -861,7 +861,7 @@ func (suite *ControllerMarkIntelAsDeliveredSuite) TestRetrieveDeliveryFail() {
 	wait()
 }
 
-func (suite *ControllerMarkIntelAsDeliveredSuite) TestNotAssigned() {
+func (suite *ControllerMarkIntelDeliveryAndAttemptAsDeliveredSuite) TestNotAssigned() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.ctrl.Store.On("IntelDeliveryByIDAndLockOrWait", timeout, suite.tx, suite.sampleDeliveryID).
 		Return(suite.sampleDelivery, nil).Once()
@@ -878,7 +878,7 @@ func (suite *ControllerMarkIntelAsDeliveredSuite) TestNotAssigned() {
 	wait()
 }
 
-func (suite *ControllerMarkIntelAsDeliveredSuite) TestRetrieveActiveDeliveryAttemptsFail() {
+func (suite *ControllerMarkIntelDeliveryAndAttemptAsDeliveredSuite) TestRetrieveActiveDeliveryAttemptsFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.ctrl.Store.On("IntelDeliveryByIDAndLockOrWait", timeout, suite.tx, suite.sampleDeliveryID).
 		Return(suite.sampleDelivery, nil).Once()
@@ -895,7 +895,7 @@ func (suite *ControllerMarkIntelAsDeliveredSuite) TestRetrieveActiveDeliveryAtte
 	wait()
 }
 
-func (suite *ControllerMarkIntelAsDeliveredSuite) TestUpdateIntelDeliveryAttemptStatusFail() {
+func (suite *ControllerMarkIntelDeliveryAndAttemptAsDeliveredSuite) TestUpdateIntelDeliveryAttemptStatusFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.ctrl.Store.On("IntelDeliveryByIDAndLockOrWait", timeout, suite.tx, suite.sampleDeliveryID).
 		Return(suite.sampleDelivery, nil).Once()
@@ -915,7 +915,7 @@ func (suite *ControllerMarkIntelAsDeliveredSuite) TestUpdateIntelDeliveryAttempt
 	wait()
 }
 
-func (suite *ControllerMarkIntelAsDeliveredSuite) TestRetrieveUpdatedIntelDeliveryAttemptFail() {
+func (suite *ControllerMarkIntelDeliveryAndAttemptAsDeliveredSuite) TestRetrieveUpdatedIntelDeliveryAttemptFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.ctrl.Store.On("IntelDeliveryByIDAndLockOrWait", timeout, suite.tx, suite.sampleDeliveryID).
 		Return(suite.sampleDelivery, nil).Once()
@@ -937,7 +937,7 @@ func (suite *ControllerMarkIntelAsDeliveredSuite) TestRetrieveUpdatedIntelDelive
 	wait()
 }
 
-func (suite *ControllerMarkIntelAsDeliveredSuite) TestNotifyAboutUpdatedDeliveryAttemptFail() {
+func (suite *ControllerMarkIntelDeliveryAndAttemptAsDeliveredSuite) TestNotifyAboutUpdatedDeliveryAttemptFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.ctrl.Store.On("IntelDeliveryByIDAndLockOrWait", timeout, suite.tx, suite.sampleDeliveryID).
 		Return(suite.sampleDelivery, nil).Once()
@@ -962,7 +962,7 @@ func (suite *ControllerMarkIntelAsDeliveredSuite) TestNotifyAboutUpdatedDelivery
 	wait()
 }
 
-func (suite *ControllerMarkIntelAsDeliveredSuite) TestUpdateDeliveryStatusFail() {
+func (suite *ControllerMarkIntelDeliveryAndAttemptAsDeliveredSuite) TestUpdateDeliveryStatusFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.ctrl.Store.On("IntelDeliveryByIDAndLockOrWait", timeout, suite.tx, suite.sampleDeliveryID).
 		Return(suite.sampleDelivery, nil).Once()
@@ -982,7 +982,7 @@ func (suite *ControllerMarkIntelAsDeliveredSuite) TestUpdateDeliveryStatusFail()
 	wait()
 }
 
-func (suite *ControllerMarkIntelAsDeliveredSuite) TestNotifyAboutUpdatedDeliveryStatusFail() {
+func (suite *ControllerMarkIntelDeliveryAndAttemptAsDeliveredSuite) TestNotifyAboutUpdatedDeliveryStatusFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.ctrl.Store.On("IntelDeliveryByIDAndLockOrWait", timeout, suite.tx, suite.sampleDeliveryID).
 		Return(suite.sampleDelivery, nil).Once()
@@ -1004,7 +1004,7 @@ func (suite *ControllerMarkIntelAsDeliveredSuite) TestNotifyAboutUpdatedDelivery
 	wait()
 }
 
-func (suite *ControllerMarkIntelAsDeliveredSuite) TestOK() {
+func (suite *ControllerMarkIntelDeliveryAndAttemptAsDeliveredSuite) TestOK() {
 	by := suite.sampleDelivery.To
 	attemptID := suite.sampleActiveAttempts[1].ID
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
@@ -1051,7 +1051,272 @@ func (suite *ControllerMarkIntelAsDeliveredSuite) TestOK() {
 }
 
 func TestController_MarkIntelDeliveryAndAttemptAsDelivered(t *testing.T) {
-	suite.Run(t, new(ControllerMarkIntelAsDeliveredSuite))
+	suite.Run(t, new(ControllerMarkIntelDeliveryAndAttemptAsDeliveredSuite))
+}
+
+// ControllerCancelIntelDeliveryByIDSuite tests
+// Controller.CancelIntelDeliveryByID.
+type ControllerCancelIntelDeliveryByIDSuite struct {
+	suite.Suite
+	ctrl                 *ControllerMock
+	tx                   *testutil.DBTx
+	sampleDeliveryID     uuid.UUID
+	sampleDelivery       store.IntelDelivery
+	sampleActiveAttempts []store.IntelDeliveryAttempt
+}
+
+func (suite *ControllerCancelIntelDeliveryByIDSuite) SetupTest() {
+	suite.tx = &testutil.DBTx{}
+	suite.ctrl = NewMockController()
+	suite.ctrl.DB.Tx = []*testutil.DBTx{suite.tx}
+	suite.sampleDeliveryID = testutil.NewUUIDV4()
+	suite.sampleDelivery = store.IntelDelivery{
+		ID:       suite.sampleDeliveryID,
+		Intel:    testutil.NewUUIDV4(),
+		To:       testutil.NewUUIDV4(),
+		IsActive: true,
+		Success:  false,
+		Note:     nulls.NewString("gap"),
+	}
+	suite.sampleActiveAttempts = []store.IntelDeliveryAttempt{
+		{
+			ID:        testutil.NewUUIDV4(),
+			Delivery:  suite.sampleDeliveryID,
+			Channel:   testutil.NewUUIDV4(),
+			CreatedAt: time.Date(2022, 9, 8, 14, 44, 3, 0, time.UTC),
+			IsActive:  true,
+			Status:    store.IntelDeliveryStatusAwaitingAck,
+			StatusTS:  time.Date(2022, 9, 8, 14, 44, 19, 0, time.UTC),
+			Note:      nulls.NewString("proposal"),
+		},
+		{
+			ID:        testutil.NewUUIDV4(),
+			Delivery:  suite.sampleDeliveryID,
+			Channel:   testutil.NewUUIDV4(),
+			CreatedAt: time.Date(2022, 9, 8, 14, 44, 52, 0, time.UTC),
+			IsActive:  true,
+			Status:    store.IntelDeliveryStatusDelivering,
+			StatusTS:  time.Date(2022, 9, 8, 14, 44, 19, 0, time.UTC),
+			Note:      nulls.NewString("lay"),
+		},
+	}
+}
+
+func (suite *ControllerCancelIntelDeliveryByIDSuite) TestRetrieveDeliveryFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.Store.On("IntelDeliveryByIDAndLockOrWait", timeout, suite.tx, suite.sampleDeliveryID).
+		Return(store.IntelDelivery{}, errors.New("sad life")).Once()
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.CancelIntelDeliveryByID(timeout, suite.sampleDeliveryID, false, nulls.String{})
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerCancelIntelDeliveryByIDSuite) TestDeliveryInactive() {
+	suite.sampleDelivery.IsActive = false
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.Store.On("IntelDeliveryByIDAndLockOrWait", timeout, suite.tx, suite.sampleDeliveryID).
+		Return(suite.sampleDelivery, nil).Once()
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.CancelIntelDeliveryByID(timeout, suite.sampleDeliveryID, false, nulls.String{})
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerCancelIntelDeliveryByIDSuite) TestRetrieveActiveDeliveryAttemptsFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.Store.On("IntelDeliveryByIDAndLockOrWait", timeout, suite.tx, suite.sampleDeliveryID).
+		Return(suite.sampleDelivery, nil).Once()
+	suite.ctrl.Store.On("ActiveIntelDeliveryAttemptsByDelivery", timeout, suite.tx, suite.sampleDeliveryID).
+		Return(nil, errors.New("sad life")).Once()
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.CancelIntelDeliveryByID(timeout, suite.sampleDeliveryID, false, nulls.String{})
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerCancelIntelDeliveryByIDSuite) TestUpdateIntelDeliveryAttemptStatusFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.Store.On("IntelDeliveryByIDAndLockOrWait", timeout, suite.tx, suite.sampleDeliveryID).
+		Return(suite.sampleDelivery, nil).Once()
+	suite.ctrl.Store.On("ActiveIntelDeliveryAttemptsByDelivery", timeout, suite.tx, suite.sampleDeliveryID).
+		Return(suite.sampleActiveAttempts, nil).Once()
+	suite.ctrl.Store.On("UpdateIntelDeliveryAttemptStatusByID", timeout, suite.tx, mock.Anything,
+		mock.Anything, mock.Anything, mock.Anything).
+		Return(errors.New("sad life")).Once()
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.CancelIntelDeliveryByID(timeout, suite.sampleDeliveryID, false, nulls.String{})
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerCancelIntelDeliveryByIDSuite) TestRetrieveUpdatedIntelDeliveryAttemptFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.Store.On("IntelDeliveryByIDAndLockOrWait", timeout, suite.tx, suite.sampleDeliveryID).
+		Return(suite.sampleDelivery, nil).Once()
+	suite.ctrl.Store.On("ActiveIntelDeliveryAttemptsByDelivery", timeout, suite.tx, suite.sampleDeliveryID).
+		Return(suite.sampleActiveAttempts, nil).Once()
+	suite.ctrl.Store.On("UpdateIntelDeliveryAttemptStatusByID", timeout, suite.tx, mock.Anything,
+		mock.Anything, mock.Anything, mock.Anything).
+		Return(nil).Once()
+	suite.ctrl.Store.On("IntelDeliveryAttemptByID", timeout, suite.tx, mock.Anything).
+		Return(store.IntelDeliveryAttempt{}, errors.New("sad life")).Once()
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.CancelIntelDeliveryByID(timeout, suite.sampleDeliveryID, false, nulls.String{})
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerCancelIntelDeliveryByIDSuite) TestNotifyAboutUpdatedDeliveryAttemptFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.Store.On("IntelDeliveryByIDAndLockOrWait", timeout, suite.tx, suite.sampleDeliveryID).
+		Return(suite.sampleDelivery, nil).Once()
+	suite.ctrl.Store.On("ActiveIntelDeliveryAttemptsByDelivery", timeout, suite.tx, suite.sampleDeliveryID).
+		Return(suite.sampleActiveAttempts, nil).Once()
+	suite.ctrl.Store.On("UpdateIntelDeliveryAttemptStatusByID", timeout, suite.tx, mock.Anything,
+		mock.Anything, mock.Anything, mock.Anything).
+		Return(nil).Once()
+	suite.ctrl.Store.On("IntelDeliveryAttemptByID", timeout, suite.tx, mock.Anything).
+		Return(suite.sampleActiveAttempts[0], nil).Once()
+	suite.ctrl.Notifier.On("NotifyIntelDeliveryAttemptStatusUpdated", timeout, suite.tx, suite.sampleActiveAttempts[0]).
+		Return(errors.New("sad life")).Once()
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.CancelIntelDeliveryByID(timeout, suite.sampleDeliveryID, false, nulls.String{})
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerCancelIntelDeliveryByIDSuite) TestUpdateDeliveryStatusFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.Store.On("IntelDeliveryByIDAndLockOrWait", timeout, suite.tx, suite.sampleDeliveryID).
+		Return(suite.sampleDelivery, nil).Once()
+	suite.ctrl.Store.On("ActiveIntelDeliveryAttemptsByDelivery", timeout, suite.tx, suite.sampleDeliveryID).
+		Return(nil, nil).Once()
+	suite.ctrl.Store.On("UpdateIntelDeliveryStatusByDelivery", timeout, suite.tx, suite.sampleDeliveryID, mock.Anything, mock.Anything, mock.Anything).
+		Return(errors.New("sad life")).Once()
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.CancelIntelDeliveryByID(timeout, suite.sampleDeliveryID, false, nulls.String{})
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerCancelIntelDeliveryByIDSuite) TestNotifyAboutUpdatedDeliveryStatusFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.Store.On("IntelDeliveryByIDAndLockOrWait", timeout, suite.tx, suite.sampleDeliveryID).
+		Return(suite.sampleDelivery, nil).Once()
+	suite.ctrl.Store.On("ActiveIntelDeliveryAttemptsByDelivery", timeout, suite.tx, suite.sampleDeliveryID).
+		Return(nil, nil).Once()
+	suite.ctrl.Store.On("UpdateIntelDeliveryStatusByDelivery", timeout, suite.tx, suite.sampleDeliveryID, mock.Anything, mock.Anything, mock.Anything).
+		Return(nil).Once()
+	suite.ctrl.Notifier.On("NotifyIntelDeliveryStatusUpdated", timeout, suite.tx, suite.sampleDeliveryID, mock.Anything, mock.Anything, mock.Anything).
+		Return(errors.New("sad life")).Once()
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.CancelIntelDeliveryByID(timeout, suite.sampleDeliveryID, false, nulls.String{})
+		suite.Error(err, "should fail")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerCancelIntelDeliveryByIDSuite) testOK(success bool, note nulls.String) {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.Store.On("IntelDeliveryByIDAndLockOrWait", timeout, suite.tx, suite.sampleDeliveryID).
+		Return(suite.sampleDelivery, nil).Once()
+	suite.ctrl.Store.On("ActiveIntelDeliveryAttemptsByDelivery", timeout, suite.tx, suite.sampleDeliveryID).
+		Return(suite.sampleActiveAttempts, nil).Once()
+	// Expect attempt updates for active ones.
+	for _, sampleActiveAttempt := range suite.sampleActiveAttempts {
+		newAttempt := sampleActiveAttempt
+		newAttempt.IsActive = false
+		suite.ctrl.Store.On("UpdateIntelDeliveryAttemptStatusByID", timeout, suite.tx, sampleActiveAttempt.ID,
+			false, store.IntelDeliveryStatusCanceled, mock.Anything).
+			Return(nil).Once()
+		suite.ctrl.Store.On("IntelDeliveryAttemptByID", timeout, suite.tx, sampleActiveAttempt.ID).
+			Return(newAttempt, nil).Once()
+		suite.ctrl.Notifier.On("NotifyIntelDeliveryAttemptStatusUpdated", timeout, suite.tx, newAttempt).
+			Return(nil).Once()
+	}
+	// Expect intel delivery updates.
+	matchNote := mock.MatchedBy(func(n nulls.String) bool {
+		suite.True(n.Valid, "should set note")
+		suite.NotEmpty(n.Valid, "should set note")
+		if note.Valid {
+			suite.Equal(note.String, n.String, "should set passed note")
+		}
+		return true
+	})
+	suite.ctrl.Store.On("UpdateIntelDeliveryStatusByDelivery", timeout, suite.tx, suite.sampleDeliveryID, false, success, matchNote).
+		Return(nil).Once()
+	suite.ctrl.Notifier.On("NotifyIntelDeliveryStatusUpdated", timeout, suite.tx, suite.sampleDeliveryID, false, success, matchNote).
+		Return(nil).Once()
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.CancelIntelDeliveryByID(timeout, suite.sampleDeliveryID, success, note)
+		suite.Require().NoError(err, "should not fail")
+		suite.True(suite.tx.IsCommitted, "should commit tx")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerCancelIntelDeliveryByIDSuite) TestOKWithSuccessWithoutNote() {
+	suite.testOK(true, nulls.String{})
+}
+
+func (suite *ControllerCancelIntelDeliveryByIDSuite) TestOKWithoutSuccessWithoutNote() {
+	suite.testOK(false, nulls.String{})
+}
+
+func (suite *ControllerCancelIntelDeliveryByIDSuite) TestOKWithSuccessWithNote() {
+	suite.testOK(true, nulls.NewString("wait"))
+}
+
+func TestController_CancelIntelDeliveryByID(t *testing.T) {
+	suite.Run(t, new(ControllerCancelIntelDeliveryByIDSuite))
 }
 
 // ControllerMarkIntelDeliveryAttemptAsDeliveredSuite tests
