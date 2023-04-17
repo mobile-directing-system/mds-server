@@ -82,7 +82,7 @@ func (m *Mall) IntelOperationByDelivery(ctx context.Context, tx pgx.Tx, attemptI
 		InnerJoin(goqu.T("intel"),
 			goqu.On(goqu.I("intel.id").Eq(goqu.I("active_intel_deliveries.intel")))).
 		Select(goqu.I("intel.operation")).
-		Where(goqu.I("active_intel_delivery.id").Eq(attemptID)).ToSQL()
+		Where(goqu.I("active_intel_deliveries.id").Eq(attemptID)).ToSQL()
 	if err != nil {
 		return uuid.UUID{}, meh.NewInternalErrFromErr(err, "query to sql", nil)
 	}
