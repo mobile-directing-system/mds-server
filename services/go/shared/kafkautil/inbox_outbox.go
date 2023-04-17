@@ -292,7 +292,7 @@ func (c *connector) Read(ctx context.Context, txSupplier pgutil.DBTxSupplier, re
 
 const (
 	processIncomingPollWait      = 500 * time.Millisecond
-	processIncomingErrorCooldown = 3 * time.Second
+	processIncomingErrorCooldown = 1 * time.Second
 )
 
 func (c *connector) ProcessIncoming(ctx context.Context, txSupplier pgutil.DBTxSupplier, handlerFn HandlerFunc) error {
