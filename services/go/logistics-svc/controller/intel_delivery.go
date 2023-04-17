@@ -555,6 +555,66 @@ func (c *Controller) MarkIntelDeliveryAndAttemptAsDelivered(ctx context.Context,
 	return nil
 }
 
+// CancelIntelDeliveryByID cancels the intel delivery with the given id and
+// finish-properties. If the delivery is inactive, an error with meh.ErrBadInput
+// is returned.
+func (c *Controller) CancelIntelDeliveryByID(ctx context.Context, deliveryID uuid.UUID, success bool, note nulls.String) error {
+	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
+		// Lock the delivery.
+		delivery, err := c.Store.IntelDeliveryByIDAndLockOrWait(ctx, tx, deliveryID)
+		if err != nil {
+			return meh.Wrap(err, "intel-delivery by id from store", meh.Details{"delivery_id": deliveryID})
+		}
+		if !delivery.IsActive {
+			return meh.NewBadInputErr("delivery inactive", meh.Details{
+				"delivery_is_active": delivery.IsActive,
+				"delivery_success":   delivery.Success,
+				"delivery_note":      delivery.Note,
+			})
+		}
+		// Cancel all ongoing attempts.
+		activeAttempts, err := c.Store.ActiveIntelDeliveryAttemptsByDelivery(ctx, tx, deliveryID)
+		if err != nil {
+			return meh.Wrap(err, "active intel-delivery-attempts by delivery from store", meh.Details{"delivery_id": deliveryID})
+		}
+		for _, attempt := range activeAttempts {
+			newStatus := store.IntelDeliveryStatusCanceled
+			newNote := nulls.NewString("canceled due to delivery being manually cancelled")
+			err = c.Store.UpdateIntelDeliveryAttemptStatusByID(ctx, tx, attempt.ID, false, newStatus, newNote)
+			if err != nil {
+				return meh.Wrap(err, "update intel-delivery-attempt status by id", meh.Details{"attempt_id": attempt.ID})
+			}
+			updatedAttempt, err := c.Store.IntelDeliveryAttemptByID(ctx, tx, attempt.ID)
+			if err != nil {
+				return meh.Wrap(err, "updated intel-delivery-attemt by id", meh.Details{"attempt_id": attempt.ID})
+			}
+			err = c.Notifier.NotifyIntelDeliveryAttemptStatusUpdated(ctx, tx, updatedAttempt)
+			if err != nil {
+				return meh.Wrap(err, "notify about updated intel-delivery-attempt", meh.Details{"updated": updatedAttempt})
+			}
+		}
+		// Mark delivery as delivered and notify.
+		const newDeliveryIsActive = false
+		newNote := nulls.NewString("manually cancelled")
+		if note.Valid {
+			newNote = note
+		}
+		err = c.Store.UpdateIntelDeliveryStatusByDelivery(ctx, tx, deliveryID, newDeliveryIsActive, success, newNote)
+		if err != nil {
+			return meh.Wrap(err, "update intel-delivery-status in store", meh.Details{"delivery_id": deliveryID})
+		}
+		err = c.Notifier.NotifyIntelDeliveryStatusUpdated(ctx, tx, deliveryID, newDeliveryIsActive, success, newNote)
+		if err != nil {
+			return meh.Wrap(err, "notify intel-delivery-status updated", meh.Details{"delivery_id": deliveryID})
+		}
+		return nil
+	})
+	if err != nil {
+		return meh.Wrap(err, "run in tx", nil)
+	}
+	return nil
+}
+
 // IntelDeliveryAttemptsByDelivery retrieves a store.IntelDeliveryAttempt list
 // with attempts for the delivery with the given id.
 func (c *Controller) IntelDeliveryAttemptsByDelivery(ctx context.Context, deliveryID uuid.UUID) ([]store.IntelDeliveryAttempt, error) {

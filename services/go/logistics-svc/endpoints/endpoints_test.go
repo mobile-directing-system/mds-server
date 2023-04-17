@@ -3,6 +3,7 @@ package endpoints
 import (
 	"context"
 	"github.com/gofrs/uuid"
+	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/logistics-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/search"
@@ -117,4 +118,8 @@ func (m *StoreMock) IntelDeliveryAttemptsByDelivery(ctx context.Context, deliver
 
 func (m *StoreMock) SetAddressBookEntriesWithAutoDeliveryEnabled(ctx context.Context, entryIDs []uuid.UUID) error {
 	return m.Called(ctx, entryIDs).Error(0)
+}
+
+func (m *StoreMock) CancelIntelDeliveryByID(ctx context.Context, deliveryID uuid.UUID, success bool, note nulls.String) error {
+	return m.Called(ctx, deliveryID, success, note).Error(0)
 }

@@ -242,3 +242,53 @@ func handleGetIntelDeliveryAttemptsByDelivery(s handleGetIntelDeliveryAttemptsBy
 		return nil
 	}
 }
+
+// publicIntelDeliveryCancellation contains details for calling
+// handleCancelIntelDeliveryByIDStore.CancelIntelDeliveryByID.
+type publicIntelDeliveryCancellation struct {
+	Success bool         `json:"success"`
+	Note    nulls.String `json:"note"`
+}
+
+// handleCancelIntelDeliveryByIDStore are the dependencies needed for
+// handleCancelIntelDeliveryByID.
+type handleCancelIntelDeliveryByIDStore interface {
+	CancelIntelDeliveryByID(ctx context.Context, deliveryID uuid.UUID, success bool, note nulls.String) error
+}
+
+// handleCancelIntelDeliveryByID cancels the active intel delivery with the given id.
+func handleCancelIntelDeliveryByID(s handleCancelIntelDeliveryByIDStore) httpendpoints.HandlerFunc {
+	return func(c *gin.Context, token auth.Token) error {
+		if !token.IsAuthenticated {
+			return meh.NewUnauthorizedErr("not authenticated", nil)
+		}
+		// Check permissions.
+		err := auth.AssurePermission(token, permission.ManageIntelDelivery())
+		if err != nil {
+			return meh.Wrap(err, "check permissions", nil)
+		}
+		// Extract intel delivery id.
+		deliveryIDStr := c.Param("deliveryID")
+		deliveryID, err := uuid.FromString(deliveryIDStr)
+		if err != nil {
+			return meh.NewBadInputErrFromErr(err, "parse delivery id", meh.Details{"was": deliveryIDStr})
+		}
+		// Parse cancellation-details.
+		var cancellation publicIntelDeliveryCancellation
+		err = c.BindJSON(&cancellation)
+		if err != nil {
+			return meh.NewBadInputErrFromErr(err, "parse body", nil)
+		}
+		// Cancel.
+		err = s.CancelIntelDeliveryByID(c.Request.Context(), deliveryID, cancellation.Success, cancellation.Note)
+		if err != nil {
+			return meh.Wrap(err, "cancel intel delivery by id", meh.Details{
+				"delivery_id":          deliveryID,
+				"cancellation_success": cancellation.Success,
+				"cancellation_note":    cancellation.Note,
+			})
+		}
+		c.Status(http.StatusOK)
+		return nil
+	}
+}

@@ -134,3 +134,24 @@ Updating the list of address book entries with auto delivery enabled can be done
     ]
 
 Response (200)
+
+Cancel active intel delivery
+============================
+
+Cancelling an active intel delivery requires the :ref:`permission.logistics.intel-delivery.manage` permission and can be done via:
+
+`POST /intel-deliveries/<delivery_id>/cancel`
+
+.. code-block:: json
+
+    {
+        "success": false,
+        "note": "<option_note>"
+    }
+
+Set ``success`` to ``true`` if the delivery should be marked as successful.
+This means that the intel to be delivered via this delivery as confirmed to be delivered and read by the recipient.
+Otherwise, set this to ``false``.
+It is good practise to provide a note as well, describing why the delivery was cancelled.
+
+Note: All active delivery attempts will be cancelled as well.

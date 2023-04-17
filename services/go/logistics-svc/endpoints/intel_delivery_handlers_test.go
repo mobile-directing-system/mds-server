@@ -1,6 +1,7 @@
 package endpoints
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -401,4 +403,119 @@ func (suite *handleGetIntelDeliveryAttemptsByDeliverySuite) TestOK() {
 
 func Test_handleGetIntelDeliveryAttemptsByDelivery(t *testing.T) {
 	suite.Run(t, new(handleGetIntelDeliveryAttemptsByDeliverySuite))
+}
+
+// handleCancelIntelDeliveryByIDSuite tests handleCancelIntelDeliveryByID.
+type handleCancelIntelDeliveryByIDSuite struct {
+	suite.Suite
+	s                  *StoreMock
+	r                  *gin.Engine
+	tokenOK            auth.Token
+	sampleDeliveryID   uuid.UUID
+	sampleCancellation publicIntelDeliveryCancellation
+}
+
+func (suite *handleCancelIntelDeliveryByIDSuite) SetupTest() {
+	suite.s = &StoreMock{}
+	suite.r = testutil.NewGinEngine()
+	populateRoutes(suite.r, zap.NewNop(), "", suite.s)
+	suite.tokenOK = auth.Token{
+		UserID:          testutil.NewUUIDV4(),
+		Username:        "realize",
+		IsAuthenticated: true,
+		IsAdmin:         false,
+		Permissions:     []permission.Permission{{Name: permission.ManageIntelDeliveryPermissionName}},
+	}
+	suite.sampleDeliveryID = testutil.NewUUIDV4()
+	suite.sampleCancellation = publicIntelDeliveryCancellation{
+		Success: true,
+		Note:    nulls.NewString("hurry"),
+	}
+}
+
+func (suite *handleCancelIntelDeliveryByIDSuite) TestSecretMismatch() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    fmt.Sprintf("/intel-deliveries/%s/cancel", suite.sampleDeliveryID.String()),
+		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.sampleCancellation)),
+		Token:  suite.tokenOK,
+		Secret: "meow",
+	})
+	suite.Equal(http.StatusInternalServerError, rr.Code, "should return correct code")
+}
+
+func (suite *handleCancelIntelDeliveryByIDSuite) TestNotAuthenticated() {
+	token := suite.tokenOK
+	token.IsAuthenticated = false
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    fmt.Sprintf("/intel-deliveries/%s/cancel", suite.sampleDeliveryID.String()),
+		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.sampleCancellation)),
+		Token:  token,
+	})
+
+	suite.Equal(http.StatusUnauthorized, rr.Code, "should return correct code")
+}
+
+func (suite *handleCancelIntelDeliveryByIDSuite) TestInvalidDeliveryID() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    "/intel-deliveries/abc/cancel",
+		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.sampleCancellation)),
+		Token:  suite.tokenOK,
+	})
+
+	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
+}
+
+func (suite *handleCancelIntelDeliveryByIDSuite) TestInvalidBody() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    "/intel-deliveries/abc/cancel",
+		Body:   strings.NewReader(`{invalid`),
+		Token:  suite.tokenOK,
+	})
+
+	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
+}
+
+func (suite *handleCancelIntelDeliveryByIDSuite) TestCancelFail() {
+	suite.s.On("CancelIntelDeliveryByID", mock.Anything, suite.sampleDeliveryID, mock.Anything, mock.Anything).
+		Return(errors.New("sad life"))
+	defer suite.s.AssertExpectations(suite.T())
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    fmt.Sprintf("/intel-deliveries/%s/cancel", suite.sampleDeliveryID.String()),
+		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.sampleCancellation)),
+		Token:  suite.tokenOK,
+	})
+
+	suite.Equal(http.StatusInternalServerError, rr.Code, "should return correct code")
+}
+
+func (suite *handleCancelIntelDeliveryByIDSuite) TestOK() {
+	suite.s.On("CancelIntelDeliveryByID", mock.Anything, suite.sampleDeliveryID, suite.sampleCancellation.Success, suite.sampleCancellation.Note).
+		Return(nil)
+	defer suite.s.AssertExpectations(suite.T())
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    fmt.Sprintf("/intel-deliveries/%s/cancel", suite.sampleDeliveryID.String()),
+		Body:   bytes.NewReader(testutil.MarshalJSONMust(suite.sampleCancellation)),
+		Token:  suite.tokenOK,
+	})
+
+	suite.Equal(http.StatusOK, rr.Code, "should return correct code")
+}
+
+func Test_handleCancelIntelDeliveryByID(t *testing.T) {
+	suite.Run(t, new(handleCancelIntelDeliveryByIDSuite))
 }
