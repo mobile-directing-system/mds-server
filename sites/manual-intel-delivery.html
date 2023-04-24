@@ -317,6 +317,28 @@ Updating the list of address book entries with auto delivery enabled can be done
 </div>
 <p>Response (200)</p>
 </section>
+<section id="check-if-auto-intel-delivery-is-enabled-for-address-book-entry">
+<h2>Check if auto intel delivery is enabled for address book entry<a class="headerlink" href="#check-if-auto-intel-delivery-is-enabled-for-address-book-entry" title="Permalink to this heading">#</a></h2>
+<p>Managing intel auto delivery requires the <a class="reference internal" href="permissions.html#permission-logistics-intel-delivery-manage"><span class="std std-ref">logistics.intel-delivery.manage</span></a> permission.
+Checking if auto intel delivery is enabled for an address book entry can be done via:</p>
+<p><cite>GET /address-book/entries/&lt;entry_id&gt;/auto-intel-delivery</cite></p>
+<p>Response (200):</p>
+<p><code class="docutils literal notranslate"><span class="pre">true</span></code> or <code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</section>
+<section id="set-auto-intel-delivery-enabled-for-address-book-entry">
+<h2>Set auto intel delivery enabled for address book entry<a class="headerlink" href="#set-auto-intel-delivery-enabled-for-address-book-entry" title="Permalink to this heading">#</a></h2>
+<p>Managing intel auto delivery requires the <a class="reference internal" href="permissions.html#permission-logistics-intel-delivery-manage"><span class="std std-ref">logistics.intel-delivery.manage</span></a> permission.
+Setting auto intel delivery to enabled for an address book entry can be done via:</p>
+<p><cite>POST /address-book/entries/&lt;entry_id&gt;/auto-intel-delivery/enable</cite></p>
+<p>Response (200)</p>
+</section>
+<section id="set-auto-intel-delivery-disabled-for-address-book-entry">
+<h2>Set auto intel delivery disabled for address book entry<a class="headerlink" href="#set-auto-intel-delivery-disabled-for-address-book-entry" title="Permalink to this heading">#</a></h2>
+<p>Managing intel auto delivery requires the <a class="reference internal" href="permissions.html#permission-logistics-intel-delivery-manage"><span class="std std-ref">logistics.intel-delivery.manage</span></a> permission.
+Setting auto intel delivery to disabled for an address book entry can be done via:</p>
+<p><cite>POST /address-book/entries/&lt;entry_id&gt;/auto-intel-delivery/disable</cite></p>
+<p>Response (200)</p>
+</section>
 <section id="cancel-active-intel-delivery">
 <h2>Cancel active intel delivery<a class="headerlink" href="#cancel-active-intel-delivery" title="Permalink to this heading">#</a></h2>
 <p>Cancelling an active intel delivery requires the <a class="reference internal" href="permissions.html#permission-logistics-intel-delivery-manage"><span class="std std-ref">logistics.intel-delivery.manage</span></a> permission and can be done via:</p>
@@ -431,6 +453,9 @@ It is good practise to provide a note as well, describing why the delivery was c
 <li><a class="reference internal" href="#retrieve-delivery-attempts">Retrieve delivery attempts</a></li>
 <li><a class="reference internal" href="#manually-schedule-a-delivery-attempt">Manually schedule a delivery attempt</a></li>
 <li><a class="reference internal" href="#enable-auto-intel-delivery-for-address-book-entries">Enable auto intel delivery for address book entries</a></li>
+<li><a class="reference internal" href="#check-if-auto-intel-delivery-is-enabled-for-address-book-entry">Check if auto intel delivery is enabled for address book entry</a></li>
+<li><a class="reference internal" href="#set-auto-intel-delivery-enabled-for-address-book-entry">Set auto intel delivery enabled for address book entry</a></li>
+<li><a class="reference internal" href="#set-auto-intel-delivery-disabled-for-address-book-entry">Set auto intel delivery disabled for address book entry</a></li>
 <li><a class="reference internal" href="#cancel-active-intel-delivery">Cancel active intel delivery</a></li>
 <li><a class="reference internal" href="#retrieve-intel-delivery-attempts">Retrieve intel delivery attempts</a></li>
 </ul>
