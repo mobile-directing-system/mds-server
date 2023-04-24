@@ -216,6 +216,13 @@ func (c *Controller) SetAutoIntelDeliveryEnabledForAddressBookEntry(ctx context.
 				"enabled":  enabled,
 			})
 		}
+		err = c.Notifier.NotifyAddressBookEntryAutoDeliveryUpdated(ctx, tx, entryID, enabled)
+		if err != nil {
+			return meh.Wrap(err, "notify address book entry auto delivery updated", meh.Details{
+				"entry_id": entryID,
+				"enabled":  enabled,
+			})
+		}
 		return nil
 	})
 	if err != nil {
@@ -242,7 +249,7 @@ func (c *Controller) SetAddressBookEntriesWithAutoDeliveryEnabled(ctx context.Co
 		for _, disabledEntryID := range disabled {
 			err = c.Notifier.NotifyAddressBookEntryAutoDeliveryUpdated(ctx, tx, disabledEntryID, false)
 			if err != nil {
-				return meh.Wrap(err, "notify address book entry auto delivery enabled", meh.Details{"entry_id": disabledEntryID})
+				return meh.Wrap(err, "notify address book entry auto delivery disabled", meh.Details{"entry_id": disabledEntryID})
 			}
 		}
 		return nil

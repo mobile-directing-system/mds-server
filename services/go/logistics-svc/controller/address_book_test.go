@@ -960,12 +960,30 @@ func (suite *ControllerSetAutoIntelDeliveryEnabledForAddressBookEntrySuite) Test
 	suite.Error(err, "should fail")
 }
 
+func (suite *ControllerSetAutoIntelDeliveryEnabledForAddressBookEntrySuite) NotifyFail() {
+	suite.ctrl.Store.On("SetAutoDeliveryEnabledForAddressBookEntry",
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(nil)
+	suite.ctrl.Notifier.On("NotifyAddressBookEntryAutoDeliveryUpdated",
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(errors.New("sad life"))
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
+
+	err := suite.ctrl.Ctrl.SetAutoIntelDeliveryEnabledForAddressBookEntry(context.Background(), suite.entryID, suite.enabled)
+	suite.Error(err, "should fail")
+}
+
 func (suite *ControllerSetAutoIntelDeliveryEnabledForAddressBookEntrySuite) TestOKEnabled() {
 	suite.enabled = true
 	suite.ctrl.Store.On("SetAutoDeliveryEnabledForAddressBookEntry",
 		mock.Anything, suite.tx, suite.entryID, suite.enabled).
 		Return(nil)
+	suite.ctrl.Notifier.On("NotifyAddressBookEntryAutoDeliveryUpdated",
+		mock.Anything, suite.tx, suite.entryID, suite.enabled).
+		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
+	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
 	err := suite.ctrl.Ctrl.SetAutoIntelDeliveryEnabledForAddressBookEntry(context.Background(), suite.entryID, suite.enabled)
 	suite.Require().NoError(err, "should not fail")
@@ -976,7 +994,11 @@ func (suite *ControllerSetAutoIntelDeliveryEnabledForAddressBookEntrySuite) Test
 	suite.ctrl.Store.On("SetAutoDeliveryEnabledForAddressBookEntry",
 		mock.Anything, suite.tx, suite.entryID, suite.enabled).
 		Return(nil)
+	suite.ctrl.Notifier.On("NotifyAddressBookEntryAutoDeliveryUpdated",
+		mock.Anything, suite.tx, suite.entryID, suite.enabled).
+		Return(nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
+	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
 	err := suite.ctrl.Ctrl.SetAutoIntelDeliveryEnabledForAddressBookEntry(context.Background(), suite.entryID, suite.enabled)
 	suite.Require().NoError(err, "should not fail")
