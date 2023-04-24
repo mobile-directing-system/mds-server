@@ -333,6 +333,42 @@ Otherwise, set this to <code class="docutils literal notranslate"><span class="p
 It is good practise to provide a note as well, describing why the delivery was cancelled.</p>
 <p>Note: All active delivery attempts will be cancelled as well.</p>
 </section>
+<section id="retrieve-intel-delivery-attempts">
+<h2>Retrieve intel delivery attempts<a class="headerlink" href="#retrieve-intel-delivery-attempts" title="Permalink to this heading">#</a></h2>
+<p>Retrieving a <a class="reference internal" href="general-http-api.html#http-api-pagination"><span class="std std-ref">paginated</span></a> list of intel delivery attempts requires either the <a class="reference internal" href="permissions.html#permission-logistics-intel-delivery-manage"><span class="std std-ref">logistics.intel-delivery.manage</span></a> or <a class="reference internal" href="permissions.html#permission-logistics-intel-delivery-deliver"><span class="std std-ref">logistics.intel-delivery.deliver</span></a> permission and is done via:</p>
+<p><cite>GET /intel-delivery-attempts</cite></p>
+<p>Entry payload:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;attempt_id&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;delivery&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;delivery_id&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;channel&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;channel_id&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;created_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;attempt_creation_timestamp&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;is_active&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;attempt_status&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;status_ts&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;status_timestamp&gt;&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;note&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;optional_note&gt;&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>With <code class="docutils literal notranslate"><span class="pre">status</span></code> being one of the following:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">open</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">awaiting-delivery</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">delivering</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">awaiting-ack</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">delivered</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">canceled</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">failed</span></code></p></li>
+</ul>
+<p>The following query parameters are available for filtering:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">by_operation</span></code>: Only include attempts being associated with intel of this operation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_delivery</span></code>: Only include attempts being associated with this delivery.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_channel</span></code>: Only include attempts that try to deliver over this chanel.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">by_active</span></code>: Only include attempts being (in)active.</p></li>
+</ul>
+</section>
 </section>
 
         </article>
@@ -396,6 +432,7 @@ It is good practise to provide a note as well, describing why the delivery was c
 <li><a class="reference internal" href="#manually-schedule-a-delivery-attempt">Manually schedule a delivery attempt</a></li>
 <li><a class="reference internal" href="#enable-auto-intel-delivery-for-address-book-entries">Enable auto intel delivery for address book entries</a></li>
 <li><a class="reference internal" href="#cancel-active-intel-delivery">Cancel active intel delivery</a></li>
+<li><a class="reference internal" href="#retrieve-intel-delivery-attempts">Retrieve intel delivery attempts</a></li>
 </ul>
 </li>
 </ul>
