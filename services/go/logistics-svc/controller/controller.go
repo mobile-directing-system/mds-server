@@ -188,6 +188,9 @@ type Store interface {
 	// Warning: Sorting via pagination.Params is discarded!
 	IntelDeliveryAttempts(ctx context.Context, tx pgx.Tx, filters store.IntelDeliveryAttemptFilters,
 		page pagination.Params) (pagination.Paginated[store.IntelDeliveryAttempt], error)
+	// SetAutoDeliveryEnabledForAddressBookEntry sets auto intel delivery enabled for
+	// the address book entry with the given id.
+	SetAutoDeliveryEnabledForAddressBookEntry(ctx context.Context, tx pgx.Tx, entryID uuid.UUID, enabled bool) error
 }
 
 // Notifier sends event messages.

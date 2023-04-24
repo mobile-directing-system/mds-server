@@ -18,8 +18,10 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
+	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -1542,4 +1544,343 @@ func (suite *handleGetIntelDeliveryAttemptsSuite) TestOK() {
 
 func Test_handleGetIntelDeliveryAttempts(t *testing.T) {
 	suite.Run(t, new(handleGetIntelDeliveryAttemptsSuite))
+}
+
+// handleGetAutoIntelDeliveryEnabledForAddressBookEntrySuite tests
+// handleGetAutoIntelDeliveryEnabledForAddressBookEntry.
+type handleGetAutoIntelDeliveryEnabledForAddressBookEntrySuite struct {
+	suite.Suite
+	r         *gin.Engine
+	s         *StoreMock
+	entryID   uuid.UUID
+	isEnabled bool
+	tokenOK   auth.Token
+}
+
+func (suite *handleGetAutoIntelDeliveryEnabledForAddressBookEntrySuite) SetupTest() {
+	suite.r = testutil.NewGinEngine()
+	suite.s = &StoreMock{}
+	populateRoutes(suite.r, zap.NewNop(), "", suite.s)
+	suite.entryID = testutil.NewUUIDV4()
+	suite.isEnabled = true
+	suite.tokenOK = auth.Token{
+		UserID:          testutil.NewUUIDV4(),
+		Username:        "thorough",
+		IsAuthenticated: true,
+		IsAdmin:         false,
+		Permissions:     []permission.Permission{{Name: permission.ManageIntelDeliveryPermissionName}},
+		RandomSalt:      nil,
+	}
+}
+
+func (suite *handleGetAutoIntelDeliveryEnabledForAddressBookEntrySuite) TestSecretMismatch() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    fmt.Sprintf("/address-book/entries/%s/auto-intel-delivery", suite.entryID.String()),
+		Token:  suite.tokenOK,
+		Secret: "meow",
+	})
+	suite.Equal(http.StatusInternalServerError, rr.Code, "should return correct code")
+}
+
+func (suite *handleGetAutoIntelDeliveryEnabledForAddressBookEntrySuite) TestNotAuthenticated() {
+	token := suite.tokenOK
+	token.IsAuthenticated = false
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    fmt.Sprintf("/address-book/entries/%s/auto-intel-delivery", suite.entryID.String()),
+		Token:  token,
+	})
+	suite.Equal(http.StatusUnauthorized, rr.Code, "should return correct code")
+}
+
+func (suite *handleGetAutoIntelDeliveryEnabledForAddressBookEntrySuite) TestMissingPermission() {
+	token := suite.tokenOK
+	token.Permissions = []permission.Permission{}
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    fmt.Sprintf("/address-book/entries/%s/auto-intel-delivery", suite.entryID.String()),
+		Token:  token,
+	})
+	suite.Equal(http.StatusForbidden, rr.Code, "should return correct code")
+}
+
+func (suite *handleGetAutoIntelDeliveryEnabledForAddressBookEntrySuite) TestInvalidID() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    "/address-book/entries/abc/auto-intel-delivery",
+		Token:  suite.tokenOK,
+	})
+	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
+}
+
+func (suite *handleGetAutoIntelDeliveryEnabledForAddressBookEntrySuite) TestRetrieveFail() {
+	suite.s.On("IsAutoIntelDeliveryEnabledForAddressBookEntry", mock.Anything, mock.Anything).
+		Return(false, errors.New("sad life"))
+	defer suite.s.AssertExpectations(suite.T())
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    fmt.Sprintf("/address-book/entries/%s/auto-intel-delivery", suite.entryID.String()),
+		Token:  suite.tokenOK,
+	})
+	suite.Equal(http.StatusInternalServerError, rr.Code, "should return correct code")
+}
+
+func (suite *handleGetAutoIntelDeliveryEnabledForAddressBookEntrySuite) TestOKEnabled() {
+	suite.s.On("IsAutoIntelDeliveryEnabledForAddressBookEntry", mock.Anything, suite.entryID).
+		Return(suite.isEnabled, nil)
+	defer suite.s.AssertExpectations(suite.T())
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    fmt.Sprintf("/address-book/entries/%s/auto-intel-delivery", suite.entryID.String()),
+		Token:  suite.tokenOK,
+	})
+	suite.Require().Equal(http.StatusOK, rr.Code, "should return correct code")
+	gotStr, err := io.ReadAll(rr.Body)
+	suite.Require().NoError(err, "should return valid body")
+	got, err := strconv.ParseBool(string(gotStr))
+	suite.Require().NoError(err, "should return bool in body")
+	suite.Equal(suite.isEnabled, got, "shoudl return correct bool in body")
+}
+
+func (suite *handleGetAutoIntelDeliveryEnabledForAddressBookEntrySuite) TestOKDisabled() {
+	suite.isEnabled = false
+	suite.s.On("IsAutoIntelDeliveryEnabledForAddressBookEntry", mock.Anything, suite.entryID).
+		Return(suite.isEnabled, nil)
+	defer suite.s.AssertExpectations(suite.T())
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    fmt.Sprintf("/address-book/entries/%s/auto-intel-delivery", suite.entryID.String()),
+		Token:  suite.tokenOK,
+	})
+	suite.Require().Equal(http.StatusOK, rr.Code, "should return correct code")
+	gotStr, err := io.ReadAll(rr.Body)
+	suite.Require().NoError(err, "should return valid body")
+	got, err := strconv.ParseBool(string(gotStr))
+	suite.Require().NoError(err, "should return bool in body")
+	suite.Equal(suite.isEnabled, got, "shoudl return correct bool in body")
+}
+
+func Test_handleGetAutoIntelDeliveryEnabledForAddressBookEntry(t *testing.T) {
+	suite.Run(t, new(handleGetAutoIntelDeliveryEnabledForAddressBookEntrySuite))
+}
+
+// handleEnableAutoIntelDeliveryForAddressBookEntrySuite tests
+// handleEnableAutoIntelDeliveryForAddressBookEntry.
+type handleEnableAutoIntelDeliveryForAddressBookEntrySuite struct {
+	suite.Suite
+	r       *gin.Engine
+	s       *StoreMock
+	entryID uuid.UUID
+	tokenOK auth.Token
+}
+
+func (suite *handleEnableAutoIntelDeliveryForAddressBookEntrySuite) SetupTest() {
+	suite.r = testutil.NewGinEngine()
+	suite.s = &StoreMock{}
+	populateRoutes(suite.r, zap.NewNop(), "", suite.s)
+	suite.entryID = testutil.NewUUIDV4()
+	suite.tokenOK = auth.Token{
+		UserID:          testutil.NewUUIDV4(),
+		Username:        "thorough",
+		IsAuthenticated: true,
+		IsAdmin:         false,
+		Permissions:     []permission.Permission{{Name: permission.ManageIntelDeliveryPermissionName}},
+		RandomSalt:      nil,
+	}
+}
+
+func (suite *handleEnableAutoIntelDeliveryForAddressBookEntrySuite) TestSecretMismatch() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    fmt.Sprintf("/address-book/entries/%s/auto-intel-delivery/enable", suite.entryID.String()),
+		Token:  suite.tokenOK,
+		Secret: "meow",
+	})
+	suite.Equal(http.StatusInternalServerError, rr.Code, "should return correct code")
+}
+
+func (suite *handleEnableAutoIntelDeliveryForAddressBookEntrySuite) TestNotAuthenticated() {
+	token := suite.tokenOK
+	token.IsAuthenticated = false
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    fmt.Sprintf("/address-book/entries/%s/auto-intel-delivery/enable", suite.entryID.String()),
+		Token:  token,
+	})
+	suite.Equal(http.StatusUnauthorized, rr.Code, "should return correct code")
+}
+
+func (suite *handleEnableAutoIntelDeliveryForAddressBookEntrySuite) TestMissingPermission() {
+	token := suite.tokenOK
+	token.Permissions = []permission.Permission{}
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    fmt.Sprintf("/address-book/entries/%s/auto-intel-delivery/enable", suite.entryID.String()),
+		Token:  token,
+	})
+	suite.Equal(http.StatusForbidden, rr.Code, "should return correct code")
+}
+
+func (suite *handleEnableAutoIntelDeliveryForAddressBookEntrySuite) TestInvalidID() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    "/address-book/entries/abc/auto-intel-delivery/enable",
+		Token:  suite.tokenOK,
+	})
+	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
+}
+
+func (suite *handleEnableAutoIntelDeliveryForAddressBookEntrySuite) TestSetFail() {
+	suite.s.On("SetAutoIntelDeliveryEnabledForAddressBookEntry", mock.Anything, mock.Anything, mock.Anything).
+		Return(errors.New("sad life"))
+	defer suite.s.AssertExpectations(suite.T())
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    fmt.Sprintf("/address-book/entries/%s/auto-intel-delivery/enable", suite.entryID.String()),
+		Token:  suite.tokenOK,
+	})
+	suite.Equal(http.StatusInternalServerError, rr.Code, "should return correct code")
+}
+
+func (suite *handleEnableAutoIntelDeliveryForAddressBookEntrySuite) TestOK() {
+	suite.s.On("SetAutoIntelDeliveryEnabledForAddressBookEntry", mock.Anything, suite.entryID, true).
+		Return(nil)
+	defer suite.s.AssertExpectations(suite.T())
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    fmt.Sprintf("/address-book/entries/%s/auto-intel-delivery/enable", suite.entryID.String()),
+		Token:  suite.tokenOK,
+	})
+	suite.Equal(http.StatusOK, rr.Code, "should return correct code")
+}
+
+func Test_handleEnableAutoIntelDeliveryForAddressBookEntry(t *testing.T) {
+	suite.Run(t, new(handleEnableAutoIntelDeliveryForAddressBookEntrySuite))
+}
+
+// handleDisableAutoIntelDeliveryForAddressBookEntrySuite tests
+// handleDisableAutoIntelDeliveryForAddressBookEntry.
+type handleDisableAutoIntelDeliveryForAddressBookEntrySuite struct {
+	suite.Suite
+	r       *gin.Engine
+	s       *StoreMock
+	entryID uuid.UUID
+	tokenOK auth.Token
+}
+
+func (suite *handleDisableAutoIntelDeliveryForAddressBookEntrySuite) SetupTest() {
+	suite.r = testutil.NewGinEngine()
+	suite.s = &StoreMock{}
+	populateRoutes(suite.r, zap.NewNop(), "", suite.s)
+	suite.entryID = testutil.NewUUIDV4()
+	suite.tokenOK = auth.Token{
+		UserID:          testutil.NewUUIDV4(),
+		Username:        "thorough",
+		IsAuthenticated: true,
+		IsAdmin:         false,
+		Permissions:     []permission.Permission{{Name: permission.ManageIntelDeliveryPermissionName}},
+		RandomSalt:      nil,
+	}
+}
+
+func (suite *handleDisableAutoIntelDeliveryForAddressBookEntrySuite) TestSecretMismatch() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    fmt.Sprintf("/address-book/entries/%s/auto-intel-delivery/disable", suite.entryID.String()),
+		Token:  suite.tokenOK,
+		Secret: "meow",
+	})
+	suite.Equal(http.StatusInternalServerError, rr.Code, "should return correct code")
+}
+
+func (suite *handleDisableAutoIntelDeliveryForAddressBookEntrySuite) TestNotAuthenticated() {
+	token := suite.tokenOK
+	token.IsAuthenticated = false
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    fmt.Sprintf("/address-book/entries/%s/auto-intel-delivery/disable", suite.entryID.String()),
+		Token:  token,
+	})
+	suite.Equal(http.StatusUnauthorized, rr.Code, "should return correct code")
+}
+
+func (suite *handleDisableAutoIntelDeliveryForAddressBookEntrySuite) TestMissingPermission() {
+	token := suite.tokenOK
+	token.Permissions = []permission.Permission{}
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    fmt.Sprintf("/address-book/entries/%s/auto-intel-delivery/disable", suite.entryID.String()),
+		Token:  token,
+	})
+	suite.Equal(http.StatusForbidden, rr.Code, "should return correct code")
+}
+
+func (suite *handleDisableAutoIntelDeliveryForAddressBookEntrySuite) TestInvalidID() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    "/address-book/entries/abc/auto-intel-delivery/disable",
+		Token:  suite.tokenOK,
+	})
+	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
+}
+
+func (suite *handleDisableAutoIntelDeliveryForAddressBookEntrySuite) TestSetFail() {
+	suite.s.On("SetAutoIntelDeliveryEnabledForAddressBookEntry", mock.Anything, mock.Anything, mock.Anything).
+		Return(errors.New("sad life"))
+	defer suite.s.AssertExpectations(suite.T())
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    fmt.Sprintf("/address-book/entries/%s/auto-intel-delivery/disable", suite.entryID.String()),
+		Token:  suite.tokenOK,
+	})
+	suite.Equal(http.StatusInternalServerError, rr.Code, "should return correct code")
+}
+
+func (suite *handleDisableAutoIntelDeliveryForAddressBookEntrySuite) TestOK() {
+	suite.s.On("SetAutoIntelDeliveryEnabledForAddressBookEntry", mock.Anything, suite.entryID, false).
+		Return(nil)
+	defer suite.s.AssertExpectations(suite.T())
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodPost,
+		URL:    fmt.Sprintf("/address-book/entries/%s/auto-intel-delivery/disable", suite.entryID.String()),
+		Token:  suite.tokenOK,
+	})
+	suite.Equal(http.StatusOK, rr.Code, "should return correct code")
+}
+
+func Test_handleDisableAutoIntelDeliveryForAddressBookEntry(t *testing.T) {
+	suite.Run(t, new(handleDisableAutoIntelDeliveryForAddressBookEntrySuite))
 }

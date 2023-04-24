@@ -868,3 +868,120 @@ func (suite *ControllerSetAddressBookEntriesWithAutoDeliveryEnabledSuite) TestOK
 func TestController_SetAddressBookEntriesWithAutoDeliveryEnabled(t *testing.T) {
 	suite.Run(t, new(ControllerSetAddressBookEntriesWithAutoDeliveryEnabledSuite))
 }
+
+// ControllerIsAutoIntelDeliveryEnabledForAddressBookEntrySuite tests
+// Controller.IsAutoIntelDeliveryEnabledForAddressBookEntry.
+type ControllerIsAutoIntelDeliveryEnabledForAddressBookEntrySuite struct {
+	suite.Suite
+	ctrl    *ControllerMock
+	tx      *testutil.DBTx
+	entryID uuid.UUID
+}
+
+func (suite *ControllerIsAutoIntelDeliveryEnabledForAddressBookEntrySuite) SetupTest() {
+	suite.ctrl = NewMockController()
+	suite.tx = &testutil.DBTx{}
+	suite.ctrl.DB.Tx = []*testutil.DBTx{suite.tx}
+	suite.entryID = testutil.NewUUIDV4()
+}
+
+func (suite *ControllerIsAutoIntelDeliveryEnabledForAddressBookEntrySuite) TestBeginTxFail() {
+	suite.ctrl.DB.BeginFail = true
+
+	_, err := suite.ctrl.Ctrl.IsAutoIntelDeliveryEnabledForAddressBookEntry(context.Background(), suite.entryID)
+	suite.Error(err, "should fail")
+}
+
+func (suite *ControllerIsAutoIntelDeliveryEnabledForAddressBookEntrySuite) TestRetrieveFail() {
+	suite.ctrl.Store.On("IsAutoDeliveryEnabledForAddressBookEntry", mock.Anything, mock.Anything, mock.Anything).
+		Return(false, errors.New("sad life"))
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	_, err := suite.ctrl.Ctrl.IsAutoIntelDeliveryEnabledForAddressBookEntry(context.Background(), suite.entryID)
+	suite.Error(err, "should fail")
+}
+
+func (suite *ControllerIsAutoIntelDeliveryEnabledForAddressBookEntrySuite) TestOKEnabled() {
+	suite.ctrl.Store.On("IsAutoDeliveryEnabledForAddressBookEntry", mock.Anything, suite.tx, suite.entryID).
+		Return(true, nil)
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	got, err := suite.ctrl.Ctrl.IsAutoIntelDeliveryEnabledForAddressBookEntry(context.Background(), suite.entryID)
+	suite.Require().NoError(err, "should not fail")
+	suite.True(got, "should return correct value")
+}
+
+func (suite *ControllerIsAutoIntelDeliveryEnabledForAddressBookEntrySuite) TestOKDisabled() {
+	suite.ctrl.Store.On("IsAutoDeliveryEnabledForAddressBookEntry", mock.Anything, suite.tx, suite.entryID).
+		Return(false, nil)
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	got, err := suite.ctrl.Ctrl.IsAutoIntelDeliveryEnabledForAddressBookEntry(context.Background(), suite.entryID)
+	suite.Require().NoError(err, "should not fail")
+	suite.False(got, "should return correct value")
+}
+
+func TestController_IsAutoIntelDeliveryEnabledForAddressBookEntry(t *testing.T) {
+	suite.Run(t, new(ControllerIsAutoIntelDeliveryEnabledForAddressBookEntrySuite))
+}
+
+// ControllerSetAutoIntelDeliveryEnabledForAddressBookEntrySuite tests
+// Controller.SetAutoIntelDeliveryEnabledForAddressBookEntry.
+type ControllerSetAutoIntelDeliveryEnabledForAddressBookEntrySuite struct {
+	suite.Suite
+	ctrl    *ControllerMock
+	tx      *testutil.DBTx
+	entryID uuid.UUID
+	enabled bool
+}
+
+func (suite *ControllerSetAutoIntelDeliveryEnabledForAddressBookEntrySuite) SetupTest() {
+	suite.ctrl = NewMockController()
+	suite.tx = &testutil.DBTx{}
+	suite.ctrl.DB.Tx = []*testutil.DBTx{suite.tx}
+	suite.entryID = testutil.NewUUIDV4()
+	suite.enabled = true
+}
+
+func (suite *ControllerSetAutoIntelDeliveryEnabledForAddressBookEntrySuite) TestBeginTxFail() {
+	suite.ctrl.DB.BeginFail = true
+
+	err := suite.ctrl.Ctrl.SetAutoIntelDeliveryEnabledForAddressBookEntry(context.Background(), suite.entryID, suite.enabled)
+	suite.Error(err, "should fail")
+}
+
+func (suite *ControllerSetAutoIntelDeliveryEnabledForAddressBookEntrySuite) TestRetrieveFail() {
+	suite.ctrl.Store.On("SetAutoDeliveryEnabledForAddressBookEntry",
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(errors.New("sad life"))
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	err := suite.ctrl.Ctrl.SetAutoIntelDeliveryEnabledForAddressBookEntry(context.Background(), suite.entryID, suite.enabled)
+	suite.Error(err, "should fail")
+}
+
+func (suite *ControllerSetAutoIntelDeliveryEnabledForAddressBookEntrySuite) TestOKEnabled() {
+	suite.enabled = true
+	suite.ctrl.Store.On("SetAutoDeliveryEnabledForAddressBookEntry",
+		mock.Anything, suite.tx, suite.entryID, suite.enabled).
+		Return(nil)
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	err := suite.ctrl.Ctrl.SetAutoIntelDeliveryEnabledForAddressBookEntry(context.Background(), suite.entryID, suite.enabled)
+	suite.Require().NoError(err, "should not fail")
+}
+
+func (suite *ControllerSetAutoIntelDeliveryEnabledForAddressBookEntrySuite) TestOKDisabled() {
+	suite.enabled = false
+	suite.ctrl.Store.On("SetAutoDeliveryEnabledForAddressBookEntry",
+		mock.Anything, suite.tx, suite.entryID, suite.enabled).
+		Return(nil)
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	err := suite.ctrl.Ctrl.SetAutoIntelDeliveryEnabledForAddressBookEntry(context.Background(), suite.entryID, suite.enabled)
+	suite.Require().NoError(err, "should not fail")
+}
+
+func TestController_SetAutoIntelDeliveryEnabledForAddressBookEntry(t *testing.T) {
+	suite.Run(t, new(ControllerSetAutoIntelDeliveryEnabledForAddressBookEntrySuite))
+}

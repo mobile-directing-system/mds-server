@@ -702,6 +702,33 @@ func (m *Mall) IsAutoDeliveryEnabledForAddressBookEntry(ctx context.Context, tx 
 	return enabled, nil
 }
 
+// SetAutoDeliveryEnabledForAddressBookEntry sets auto intel delivery enabled for
+// the address book entry with the given id.
+func (m *Mall) SetAutoDeliveryEnabledForAddressBookEntry(ctx context.Context, tx pgx.Tx, entryID uuid.UUID, enabled bool) error {
+	oldWithEnabled, err := m.clearAutoDeliveryEnabledForAllAddressBookEntries(ctx, tx)
+	if err != nil {
+		return meh.Wrap(err, "clear auto-delivery-enabled for all address book entries", nil)
+	}
+	newWithEnabled := make([]uuid.UUID, 0)
+	for _, old := range oldWithEnabled {
+		if old == entryID {
+			continue
+		}
+		newWithEnabled = append(newWithEnabled, old)
+	}
+	if enabled {
+		newWithEnabled = append(newWithEnabled, entryID)
+	}
+	_, err = m.SetAddressBookEntriesWithAutoDeliveryEnabled(ctx, tx, newWithEnabled)
+	if err != nil {
+		return meh.Wrap(err, "set new entries with auto-delivery enabled", meh.Details{
+			"old_with_enabled": oldWithEnabled,
+			"new_with_enabled": newWithEnabled,
+		})
+	}
+	return nil
+}
+
 // clearAutoDeliveryEnabledForAllAddressBookEntries removes all address book
 // entries from the list with auto-delivery enabled ones. The ids of all address
 // book entries are returned that have been cleared of auto delivery.
