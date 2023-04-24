@@ -181,6 +181,13 @@ type Store interface {
 	// IntelDeliveryAttemptsByDelivery retrieves an IntelDeliveryAttempt list with
 	// attempts for the delivery with the given id.
 	IntelDeliveryAttemptsByDelivery(ctx context.Context, tx pgx.Tx, deliveryID uuid.UUID) ([]store.IntelDeliveryAttempt, error)
+	// IntelDeliveryAttempts retrieves a paginated IntelDeliveryAttempt list using
+	// the given IntelDeliveryAttemptFilters and pagination.Params, sorted descending
+	// by creation date.
+	//
+	// Warning: Sorting via pagination.Params is discarded!
+	IntelDeliveryAttempts(ctx context.Context, tx pgx.Tx, filters store.IntelDeliveryAttemptFilters,
+		page pagination.Params) (pagination.Paginated[store.IntelDeliveryAttempt], error)
 }
 
 // Notifier sends event messages.

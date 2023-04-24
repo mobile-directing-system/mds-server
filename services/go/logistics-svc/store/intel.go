@@ -509,3 +509,83 @@ func (m *Mall) Intel(ctx context.Context, tx pgx.Tx, filters IntelFilters,
 	rows.Close()
 	return pagination.NewPaginated(paginationParams, intelList, total), nil
 }
+
+// IntelDeliveryAttemptFilters are filters for delivery attempt retrieval.
+type IntelDeliveryAttemptFilters struct {
+	// ByOperation only includes attempts for deliveries for intel for the operation
+	// with the given id.
+	ByOperation uuid.NullUUID
+	// ByDelivery only includes attempts for the delivery with the given id.
+	ByDelivery uuid.NullUUID
+	// ByChannel only includes attempts for the channel with the given id.
+	ByChannel uuid.NullUUID
+	// ByActive only includes attempts being (in)active.
+	ByActive nulls.Bool
+}
+
+// IntelDeliveryAttempts retrieves a paginated IntelDeliveryAttempt list using
+// the given IntelDeliveryAttemptFilters and pagination.Params, sorted descending
+// by creation date.
+//
+// Warning: Sorting via pagination.Params is discarded!
+func (m *Mall) IntelDeliveryAttempts(ctx context.Context, tx pgx.Tx, filters IntelDeliveryAttemptFilters,
+	page pagination.Params) (pagination.Paginated[IntelDeliveryAttempt], error) {
+	qb := m.dialect.From(goqu.T("intel_delivery_attempts")).
+		InnerJoin(goqu.T("intel_deliveries"),
+			goqu.On(goqu.I("intel_deliveries.id").Eq(goqu.I("intel_delivery_attempts.delivery")))).
+		InnerJoin(goqu.T("intel"),
+			goqu.On(goqu.I("intel.id").Eq(goqu.I("intel_deliveries.intel")))).
+		Select(goqu.I("intel_delivery_attempts.id"),
+			goqu.I("intel_delivery_attempts.delivery"),
+			goqu.I("intel_delivery_attempts.channel"),
+			goqu.I("intel_delivery_attempts.created_at"),
+			goqu.I("intel_delivery_attempts.is_active"),
+			goqu.I("intel_delivery_attempts.status"),
+			goqu.I("intel_delivery_attempts.status_ts"),
+			goqu.I("intel_delivery_attempts.note")).
+		Order(goqu.I("intel_delivery_attempts.created_at").Desc())
+	if filters.ByOperation.Valid {
+		qb = qb.Where(goqu.I("intel.operation").Eq(filters.ByOperation.UUID))
+	}
+	if filters.ByDelivery.Valid {
+		qb = qb.Where(goqu.I("intel_delivery_attempts.delivery").Eq(filters.ByDelivery.UUID))
+	}
+	if filters.ByChannel.Valid {
+		qb = qb.Where(goqu.I("intel_delivery_attempts.channel").Eq(filters.ByChannel.UUID))
+	}
+	if filters.ByActive.Valid {
+		qb = qb.Where(goqu.I("intel_delivery_attempts.is_active").Eq(filters.ByActive.Bool))
+	}
+	page.OrderBy = nulls.String{}
+	q, _, err := pagination.QueryToSQLWithPagination(qb, page, pagination.FieldMap{})
+	if err != nil {
+		return pagination.Paginated[IntelDeliveryAttempt]{}, meh.NewInternalErrFromErr(err, "query to sql", nil)
+	}
+	// Query.
+	rows, err := tx.Query(ctx, q)
+	if err != nil {
+		return pagination.Paginated[IntelDeliveryAttempt]{}, mehpg.NewQueryDBErr(err, "query db", q)
+	}
+	defer rows.Close()
+	// Scan.
+	attempts := make([]IntelDeliveryAttempt, 0)
+	var total int
+	for rows.Next() {
+		var attempt IntelDeliveryAttempt
+		err = rows.Scan(&attempt.ID,
+			&attempt.Delivery,
+			&attempt.Channel,
+			&attempt.CreatedAt,
+			&attempt.IsActive,
+			&attempt.Status,
+			&attempt.StatusTS,
+			&attempt.Note,
+			&total)
+		if err != nil {
+			return pagination.Paginated[IntelDeliveryAttempt]{}, mehpg.NewScanRowsErr(err, "scan row", q)
+		}
+		attempts = append(attempts, attempt)
+	}
+	rows.Close()
+	return pagination.NewPaginated(page, attempts, total), nil
+}

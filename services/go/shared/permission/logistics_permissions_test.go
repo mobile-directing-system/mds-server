@@ -68,8 +68,22 @@ func TestManageIntelDelivery(t *testing.T) {
 		Granted:     ManageIntelDeliveryPermissionName,
 		Others: []Name{
 			CreateAnyAddressBookEntryPermissionName,
-			UpdateAnyAddressBookEntryPermissionName,
+			DeliverIntelPermissionName,
 			DeleteAnyAddressBookEntryPermissionName,
+			ViewAnyOperationPermissionName,
+		},
+	})
+}
+
+func TestDeliverIntel(t *testing.T) {
+	suite.Run(t, &NameMatcherSuite{
+		MatcherName: "deliver-intel",
+		Matcher:     DeliverIntel(),
+		Granted:     DeliverIntelPermissionName,
+		Others: []Name{
+			CreateAnyAddressBookEntryPermissionName,
+			UpdateAnyAddressBookEntryPermissionName,
+			ViewUserPermissionName,
 			ViewAnyOperationPermissionName,
 		},
 	})

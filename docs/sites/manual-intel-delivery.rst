@@ -155,3 +155,43 @@ Otherwise, set this to ``false``.
 It is good practise to provide a note as well, describing why the delivery was cancelled.
 
 Note: All active delivery attempts will be cancelled as well.
+
+Retrieve intel delivery attempts
+================================
+
+Retrieving a :ref:`paginated <http-api.pagination>` list of intel delivery attempts requires either the :ref:`permission.logistics.intel-delivery.manage` or :ref:`permission.logistics.intel-delivery.deliver` permission and is done via:
+
+`GET /intel-delivery-attempts`
+
+Entry payload:
+
+.. code-block:: json
+
+    {
+        "id": "<attempt_id>",
+        "delivery": "<delivery_id>",
+        "channel": "<channel_id>",
+        "created_at": "<attempt_creation_timestamp>",
+        "is_active": false,
+        "status": "<attempt_status>",
+        "status_ts": "<status_timestamp>",
+        "note": "<optional_note>"
+    }
+
+With ``status`` being one of the following:
+
+- ``open``
+- ``awaiting-delivery``
+- ``delivering``
+- ``awaiting-ack``
+- ``delivered``
+- ``timeout``
+- ``canceled``
+- ``failed``
+
+The following query parameters are available for filtering:
+
+- ``by_operation``: Only include attempts being associated with intel of this operation.
+- ``by_delivery``: Only include attempts being associated with this delivery.
+- ``by_channel``: Only include attempts that try to deliver over this chanel.
+- ``by_active``: Only include attempts being (in)active.

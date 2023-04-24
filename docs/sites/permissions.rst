@@ -132,6 +132,15 @@ Allows full control over intel delivery, including attempt creation and marking 
 
 Options: `none`
 
+.. _permission.logistics.intel-delivery.deliver:
+
+logistics.intel-delivery.deliver
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Allows delivering intel as well as viewing and marking intel delivery attempts as finished.
+
+Options: `none`
+
 Groups
 ------
 

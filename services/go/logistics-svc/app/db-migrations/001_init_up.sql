@@ -215,6 +215,8 @@ create index intel_delivery_attempts_delivery_ix on intel_delivery_attempts (del
 create index intel_delivery_attempts_channel_ix on intel_delivery_attempts (channel);
 create index intel_delivery_attempts_active_ix on intel_delivery_attempts (is_active)
     where is_active = true or is_active is true;
+create index intel_delivery_attempts_created_at_ix on intel_delivery_attempts(created_at desc);
+
 
 -- Create table for auto-delivery.
 

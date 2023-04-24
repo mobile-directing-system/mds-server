@@ -10,8 +10,11 @@ import (
 	"github.com/mobile-directing-system/mds-server/services/go/logistics-svc/store"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/auth"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/httpendpoints"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/permission"
 	"net/http"
+	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -289,6 +292,92 @@ func handleCancelIntelDeliveryByID(s handleCancelIntelDeliveryByIDStore) httpend
 			})
 		}
 		c.Status(http.StatusOK)
+		return nil
+	}
+}
+
+// intelDeliveryAttemptFiltersFromRequest parses
+// store.IntelDeliveryAttemptFilters from the given query url.Values.
+func intelDeliveryAttemptFiltersFromRequest(q url.Values) (store.IntelDeliveryAttemptFilters, error) {
+	var filters store.IntelDeliveryAttemptFilters
+	// By operation.
+	if v := q.Get("by_operation"); v != "" {
+		id, err := uuid.FromString(v)
+		if err != nil {
+			return store.IntelDeliveryAttemptFilters{}, meh.NewBadInputErrFromErr(err, "parse by-operation", meh.Details{"was": v})
+		}
+		filters.ByOperation = nulls.NewUUID(id)
+	}
+	// By delivery.
+	if v := q.Get("by_delivery"); v != "" {
+		id, err := uuid.FromString(v)
+		if err != nil {
+			return store.IntelDeliveryAttemptFilters{}, meh.NewBadInputErrFromErr(err, "parse by-delivery", meh.Details{"was": v})
+		}
+		filters.ByDelivery = nulls.NewUUID(id)
+	}
+	// By channel.
+	if v := q.Get("by_channel"); v != "" {
+		id, err := uuid.FromString(v)
+		if err != nil {
+			return store.IntelDeliveryAttemptFilters{}, meh.NewBadInputErrFromErr(err, "parse by-channel", meh.Details{"was": v})
+		}
+		filters.ByChannel = nulls.NewUUID(id)
+	}
+	// By active.
+	if v := q.Get("by_active"); v != "" {
+		b, err := strconv.ParseBool(v)
+		if err != nil {
+			return store.IntelDeliveryAttemptFilters{}, meh.NewBadInputErrFromErr(err, "parse by-active", meh.Details{"was": v})
+		}
+		filters.ByActive = nulls.NewBool(b)
+	}
+	return filters, nil
+}
+
+// handleGetIntelDeliveryAttemptsStore are the dependencies needed for
+// handleGetIntelDeliveryAttempts.
+type handleGetIntelDeliveryAttemptsStore interface {
+	IntelDeliveryAttempts(ctx context.Context, filters store.IntelDeliveryAttemptFilters,
+		page pagination.Params) (pagination.Paginated[store.IntelDeliveryAttempt], error)
+}
+
+// handleGetIntelDeliveryAttempts retrieves a paginated list of intel delivery
+// attempts with optional filtering.
+func handleGetIntelDeliveryAttempts(s handleGetIntelDeliveryAttemptsStore) httpendpoints.HandlerFunc {
+	return func(c *gin.Context, token auth.Token) error {
+		if !token.IsAuthenticated {
+			return meh.NewUnauthorizedErr("not authorized", nil)
+		}
+		// Parse delivery attempt filters.
+		filters, err := intelDeliveryAttemptFiltersFromRequest(c.Request.URL.Query())
+		if err != nil {
+			return meh.Wrap(err, "intel delivery attempt filters from query", nil)
+		}
+		// Parse pagination params.
+		paginationParams, err := pagination.ParamsFromRequest(c)
+		if err != nil {
+			return meh.Wrap(err, "pagination params from request", nil)
+		}
+		// Check permisions.
+		err = auth.AssurePermission(token, permission.DeliverIntel())
+		if err != nil {
+			return meh.Wrap(err, "check permissions", nil)
+		}
+		// Retrieve.
+		sResult, err := s.IntelDeliveryAttempts(c.Request.Context(), filters, paginationParams)
+		if err != nil {
+			return meh.Wrap(err, "entries from store", nil)
+		}
+		pAttempts := make([]publicIntelDeliveryAttempt, 0, len(sResult.Entries))
+		for _, sAttempt := range sResult.Entries {
+			pAttempt, err := publicIntelDeliveryAttemptFromStore(sAttempt)
+			if err != nil {
+				return meh.Wrap(err, "public intel delivery attempt from store", meh.Details{"store_attempt": sAttempt})
+			}
+			pAttempts = append(pAttempts, pAttempt)
+		}
+		c.JSON(http.StatusOK, pagination.PaginatedFromPaginated(sResult, pAttempts))
 		return nil
 	}
 }
