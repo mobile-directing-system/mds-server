@@ -313,6 +313,12 @@ func (m *StoreMock) IntelDeliveryAttemptsByDelivery(ctx context.Context, tx pgx.
 	return attempts, args.Error(1)
 }
 
+func (m *StoreMock) IntelDeliveryAttempts(ctx context.Context, tx pgx.Tx, filters store.IntelDeliveryAttemptFilters,
+	page pagination.Params) (pagination.Paginated[store.IntelDeliveryAttempt], error) {
+	args := m.Called(ctx, tx, filters, page)
+	return args.Get(0).(pagination.Paginated[store.IntelDeliveryAttempt]), args.Error(1)
+}
+
 // NotifierMock mocks Notifier.
 type NotifierMock struct {
 	mock.Mock

@@ -9,6 +9,7 @@ import (
 	"github.com/lefinal/meh/mehlog"
 	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/logistics-svc/store"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/pgutil"
 	"go.uber.org/zap"
 	"time"
@@ -629,6 +630,31 @@ func (c *Controller) IntelDeliveryAttemptsByDelivery(ctx context.Context, delive
 	})
 	if err != nil {
 		return nil, meh.Wrap(err, "run in tx", nil)
+	}
+	return attempts, nil
+}
+
+// IntelDeliveryAttempts retrieves a paginated IntelDeliveryAttempt list using
+// the given store.IntelDeliveryAttemptFilters and pagination.Params, sorted
+// descending by creation date.
+//
+// Warning: Sorting via pagination.Params is discarded!
+func (c *Controller) IntelDeliveryAttempts(ctx context.Context, filters store.IntelDeliveryAttemptFilters,
+	page pagination.Params) (pagination.Paginated[store.IntelDeliveryAttempt], error) {
+	var attempts pagination.Paginated[store.IntelDeliveryAttempt]
+	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
+		var err error
+		attempts, err = c.Store.IntelDeliveryAttempts(ctx, tx, filters, page)
+		if err != nil {
+			return meh.Wrap(err, "intel delivery attempts from store", meh.Details{
+				"filters": filters,
+				"page":    page,
+			})
+		}
+		return nil
+	})
+	if err != nil {
+		return pagination.Paginated[store.IntelDeliveryAttempt]{}, meh.Wrap(err, "run in tx", nil)
 	}
 	return attempts, nil
 }

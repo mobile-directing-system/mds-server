@@ -74,3 +74,23 @@ func ManageIntelDelivery() Matcher {
 		},
 	}
 }
+
+// DeliverIntelPermissionName for DeliverIntel.
+const DeliverIntelPermissionName Name = "logistics.intel-delivery.deliver"
+
+// DeliverIntel allows delivering intel as well as viewing and marking
+// intel delivery attempts as finished.
+func DeliverIntel() Matcher {
+	return Matcher{
+		Name: "deliver-intel",
+		MatchFn: func(granted map[Name]Permission) (bool, error) {
+			if _, ok := granted[DeliverIntelPermissionName]; ok {
+				return true, nil
+			}
+			if _, ok := granted[ManageIntelDeliveryPermissionName]; ok {
+				return true, nil
+			}
+			return false, nil
+		},
+	}
+}

@@ -7,6 +7,7 @@ import (
 	"github.com/lefinal/meh"
 	"github.com/lefinal/nulls"
 	"github.com/mobile-directing-system/mds-server/services/go/logistics-svc/store"
+	"github.com/mobile-directing-system/mds-server/services/go/shared/pagination"
 	"github.com/mobile-directing-system/mds-server/services/go/shared/testutil"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -1907,4 +1908,94 @@ func (suite *ControllerIntelDeliveryAttemptsByDeliverySuite) TestOK() {
 
 func TestController_IntelDeliveryAttemptsByDelivery(t *testing.T) {
 	suite.Run(t, new(ControllerIntelDeliveryAttemptsByDeliverySuite))
+}
+
+// ControllerIntelDeliveryAttemptsSuite tests Controller.IntelDeliveryAttempts.
+type ControllerIntelDeliveryAttemptsSuite struct {
+	suite.Suite
+	ctrl           *ControllerMock
+	tx             *testutil.DBTx
+	sampleAttempts pagination.Paginated[store.IntelDeliveryAttempt]
+	sampleFilters  store.IntelDeliveryAttemptFilters
+	samplePage     pagination.Params
+}
+
+func (suite *ControllerIntelDeliveryAttemptsSuite) SetupTest() {
+	suite.ctrl = NewMockController()
+	suite.tx = &testutil.DBTx{}
+	suite.ctrl.DB.Tx = []*testutil.DBTx{suite.tx}
+	suite.sampleAttempts = pagination.NewPaginated[store.IntelDeliveryAttempt](pagination.Params{}, []store.IntelDeliveryAttempt{
+		{
+			ID:        testutil.NewUUIDV4(),
+			Delivery:  testutil.NewUUIDV4(),
+			Channel:   testutil.NewUUIDV4(),
+			CreatedAt: testutil.NewRandomTime(),
+			IsActive:  true,
+			Status:    store.IntelDeliveryStatusAwaitingAck,
+			StatusTS:  testutil.NewRandomTime(),
+			Note:      nulls.String{},
+		},
+		{
+			ID:        testutil.NewUUIDV4(),
+			Delivery:  testutil.NewUUIDV4(),
+			Channel:   testutil.NewUUIDV4(),
+			CreatedAt: testutil.NewRandomTime(),
+			IsActive:  true,
+			Status:    store.IntelDeliveryStatusOpen,
+			StatusTS:  testutil.NewRandomTime(),
+			Note:      nulls.NewString("ride"),
+		},
+		{
+			ID:        testutil.NewUUIDV4(),
+			Delivery:  testutil.NewUUIDV4(),
+			Channel:   testutil.NewUUIDV4(),
+			CreatedAt: testutil.NewRandomTime(),
+			IsActive:  false,
+			Status:    store.IntelDeliveryStatusFailed,
+			StatusTS:  testutil.NewRandomTime(),
+			Note:      nulls.NewString("this failed"),
+		},
+	}, 52)
+	suite.sampleFilters = store.IntelDeliveryAttemptFilters{
+		ByOperation: nulls.NewUUID(testutil.NewUUIDV4()),
+		ByDelivery:  nulls.NewUUID(testutil.NewUUIDV4()),
+		ByChannel:   nulls.NewUUID(testutil.NewUUIDV4()),
+		ByActive:    nulls.NewBool(true),
+	}
+	suite.samplePage = pagination.Params{
+		Limit:          14,
+		Offset:         82,
+		OrderBy:        nulls.NewString("label"),
+		OrderDirection: pagination.OrderDirDesc,
+	}
+}
+
+func (suite *ControllerIntelDeliveryAttemptsSuite) TestBeginTxFail() {
+	suite.ctrl.DB.BeginFail = true
+
+	_, err := suite.ctrl.Ctrl.IntelDeliveryAttempts(context.Background(), suite.sampleFilters, suite.samplePage)
+	suite.Error(err, "should fail")
+}
+
+func (suite *ControllerIntelDeliveryAttemptsSuite) TestRetrieveFail() {
+	suite.ctrl.Store.On("IntelDeliveryAttempts", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(pagination.Paginated[store.IntelDeliveryAttempt]{}, errors.New("sad life"))
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	_, err := suite.ctrl.Ctrl.IntelDeliveryAttempts(context.Background(), suite.sampleFilters, suite.samplePage)
+	suite.Error(err, "should fail")
+}
+
+func (suite *ControllerIntelDeliveryAttemptsSuite) TestOK() {
+	suite.ctrl.Store.On("IntelDeliveryAttempts", mock.Anything, suite.tx, suite.sampleFilters, suite.samplePage).
+		Return(suite.sampleAttempts, nil)
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	got, err := suite.ctrl.Ctrl.IntelDeliveryAttempts(context.Background(), suite.sampleFilters, suite.samplePage)
+	suite.Require().NoError(err, "should not fail")
+	suite.Equal(suite.sampleAttempts, got, "should return correct value")
+}
+
+func TestController_IntelDeliveryAttempts(t *testing.T) {
+	suite.Run(t, new(ControllerIntelDeliveryAttemptsSuite))
 }

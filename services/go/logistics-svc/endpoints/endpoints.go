@@ -31,6 +31,7 @@ type Store interface {
 	handleGetIntelDeliveryAttemptsByDeliveryStore
 	handleSetAddressBookEntriesWithAutoDeliveryEnabledStore
 	handleCancelIntelDeliveryByIDStore
+	handleGetIntelDeliveryAttemptsStore
 }
 
 // Serve the endpoints via HTTP.
@@ -66,5 +67,6 @@ func populateRoutes(r *gin.Engine, logger *zap.Logger, secret string, s Store) {
 	r.POST("/intel-deliveries/:deliveryID/cancel", httpendpoints.GinHandlerFunc(logger, secret, handleCancelIntelDeliveryByID(s)))
 	r.POST("/intel-deliveries/:deliveryID/delivered", httpendpoints.GinHandlerFunc(logger, secret, handleMarkIntelDeliveryAsDelivered(s)))
 	r.POST("/intel-deliveries/:deliveryID/deliver/channel/:channelID", httpendpoints.GinHandlerFunc(logger, secret, handleCreateIntelDeliveryAttemptForDelivery(s)))
+	r.GET("/intel-delivery-attempts", httpendpoints.GinHandlerFunc(logger, secret, handleGetIntelDeliveryAttempts(s)))
 	r.POST("/intel-delivery-attempts/:attemptID/delivered", httpendpoints.GinHandlerFunc(logger, secret, handleMarkIntelDeliveryAttemptAsDelivered(s)))
 }

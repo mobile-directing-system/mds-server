@@ -123,3 +123,9 @@ func (m *StoreMock) SetAddressBookEntriesWithAutoDeliveryEnabled(ctx context.Con
 func (m *StoreMock) CancelIntelDeliveryByID(ctx context.Context, deliveryID uuid.UUID, success bool, note nulls.String) error {
 	return m.Called(ctx, deliveryID, success, note).Error(0)
 }
+
+func (m *StoreMock) IntelDeliveryAttempts(ctx context.Context, filters store.IntelDeliveryAttemptFilters,
+	page pagination.Params) (pagination.Paginated[store.IntelDeliveryAttempt], error) {
+	args := m.Called(ctx, filters, page)
+	return args.Get(0).(pagination.Paginated[store.IntelDeliveryAttempt]), args.Error(1)
+}

@@ -1323,3 +1323,223 @@ func (suite *handleSetAddressBookEntriesWithAutoDeliveryEnabledSuite) TestOK() {
 func Test_handleSetAddressBookEntriesWithAutoDeliveryEnabled(t *testing.T) {
 	suite.Run(t, new(handleSetAddressBookEntriesWithAutoDeliveryEnabledSuite))
 }
+
+// intelDeliveryAttemptFiltersFromRequestSuite tests
+// intelDeliveryAttemptFiltersFromRequest.
+type intelDeliveryAttemptFiltersFromRequestSuite struct {
+	suite.Suite
+	sampleFilters store.IntelDeliveryAttemptFilters
+	qOK           url.Values
+}
+
+func (suite *intelDeliveryAttemptFiltersFromRequestSuite) SetupTest() {
+	suite.sampleFilters = store.IntelDeliveryAttemptFilters{
+		ByOperation: nulls.NewUUID(testutil.NewUUIDV4()),
+		ByDelivery:  nulls.NewUUID(testutil.NewUUIDV4()),
+		ByChannel:   nulls.NewUUID(testutil.NewUUIDV4()),
+		ByActive:    nulls.NewBool(true),
+	}
+	suite.qOK = map[string][]string{
+		"by_operation": {suite.sampleFilters.ByOperation.UUID.String()},
+		"by_delivery":  {suite.sampleFilters.ByDelivery.UUID.String()},
+		"by_channel":   {suite.sampleFilters.ByChannel.UUID.String()},
+		"by_active":    {fmt.Sprintf("%t", suite.sampleFilters.ByActive.Bool)},
+	}
+}
+
+func (suite *intelDeliveryAttemptFiltersFromRequestSuite) TestInvalidByOperationFilter() {
+	suite.qOK["by_operation"] = []string{"abc"}
+	_, err := intelDeliveryAttemptFiltersFromRequest(suite.qOK)
+	suite.Error(err, "should fail")
+}
+
+func (suite *intelDeliveryAttemptFiltersFromRequestSuite) TestInvalidByDeliveryFilter() {
+	suite.qOK["by_delivery"] = []string{"abc"}
+	_, err := intelDeliveryAttemptFiltersFromRequest(suite.qOK)
+	suite.Error(err, "should fail")
+}
+
+func (suite *intelDeliveryAttemptFiltersFromRequestSuite) TestInvalidByChannelFilter() {
+	suite.qOK["by_channel"] = []string{"abc"}
+	_, err := intelDeliveryAttemptFiltersFromRequest(suite.qOK)
+	suite.Error(err, "should fail")
+}
+
+func (suite *intelDeliveryAttemptFiltersFromRequestSuite) TestInvalidByActiveFilter() {
+	suite.qOK["by_active"] = []string{"abc"}
+	_, err := intelDeliveryAttemptFiltersFromRequest(suite.qOK)
+	suite.Error(err, "should fail")
+}
+
+func (suite *intelDeliveryAttemptFiltersFromRequestSuite) TestOK() {
+	got, err := intelDeliveryAttemptFiltersFromRequest(suite.qOK)
+	suite.Require().NoError(err, "should not fail")
+	suite.Equal(suite.sampleFilters, got, "should return correct value")
+}
+
+func Test_intelDeliveryAttemptFiltersFromRequest(t *testing.T) {
+	suite.Run(t, new(intelDeliveryAttemptFiltersFromRequestSuite))
+}
+
+// handleGetIntelDeliveryAttemptsSuite tests handleGetIntelDeliveryAttempts.
+type handleGetIntelDeliveryAttemptsSuite struct {
+	suite.Suite
+	s                           *StoreMock
+	r                           *gin.Engine
+	tokenOK                     auth.Token
+	sampleStoreAttempts         pagination.Paginated[store.IntelDeliveryAttempt]
+	samplePublicAttempts        pagination.Paginated[publicIntelDeliveryAttempt]
+	sampleStoreFilters          store.IntelDeliveryAttemptFilters
+	samplePublicFilters         url.Values
+	sampleStorePaginationParams pagination.Params
+}
+
+func (suite *handleGetIntelDeliveryAttemptsSuite) SetupTest() {
+	suite.s = &StoreMock{}
+	suite.r = testutil.NewGinEngine()
+	populateRoutes(suite.r, zap.NewNop(), "", suite.s)
+	suite.tokenOK = auth.Token{
+		UserID:          testutil.NewUUIDV4(),
+		Username:        "steel",
+		IsAuthenticated: true,
+		IsAdmin:         false,
+		Permissions:     []permission.Permission{{Name: permission.DeliverIntelPermissionName}},
+		RandomSalt:      nil,
+	}
+	suite.sampleStoreAttempts = pagination.NewPaginated[store.IntelDeliveryAttempt](pagination.Params{}, []store.IntelDeliveryAttempt{
+		{
+			ID:        testutil.NewUUIDV4(),
+			Delivery:  testutil.NewUUIDV4(),
+			Channel:   testutil.NewUUIDV4(),
+			CreatedAt: testutil.NewRandomTime(),
+			IsActive:  true,
+			Status:    store.IntelDeliveryStatusAwaitingAck,
+			StatusTS:  testutil.NewRandomTime(),
+			Note:      nulls.String{},
+		},
+		{
+			ID:        testutil.NewUUIDV4(),
+			Delivery:  testutil.NewUUIDV4(),
+			Channel:   testutil.NewUUIDV4(),
+			CreatedAt: testutil.NewRandomTime(),
+			IsActive:  true,
+			Status:    store.IntelDeliveryStatusOpen,
+			StatusTS:  testutil.NewRandomTime(),
+			Note:      nulls.NewString("ride"),
+		},
+		{
+			ID:        testutil.NewUUIDV4(),
+			Delivery:  testutil.NewUUIDV4(),
+			Channel:   testutil.NewUUIDV4(),
+			CreatedAt: testutil.NewRandomTime(),
+			IsActive:  false,
+			Status:    store.IntelDeliveryStatusFailed,
+			StatusTS:  testutil.NewRandomTime(),
+			Note:      nulls.NewString("this failed"),
+		},
+	}, 52)
+	suite.samplePublicAttempts = pagination.MapPaginated(suite.sampleStoreAttempts, func(from store.IntelDeliveryAttempt) publicIntelDeliveryAttempt {
+		p, err := publicIntelDeliveryAttemptFromStore(from)
+		if err != nil {
+			suite.Fail("fail", "map store to public failed")
+		}
+		return p
+	})
+	suite.sampleStoreFilters = store.IntelDeliveryAttemptFilters{
+		ByOperation: nulls.NewUUID(testutil.NewUUIDV4()),
+		ByDelivery:  nulls.NewUUID(testutil.NewUUIDV4()),
+		ByChannel:   nulls.NewUUID(testutil.NewUUIDV4()),
+		ByActive:    nulls.NewBool(true),
+	}
+	suite.samplePublicFilters = map[string][]string{
+		"by_operation": {suite.sampleStoreFilters.ByOperation.UUID.String()},
+		"by_delivery":  {suite.sampleStoreFilters.ByDelivery.UUID.String()},
+		"by_channel":   {suite.sampleStoreFilters.ByChannel.UUID.String()},
+		"by_active":    {fmt.Sprintf("%t", suite.sampleStoreFilters.ByActive.Bool)},
+	}
+	suite.sampleStorePaginationParams = pagination.Params{
+		Limit:          14,
+		Offset:         82,
+		OrderBy:        nulls.NewString("label"),
+		OrderDirection: pagination.OrderDirDesc,
+	}
+}
+
+func (suite *handleGetIntelDeliveryAttemptsSuite) TestSecretMismatch() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    "/intel-delivery-attempts",
+		Token:  suite.tokenOK,
+		Secret: "meow",
+	})
+	suite.Equal(http.StatusInternalServerError, rr.Code, "should return correct code")
+}
+
+func (suite *handleGetIntelDeliveryAttemptsSuite) TestNotAuthenticated() {
+	token := suite.tokenOK
+	token.IsAuthenticated = false
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    "/intel-delivery-attempts",
+		Token:  token,
+	})
+	suite.Equal(http.StatusUnauthorized, rr.Code, "should return correct code")
+}
+
+func (suite *handleGetIntelDeliveryAttemptsSuite) TestInvalidFilter() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    "/intel-delivery-attempts?by_operation=abc",
+		Token:  suite.tokenOK,
+	})
+	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
+}
+
+func (suite *handleGetIntelDeliveryAttemptsSuite) TestInvalidPagination() {
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    "/intel-delivery-attempts?limit=abc",
+		Token:  suite.tokenOK,
+	})
+	suite.Equal(http.StatusBadRequest, rr.Code, "should return correct code")
+}
+
+func (suite *handleGetIntelDeliveryAttemptsSuite) TestRetrieveFail() {
+	suite.s.On("IntelDeliveryAttempts", mock.Anything, mock.Anything, mock.Anything).
+		Return(pagination.Paginated[store.IntelDeliveryAttempt]{}, errors.New("sad life"))
+	defer suite.s.AssertExpectations(suite.T())
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    "/intel-delivery-attempts",
+		Token:  suite.tokenOK,
+	})
+	suite.Equal(http.StatusInternalServerError, rr.Code, "should return correct code")
+}
+
+func (suite *handleGetIntelDeliveryAttemptsSuite) TestOK() {
+	suite.s.On("IntelDeliveryAttempts", mock.Anything, suite.sampleStoreFilters, suite.sampleStorePaginationParams).
+		Return(suite.sampleStoreAttempts, nil)
+	defer suite.s.AssertExpectations(suite.T())
+
+	rr := testutil.DoHTTPRequestMust(testutil.HTTPRequestProps{
+		Server: suite.r,
+		Method: http.MethodGet,
+		URL:    "/intel-delivery-attempts?" + suite.samplePublicFilters.Encode() + "&" + pagination.ParamsToQueryString(suite.sampleStorePaginationParams),
+		Token:  suite.tokenOK,
+	})
+	suite.Require().Equal(http.StatusOK, rr.Code, "should return correct code")
+	var got pagination.Paginated[publicIntelDeliveryAttempt]
+	suite.Require().NoError(json.NewDecoder(rr.Body).Decode(&got), "should return valid body")
+	suite.Equal(suite.samplePublicAttempts, got, "should return correct body")
+}
+
+func Test_handleGetIntelDeliveryAttempts(t *testing.T) {
+	suite.Run(t, new(handleGetIntelDeliveryAttemptsSuite))
+}
