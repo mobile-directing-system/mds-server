@@ -319,6 +319,10 @@ func (m *StoreMock) IntelDeliveryAttempts(ctx context.Context, tx pgx.Tx, filter
 	return args.Get(0).(pagination.Paginated[store.IntelDeliveryAttempt]), args.Error(1)
 }
 
+func (m *StoreMock) SetAutoDeliveryEnabledForAddressBookEntry(ctx context.Context, tx pgx.Tx, entryID uuid.UUID, enabled bool) error {
+	return m.Called(ctx, tx, entryID, enabled).Error(0)
+}
+
 // NotifierMock mocks Notifier.
 type NotifierMock struct {
 	mock.Mock

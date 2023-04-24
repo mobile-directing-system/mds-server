@@ -3,6 +3,7 @@ package endpoints
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid"
 	"github.com/lefinal/meh"
@@ -443,6 +444,96 @@ func handleSetAddressBookEntriesWithAutoDeliveryEnabled(s handleSetAddressBookEn
 		err = s.SetAddressBookEntriesWithAutoDeliveryEnabled(c.Request.Context(), entries)
 		if err != nil {
 			return meh.Wrap(err, "set address book entries with auto delivery enabled", meh.Details{"new_entries": entries})
+		}
+		c.Status(http.StatusOK)
+		return nil
+	}
+}
+
+// handleGetAutoIntelDeliveryEnabledForAddressBookEntryStore are the dependencies
+// needed for handleGetAutoIntelDeliveryEnabledForAddressBookEntry.
+type handleGetAutoIntelDeliveryEnabledForAddressBookEntryStore interface {
+	IsAutoIntelDeliveryEnabledForAddressBookEntry(ctx context.Context, entryID uuid.UUID) (bool, error)
+}
+
+// handleGetAutoIntelDeliveryEnabledForAddressBookEntry checks whether auto intel
+// delivery is enabled for the address book entry with the given id.
+func handleGetAutoIntelDeliveryEnabledForAddressBookEntry(s handleGetAutoIntelDeliveryEnabledForAddressBookEntryStore) httpendpoints.HandlerFunc {
+	return func(c *gin.Context, token auth.Token) error {
+		err := auth.AssurePermission(token, permission.ManageIntelDelivery())
+		if err != nil {
+			return meh.Wrap(err, "check permissions", nil)
+		}
+		// Extract entry id.
+		entryIDStr := c.Param("entryID")
+		entryID, err := uuid.FromString(entryIDStr)
+		if err != nil {
+			return meh.NewBadInputErrFromErr(err, "parse entry id", meh.Details{"was": entryIDStr})
+		}
+		// Retrieve.
+		isEnabled, err := s.IsAutoIntelDeliveryEnabledForAddressBookEntry(c.Request.Context(), entryID)
+		if err != nil {
+			return meh.Wrap(err, "is auto intel delivery enabled for address book entry", meh.Details{"entry_id": entryID})
+		}
+		c.String(http.StatusOK, fmt.Sprintf("%t", isEnabled))
+		return nil
+	}
+}
+
+// handleEnableAutoIntelDeliveryForAddressBookEntryStore are the dependencies
+// needed for handleEnableAutoIntelDeliveryForAddressBookEntry.
+type handleEnableAutoIntelDeliveryForAddressBookEntryStore interface {
+	SetAutoIntelDeliveryEnabledForAddressBookEntry(ctx context.Context, entryID uuid.UUID, enabled bool) error
+}
+
+// handleEnableAutoIntelDeliveryForAddressBookEntry sets auto intel delivery to
+// enabled for the address book entry with the given id.
+func handleEnableAutoIntelDeliveryForAddressBookEntry(s handleEnableAutoIntelDeliveryForAddressBookEntryStore) httpendpoints.HandlerFunc {
+	return func(c *gin.Context, token auth.Token) error {
+		err := auth.AssurePermission(token, permission.ManageIntelDelivery())
+		if err != nil {
+			return meh.Wrap(err, "check permissions", nil)
+		}
+		// Extract entry id.
+		entryIDStr := c.Param("entryID")
+		entryID, err := uuid.FromString(entryIDStr)
+		if err != nil {
+			return meh.NewBadInputErrFromErr(err, "parse entry id", meh.Details{"was": entryIDStr})
+		}
+		// Set.
+		err = s.SetAutoIntelDeliveryEnabledForAddressBookEntry(c.Request.Context(), entryID, true)
+		if err != nil {
+			return meh.Wrap(err, "set auto intel delivery enabled for address book entry", meh.Details{"entry_id": entryID})
+		}
+		c.Status(http.StatusOK)
+		return nil
+	}
+}
+
+// handleDisableAutoIntelDeliveryForAddressBookEntryStore are the dependencies
+// needed for handleDisableAutoIntelDeliveryForAddressBookEntry.
+type handleDisableAutoIntelDeliveryForAddressBookEntryStore interface {
+	SetAutoIntelDeliveryEnabledForAddressBookEntry(ctx context.Context, entryID uuid.UUID, enabled bool) error
+}
+
+// handleDisableAutoIntelDeliveryForAddressBookEntry sets auto intel delivery to
+// disabled for the address book entry with the given id.
+func handleDisableAutoIntelDeliveryForAddressBookEntry(s handleDisableAutoIntelDeliveryForAddressBookEntryStore) httpendpoints.HandlerFunc {
+	return func(c *gin.Context, token auth.Token) error {
+		err := auth.AssurePermission(token, permission.ManageIntelDelivery())
+		if err != nil {
+			return meh.Wrap(err, "check permissions", nil)
+		}
+		// Extract entry id.
+		entryIDStr := c.Param("entryID")
+		entryID, err := uuid.FromString(entryIDStr)
+		if err != nil {
+			return meh.NewBadInputErrFromErr(err, "parse entry id", meh.Details{"was": entryIDStr})
+		}
+		// Set.
+		err = s.SetAutoIntelDeliveryEnabledForAddressBookEntry(c.Request.Context(), entryID, false)
+		if err != nil {
+			return meh.Wrap(err, "set auto intel delivery disabled for address book entry", meh.Details{"entry_id": entryID})
 		}
 		c.Status(http.StatusOK)
 		return nil

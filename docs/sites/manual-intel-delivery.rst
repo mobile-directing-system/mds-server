@@ -135,6 +135,39 @@ Updating the list of address book entries with auto delivery enabled can be done
 
 Response (200)
 
+Check if auto intel delivery is enabled for address book entry
+==============================================================
+
+Managing intel auto delivery requires the :ref:`permission.logistics.intel-delivery.manage` permission.
+Checking if auto intel delivery is enabled for an address book entry can be done via:
+
+`GET /address-book/entries/<entry_id>/auto-intel-delivery`
+
+Response (200):
+
+``true`` or ``false``
+
+Set auto intel delivery enabled for address book entry
+======================================================
+
+Managing intel auto delivery requires the :ref:`permission.logistics.intel-delivery.manage` permission.
+Setting auto intel delivery to enabled for an address book entry can be done via:
+
+`POST /address-book/entries/<entry_id>/auto-intel-delivery/enable`
+
+Response (200)
+
+Set auto intel delivery disabled for address book entry
+=======================================================
+
+Managing intel auto delivery requires the :ref:`permission.logistics.intel-delivery.manage` permission.
+Setting auto intel delivery to disabled for an address book entry can be done via:
+
+`POST /address-book/entries/<entry_id>/auto-intel-delivery/disable`
+
+Response (200)
+
+
 Cancel active intel delivery
 ============================
 

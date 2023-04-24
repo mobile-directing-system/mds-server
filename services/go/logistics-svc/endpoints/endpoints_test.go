@@ -129,3 +129,12 @@ func (m *StoreMock) IntelDeliveryAttempts(ctx context.Context, filters store.Int
 	args := m.Called(ctx, filters, page)
 	return args.Get(0).(pagination.Paginated[store.IntelDeliveryAttempt]), args.Error(1)
 }
+
+func (m *StoreMock) SetAutoIntelDeliveryEnabledForAddressBookEntry(ctx context.Context, entryID uuid.UUID, enabled bool) error {
+	return m.Called(ctx, entryID, enabled).Error(0)
+}
+
+func (m *StoreMock) IsAutoIntelDeliveryEnabledForAddressBookEntry(ctx context.Context, entryID uuid.UUID) (bool, error) {
+	args := m.Called(ctx, entryID)
+	return args.Bool(0), args.Error(1)
+}

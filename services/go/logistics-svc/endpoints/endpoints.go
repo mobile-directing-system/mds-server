@@ -32,6 +32,9 @@ type Store interface {
 	handleSetAddressBookEntriesWithAutoDeliveryEnabledStore
 	handleCancelIntelDeliveryByIDStore
 	handleGetIntelDeliveryAttemptsStore
+	handleEnableAutoIntelDeliveryForAddressBookEntryStore
+	handleDisableAutoIntelDeliveryForAddressBookEntryStore
+	handleGetAutoIntelDeliveryEnabledForAddressBookEntryStore
 }
 
 // Serve the endpoints via HTTP.
@@ -54,6 +57,9 @@ func populateRoutes(r *gin.Engine, logger *zap.Logger, secret string, s Store) {
 	r.GET("/address-book/entries/:entryID/channels", httpendpoints.GinHandlerFunc(logger, secret, handleGetChannelsByAddressBookEntry(s)))
 	r.PUT("/address-book/entries/:entryID/channels", httpendpoints.GinHandlerFunc(logger, secret, handleUpdateChannelsByAddressBookEntry(s)))
 	r.PUT("/address-book/entries/:entryID", httpendpoints.GinHandlerFunc(logger, secret, handleUpdateAddressBookEntry(s)))
+	r.GET("/address-book/entries/:entryID/auto-intel-delivery", httpendpoints.GinHandlerFunc(logger, secret, handleGetAutoIntelDeliveryEnabledForAddressBookEntry(s)))
+	r.POST("/address-book/entries/:entryID/auto-intel-delivery/enable", httpendpoints.GinHandlerFunc(logger, secret, handleEnableAutoIntelDeliveryForAddressBookEntry(s)))
+	r.POST("/address-book/entries/:entryID/auto-intel-delivery/disable", httpendpoints.GinHandlerFunc(logger, secret, handleDisableAutoIntelDeliveryForAddressBookEntry(s)))
 	r.DELETE("/address-book/entries/:entryID", httpendpoints.GinHandlerFunc(logger, secret, handleDeleteAddressBookEntryByID(s)))
 	r.GET("/address-book/entries", httpendpoints.GinHandlerFunc(logger, secret, handleGetAllAddressBookEntries(s)))
 	r.POST("/address-book/entries", httpendpoints.GinHandlerFunc(logger, secret, handleCreateAddressBookEntry(s)))
