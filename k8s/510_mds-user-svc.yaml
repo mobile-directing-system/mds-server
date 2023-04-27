@@ -84,7 +84,7 @@ metadata:
 data:
   MEILI_ENV: "production"
   MEILI_NO_ANALYTICS: "true"
-  MEILI_MASTER_KEY: "mds"
+  MEILI_MASTER_KEY: "mds-meili-master-key"
 ---
 # Meilisearch pvc.
 kind: PersistentVolumeClaim
@@ -148,7 +148,7 @@ spec:
             claimName: mds-user-svc-meilisearch-pvc
       containers:
         - name: meilisearch
-          image: getmeili/meilisearch:v0.28.0
+          image: getmeili/meilisearch:v1.1.1
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: mds-user-svc-meilisearch-v-data
@@ -188,7 +188,7 @@ data:
   MDS_SERVE_ADDR: :8080
   MDS_LOG_LEVEL: debug
   MDS_SEARCH_HOST: http://mds-user-svc-meilisearch-service:7700
-  MDS_SEARCH_MASTER_KEY: mds
+  MDS_SEARCH_MASTER_KEY: mds-meili-master-key
 ---
 # User svc service.
 apiVersion: v1
