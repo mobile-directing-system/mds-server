@@ -548,6 +548,7 @@ func (m *Mall) SearchAddressBookEntries(ctx context.Context, tx pgx.Tx, filters 
 	if !filters.IncludeForInactiveUsers {
 		searchFilters = append(searchFilters, []string{
 			fmt.Sprintf("%s = null", abEntrySearchAttrUserID),
+			fmt.Sprintf("%s NOT EXISTS", abEntrySearchAttrUserID),
 			fmt.Sprintf("%s = true", abEntrySearchAttrUserIsActive),
 		})
 	}
