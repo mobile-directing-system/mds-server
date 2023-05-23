@@ -154,6 +154,12 @@ func (m *StoreMock) IntelDeliveryByID(ctx context.Context, tx pgx.Tx, deliveryID
 	return args.Get(0).(store.IntelDelivery), args.Error(1)
 }
 
+func (m *StoreMock) IntelDeliveriesTo(ctx context.Context, tx pgx.Tx, entryID uuid.UUID) ([]store.IntelDelivery, error) {
+	args := m.Called(ctx, tx, entryID)
+	deliveries, _ := args.Get(0).([]store.IntelDelivery)
+	return deliveries, args.Error(1)
+}
+
 func (m *StoreMock) TimedOutIntelDeliveryAttemptsByDelivery(ctx context.Context, tx pgx.Tx,
 	deliveryID uuid.UUID) ([]store.IntelDeliveryAttempt, error) {
 	args := m.Called(ctx, tx, deliveryID)
@@ -221,6 +227,10 @@ func (m *StoreMock) ActiveIntelDeliveryAttemptsByChannelsAndLockOrWait(ctx conte
 
 func (m *StoreMock) DeleteIntelDeliveryAttemptsByChannel(ctx context.Context, tx pgx.Tx, channelID uuid.UUID) error {
 	return m.Called(ctx, tx, channelID).Error(0)
+}
+
+func (m *StoreMock) DeleteInactiveIntelDeliveriesFor(ctx context.Context, tx pgx.Tx, entryID uuid.UUID) error {
+	return m.Called(ctx, tx, entryID).Error(0)
 }
 
 func (m *StoreMock) LockIntelDeliveryByIDOrWait(ctx context.Context, tx pgx.Tx, deliveryID uuid.UUID) error {
