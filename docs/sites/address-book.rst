@@ -76,11 +76,13 @@ If needed and provided, updating is done via:
 
 Delete entry
 ============
-
-Deleting an entry, not being associated with the requesting user, requires the :ref:`permission.logistics.address-book.entry.delete.any` permission.
-If needed and provided, updating is done via:
+Deletes an address book entries and its channels.
 
 `DELETE /address-book/entries/<entry_id>`
+
+Permissions: Deleting an entry, not being associated with the requesting user, requires the :ref:`permission.logistics.address-book.entry.delete.any` permission.
+
+**Important**: An address book entry cannot be deleted when there are still intel deliveries pending to the address book entry.
 
 Retrieve entries
 ================

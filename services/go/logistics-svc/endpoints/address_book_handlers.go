@@ -317,7 +317,7 @@ func handleUpdateAddressBookEntry(s handleUpdateAddressBookEntryStore) httpendpo
 // handleDeleteAddressBookEntryByIDStore are the dependencies needed for
 // handleDeleteAddressBookEntryByID.
 type handleDeleteAddressBookEntryByIDStore interface {
-	DeleteAddressBookEntryByID(ctx context.Context, entryID uuid.UUID, limitToUser uuid.NullUUID) error
+	DeleteAddressBookEntryWithChannelsByID(ctx context.Context, entryID uuid.UUID, limitToUser uuid.NullUUID) error
 }
 
 // handleDeleteAddressBookEntryByID deletes the address book entry with the
@@ -343,8 +343,9 @@ func handleDeleteAddressBookEntryByID(s handleDeleteAddressBookEntryByIDStore) h
 		if deleteAnyGranted {
 			limitToUser = uuid.NullUUID{}
 		}
-		// Delete.
-		err = s.DeleteAddressBookEntryByID(c.Request.Context(), entryID, limitToUser)
+
+		// Delete entry + channels
+		err = s.DeleteAddressBookEntryWithChannelsByID(c.Request.Context(), entryID, limitToUser)
 		if err != nil {
 			return meh.Wrap(err, "delete address book entry", meh.Details{
 				"entry_id":      entryID,
