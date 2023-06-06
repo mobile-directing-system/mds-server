@@ -20,7 +20,7 @@ metadata:
     app: mds-api-gateway-svc-postgres
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   resources:
     requests:
       storage: 10Gi
@@ -88,7 +88,7 @@ metadata:
     app: mds-api-gateway-svc-redis
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   resources:
     requests:
       storage: 10Gi
