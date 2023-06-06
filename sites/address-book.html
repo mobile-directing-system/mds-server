@@ -268,9 +268,10 @@ If needed and provided, updating is done via:</p>
 </section>
 <section id="delete-entry">
 <h2>Delete entry<a class="headerlink" href="#delete-entry" title="Permalink to this heading">#</a></h2>
-<p>Deleting an entry, not being associated with the requesting user, requires the <a class="reference internal" href="permissions.html#permission-logistics-address-book-entry-delete-any"><span class="std std-ref">logistics.address-book.entry.delete.any</span></a> permission.
-If needed and provided, updating is done via:</p>
+<p>Deletes an address book entries and its channels.</p>
 <p><cite>DELETE /address-book/entries/&lt;entry_id&gt;</cite></p>
+<p>Permissions: Deleting an entry, not being associated with the requesting user, requires the <a class="reference internal" href="permissions.html#permission-logistics-address-book-entry-delete-any"><span class="std std-ref">logistics.address-book.entry.delete.any</span></a> permission.</p>
+<p><strong>Important</strong>: An address book entry cannot be deleted when there are still intel deliveries pending to the address book entry.</p>
 </section>
 <section id="retrieve-entries">
 <h2>Retrieve entries<a class="headerlink" href="#retrieve-entries" title="Permalink to this heading">#</a></h2>
