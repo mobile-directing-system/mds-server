@@ -111,11 +111,11 @@ func (c *Controller) UpdateAddressBookEntry(ctx context.Context, update store.Ad
 	return nil
 }
 
-// DeleteAddressBookEntryByID deletes the address book entry with the given id
-// and notifies via Notifier.NotifyAddressBookEntryDeleted. If limit-to-user is
-// set, only entries, associated with the given user can be deleted. Otherwise,
-// an meh.ErrNotFound will be returned.
-func (c *Controller) DeleteAddressBookEntryByID(ctx context.Context, entryID uuid.UUID, limitToUser uuid.NullUUID) error {
+// DeleteAddressBookEntryWithChannelsByID deletes the address book entry with its channels with
+// the given address book entry id and notifies via Notifier.NotifyAddressBookEntryDeleted.
+// If limit-to-user is set, only entries, associated with the given user can be deleted. Otherwise,
+// a meh.ErrNotFound will be returned.
+func (c *Controller) DeleteAddressBookEntryWithChannelsByID(ctx context.Context, entryID uuid.UUID, limitToUser uuid.NullUUID) error {
 	err := pgutil.RunInTx(ctx, c.DB, func(ctx context.Context, tx pgx.Tx) error {
 		entry, err := c.Store.AddressBookEntryByID(ctx, tx, entryID, uuid.NullUUID{})
 		if err != nil {
@@ -130,10 +130,42 @@ func (c *Controller) DeleteAddressBookEntryByID(ctx context.Context, entryID uui
 				})
 			}
 		}
+
+		// Prevent deletion when there are still any active intel deliveries to the address book entry
+		deliveries, err := c.Store.IntelDeliveriesTo(ctx, tx, entryID)
+		if err != nil {
+			return meh.Wrap(err, "get intel deliveries to", meh.Details{"entry_id": entryID})
+		}
+		for _, delivery := range deliveries {
+			if delivery.IsActive {
+				return meh.NewInternalErr("there are still active deliveries to the address book entry", meh.Details{"entry_id": entryID})
+			}
+		}
+
+		// Delete all inactive intel deliveries that are addressed to the address book entry
+		err = c.Store.DeleteInactiveIntelDeliveriesFor(ctx, tx, entryID)
+		if err != nil {
+			return meh.Wrap(err, "delete inactive intel deliveries for", meh.Details{"entry_id": entryID})
+		}
+
+		// Delete channels of address book entry
+		channels, err := c.Store.ChannelsByAddressBookEntry(ctx, tx, entryID)
+		if err != nil {
+			return meh.Wrap(err, "get channels by address book entry", meh.Details{"entry_id": entryID})
+		}
+		for _, channel := range channels {
+			err = c.Store.DeleteChannelWithDetailsByID(ctx, tx, channel.ID, channel.Type)
+			if err != nil {
+				return meh.Wrap(err, "delete channel with details", meh.Details{"channel_id": channel.ID})
+			}
+		}
+
+		// Delete address book entry
 		err = c.Store.DeleteAddressBookEntryByID(ctx, tx, entryID)
 		if err != nil {
 			return meh.Wrap(err, "delete entry in store", meh.Details{"entry_id": entryID})
 		}
+
 		err = c.Notifier.NotifyAddressBookEntryDeleted(ctx, tx, entryID)
 		if err != nil {
 			return meh.Wrap(err, "notify", meh.Details{"entry_id": entryID})

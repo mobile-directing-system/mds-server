@@ -864,7 +864,7 @@ func (suite *handleDeleteAddressBookEntryByIDSuite) TestInvalidID() {
 }
 
 func (suite *handleDeleteAddressBookEntryByIDSuite) TestDeleteFail() {
-	suite.s.On("DeleteAddressBookEntryByID", mock.Anything, mock.Anything, mock.Anything).
+	suite.s.On("DeleteAddressBookEntryWithChannelsByID", mock.Anything, mock.Anything, mock.Anything).
 		Return(errors.New("sad life"))
 	defer suite.s.AssertExpectations(suite.T())
 
@@ -879,7 +879,7 @@ func (suite *handleDeleteAddressBookEntryByIDSuite) TestDeleteFail() {
 }
 
 func (suite *handleDeleteAddressBookEntryByIDSuite) TestOK() {
-	suite.s.On("DeleteAddressBookEntryByID", mock.Anything, suite.sampleEntryID, mock.Anything).
+	suite.s.On("DeleteAddressBookEntryWithChannelsByID", mock.Anything, suite.sampleEntryID, mock.Anything).
 		Return(nil)
 	defer suite.s.AssertExpectations(suite.T())
 
@@ -896,7 +896,7 @@ func (suite *handleDeleteAddressBookEntryByIDSuite) TestOK() {
 func (suite *handleDeleteAddressBookEntryByIDSuite) TestOKWithDeleteAnyPermission() {
 	token := suite.tokenOK
 	token.Permissions = []permission.Permission{{Name: permission.DeleteAnyAddressBookEntryPermissionName}}
-	suite.s.On("DeleteAddressBookEntryByID", mock.Anything, suite.sampleEntryID, uuid.NullUUID{}).
+	suite.s.On("DeleteAddressBookEntryWithChannelsByID", mock.Anything, suite.sampleEntryID, uuid.NullUUID{}).
 		Return(nil)
 	defer suite.s.AssertExpectations(suite.T())
 
@@ -913,7 +913,7 @@ func (suite *handleDeleteAddressBookEntryByIDSuite) TestOKWithDeleteAnyPermissio
 func (suite *handleDeleteAddressBookEntryByIDSuite) TestOKWithoutDeleteAnyPermission() {
 	token := suite.tokenOK
 	token.Permissions = nil
-	suite.s.On("DeleteAddressBookEntryByID", mock.Anything, suite.sampleEntryID, nulls.NewUUID(token.UserID)).
+	suite.s.On("DeleteAddressBookEntryWithChannelsByID", mock.Anything, suite.sampleEntryID, nulls.NewUUID(token.UserID)).
 		Return(nil)
 	defer suite.s.AssertExpectations(suite.T())
 

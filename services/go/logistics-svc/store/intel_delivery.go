@@ -153,6 +153,44 @@ func (m *Mall) IntelDeliveryByID(ctx context.Context, tx pgx.Tx, deliveryID uuid
 	return delivery, nil
 }
 
+// IntelDeliveriesTo retrieves all delivery attempts to the address book entry with entryID
+func (m *Mall) IntelDeliveriesTo(ctx context.Context, tx pgx.Tx, entryID uuid.UUID) ([]IntelDelivery, error) {
+	q, _, err := m.dialect.From(goqu.T("intel_deliveries")).
+		Select(goqu.C("id"),
+			goqu.C("intel"),
+			goqu.C("to"),
+			goqu.C("is_active"),
+			goqu.C("success"),
+			goqu.C("note")).
+		Where(goqu.C("to").Eq(entryID)).ToSQL()
+
+	if err != nil {
+		return make([]IntelDelivery, 0), meh.NewInternalErrFromErr(err, "query to sql", nil)
+	}
+	rows, err := tx.Query(ctx, q)
+	if err != nil {
+		return make([]IntelDelivery, 0), mehpg.NewQueryDBErr(err, "query db", q)
+	}
+	defer rows.Close()
+	deliveries := make([]IntelDelivery, 0)
+	for rows.Next() {
+		var delivery IntelDelivery
+		err = rows.Scan(&delivery.ID,
+			&delivery.Intel,
+			&delivery.To,
+			&delivery.IsActive,
+			&delivery.Success,
+			&delivery.Note,
+		)
+		if err != nil {
+			return nil, mehpg.NewScanRowsErr(err, "scan row", q)
+		}
+		deliveries = append(deliveries, delivery)
+	}
+	rows.Close()
+	return deliveries, nil
+}
+
 // IntelDeliveriesByIntel retrieves the IntelDelivery list for the intel with
 // the given id.
 func (m *Mall) IntelDeliveriesByIntel(ctx context.Context, tx pgx.Tx, intelID uuid.UUID) ([]IntelDelivery, error) {
@@ -594,6 +632,20 @@ func (m *Mall) ActiveIntelDeliveryAttemptsByChannelsAndLockOrWait(ctx context.Co
 func (m *Mall) DeleteIntelDeliveryAttemptsByChannel(ctx context.Context, tx pgx.Tx, channelID uuid.UUID) error {
 	q, _, err := m.dialect.Delete(goqu.T("intel_delivery_attempts")).
 		Where(goqu.C("channel").Eq(channelID)).ToSQL()
+	if err != nil {
+		return meh.NewInternalErrFromErr(err, "query to sql", nil)
+	}
+	_, err = tx.Exec(ctx, q)
+	if err != nil {
+		return mehpg.NewQueryDBErr(err, "exec query", q)
+	}
+	return nil
+}
+
+// DeleteInactiveIntelDeliveriesFor deletes all inactive intel deliveries for a given address book entry
+func (m *Mall) DeleteInactiveIntelDeliveriesFor(ctx context.Context, tx pgx.Tx, entryID uuid.UUID) error {
+	q, _, err := m.dialect.Delete(goqu.T("intel_deliveries")).
+		Where(goqu.And(goqu.C("to").Eq(entryID), goqu.C("is_active").Eq(false))).ToSQL()
 	if err != nil {
 		return meh.NewInternalErrFromErr(err, "query to sql", nil)
 	}
