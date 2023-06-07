@@ -44,7 +44,8 @@ create table address_book_entries
     operation   uuid references operations (id)
         on delete restrict on update restrict,
     "user"      uuid references users (id)
-        on delete restrict on update restrict
+        on delete restrict on update restrict,
+    is_invalidated boolean not null default false
 );
 
 create index address_book_entries_operation_ix on address_book_entries (operation);

@@ -293,15 +293,15 @@ func TestController_UpdateAddressBookEntry(t *testing.T) {
 	suite.Run(t, new(ControllerUpdateAddressBookEntrySuite))
 }
 
-// ControllerDeleteAddressBookEntryByIDSuite tests Controller.DeleteAddressBookEntryByID.
-type ControllerDeleteAddressBookEntryByIDSuite struct {
+// ControllerDeleteAddressBookEntryWithChannelsByIDSuite tests Controller.DeleteAddressBookEntryWithChannelsByID.
+type ControllerDeleteAddressBookEntryWithChannelsByIDSuite struct {
 	suite.Suite
 	ctrl                *ControllerMock
 	sampleEntry         uuid.UUID
 	sampleEntryDetailed store.AddressBookEntryDetailed
 }
 
-func (suite *ControllerDeleteAddressBookEntryByIDSuite) SetupTest() {
+func (suite *ControllerDeleteAddressBookEntryWithChannelsByIDSuite) SetupTest() {
 	suite.ctrl = NewMockController()
 	suite.sampleEntry = testutil.NewUUIDV4()
 	suite.sampleEntryDetailed = store.AddressBookEntryDetailed{
@@ -316,20 +316,20 @@ func (suite *ControllerDeleteAddressBookEntryByIDSuite) SetupTest() {
 	}
 }
 
-func (suite *ControllerDeleteAddressBookEntryByIDSuite) TestTxFail() {
+func (suite *ControllerDeleteAddressBookEntryWithChannelsByIDSuite) TestTxFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.ctrl.DB.BeginFail = true
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteAddressBookEntryByID(timeout, suite.sampleEntry, uuid.NullUUID{})
+		err := suite.ctrl.Ctrl.DeleteAddressBookEntryWithChannelsByID(timeout, suite.sampleEntry, uuid.NullUUID{})
 		suite.Error(err, "should fail")
 	}()
 
 	wait()
 }
 
-func (suite *ControllerDeleteAddressBookEntryByIDSuite) TestRetrieveFail() {
+func (suite *ControllerDeleteAddressBookEntryWithChannelsByIDSuite) TestRetrieveFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
 	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry, uuid.NullUUID{}).
@@ -338,7 +338,7 @@ func (suite *ControllerDeleteAddressBookEntryByIDSuite) TestRetrieveFail() {
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteAddressBookEntryByID(timeout, suite.sampleEntry, uuid.NullUUID{})
+		err := suite.ctrl.Ctrl.DeleteAddressBookEntryWithChannelsByID(timeout, suite.sampleEntry, uuid.NullUUID{})
 		suite.Error(err, "should fail")
 		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
 	}()
@@ -346,7 +346,7 @@ func (suite *ControllerDeleteAddressBookEntryByIDSuite) TestRetrieveFail() {
 	wait()
 }
 
-func (suite *ControllerDeleteAddressBookEntryByIDSuite) TestLimitViolationForGlobal() {
+func (suite *ControllerDeleteAddressBookEntryWithChannelsByIDSuite) TestLimitViolationForGlobal() {
 	limitToUser := testutil.NewUUIDV4()
 	suite.sampleEntryDetailed.User = uuid.NullUUID{}
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
@@ -357,7 +357,7 @@ func (suite *ControllerDeleteAddressBookEntryByIDSuite) TestLimitViolationForGlo
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteAddressBookEntryByID(timeout, suite.sampleEntry, nulls.NewUUID(limitToUser))
+		err := suite.ctrl.Ctrl.DeleteAddressBookEntryWithChannelsByID(timeout, suite.sampleEntry, nulls.NewUUID(limitToUser))
 		suite.Error(err, "should fail")
 		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
 	}()
@@ -365,7 +365,7 @@ func (suite *ControllerDeleteAddressBookEntryByIDSuite) TestLimitViolationForGlo
 	wait()
 }
 
-func (suite *ControllerDeleteAddressBookEntryByIDSuite) TestLimitViolationForForeignUsersEntry() {
+func (suite *ControllerDeleteAddressBookEntryWithChannelsByIDSuite) TestLimitViolationForForeignUsersEntry() {
 	limitToUser := testutil.NewUUIDV4()
 	suite.sampleEntryDetailed.User = nulls.NewUUID(testutil.NewUUIDV4())
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
@@ -376,7 +376,7 @@ func (suite *ControllerDeleteAddressBookEntryByIDSuite) TestLimitViolationForFor
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteAddressBookEntryByID(timeout, suite.sampleEntry, nulls.NewUUID(limitToUser))
+		err := suite.ctrl.Ctrl.DeleteAddressBookEntryWithChannelsByID(timeout, suite.sampleEntry, nulls.NewUUID(limitToUser))
 		suite.Error(err, "should fail")
 		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
 	}()
@@ -384,18 +384,24 @@ func (suite *ControllerDeleteAddressBookEntryByIDSuite) TestLimitViolationForFor
 	wait()
 }
 
-func (suite *ControllerDeleteAddressBookEntryByIDSuite) TestDeleteInStoreFail() {
+func (suite *ControllerDeleteAddressBookEntryWithChannelsByIDSuite) TestDeleteInStoreFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
 	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry, uuid.NullUUID{}).
 		Return(suite.sampleEntryDetailed, nil)
+	suite.ctrl.Store.On("IntelDeliveriesTo", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
+		Return(make([]store.IntelDelivery, 0), nil)
 	suite.ctrl.Store.On("DeleteAddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
 		Return(errors.New("sad life"))
+	suite.ctrl.Store.On("DeleteInactiveIntelDeliveriesFor", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
+		Return(nil)
+	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
+		Return(make([]store.Channel, 0), nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteAddressBookEntryByID(timeout, suite.sampleEntry, uuid.NullUUID{})
+		err := suite.ctrl.Ctrl.DeleteAddressBookEntryWithChannelsByID(timeout, suite.sampleEntry, uuid.NullUUID{})
 		suite.Error(err, "should fail")
 		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
 	}()
@@ -403,21 +409,136 @@ func (suite *ControllerDeleteAddressBookEntryByIDSuite) TestDeleteInStoreFail() 
 	wait()
 }
 
-func (suite *ControllerDeleteAddressBookEntryByIDSuite) TestNotifyFail() {
+func (suite *ControllerDeleteAddressBookEntryWithChannelsByIDSuite) TestReceiveIntelDeliveriesFail() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
 	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry, uuid.NullUUID{}).
 		Return(suite.sampleEntryDetailed, nil)
+	suite.ctrl.Store.On("IntelDeliveriesTo", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
+		Return(nil, errors.New("fail"))
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.DeleteAddressBookEntryWithChannelsByID(timeout, suite.sampleEntry, uuid.NullUUID{})
+		suite.Error(err, "should fail")
+		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerDeleteAddressBookEntryWithChannelsByIDSuite) TestIntelDeliveriesPendingFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
+	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry, uuid.NullUUID{}).
+		Return(suite.sampleEntryDetailed, nil)
+	suite.ctrl.Store.On("IntelDeliveriesTo", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
+		Return([]store.IntelDelivery{{IsActive: true}}, nil)
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.DeleteAddressBookEntryWithChannelsByID(timeout, suite.sampleEntry, uuid.NullUUID{})
+		suite.Error(err, "should fail")
+		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerDeleteAddressBookEntryWithChannelsByIDSuite) TestDeleteInactiveDeliveriesForFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
+	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry, uuid.NullUUID{}).
+		Return(suite.sampleEntryDetailed, nil)
+	suite.ctrl.Store.On("IntelDeliveriesTo", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
+		Return([]store.IntelDelivery{{}}, nil)
+	suite.ctrl.Store.On("DeleteInactiveIntelDeliveriesFor", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
+		Return(errors.New("error"))
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.DeleteAddressBookEntryWithChannelsByID(timeout, suite.sampleEntry, uuid.NullUUID{})
+		suite.Error(err, "should fail")
+		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerDeleteAddressBookEntryWithChannelsByIDSuite) TestDeleteChannelsFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
+	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry, uuid.NullUUID{}).
+		Return(suite.sampleEntryDetailed, nil)
+	suite.ctrl.Store.On("IntelDeliveriesTo", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
+		Return(make([]store.IntelDelivery, 0), nil)
+	suite.ctrl.Store.On("DeleteInactiveIntelDeliveriesFor", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
+		Return(nil)
+	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
+		Return([]store.Channel{{}}, nil)
+	channel := store.Channel{}
+	suite.ctrl.Store.On("DeleteChannelWithDetailsByID", timeout, suite.ctrl.DB.Tx[0], channel.ID, channel.Type).
+		Return(errors.New("error"))
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.DeleteAddressBookEntryWithChannelsByID(timeout, suite.sampleEntry, uuid.NullUUID{})
+		suite.Error(err, "should fail")
+		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerDeleteAddressBookEntryWithChannelsByIDSuite) TestChannelsByAddressBookEntryFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
+	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry, uuid.NullUUID{}).
+		Return(suite.sampleEntryDetailed, nil)
+	suite.ctrl.Store.On("IntelDeliveriesTo", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
+		Return(make([]store.IntelDelivery, 0), nil)
+	suite.ctrl.Store.On("DeleteInactiveIntelDeliveriesFor", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
+		Return(nil)
+	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
+		Return(nil, errors.New("error"))
+	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
+	go func() {
+		defer cancel()
+		err := suite.ctrl.Ctrl.DeleteAddressBookEntryWithChannelsByID(timeout, suite.sampleEntry, uuid.NullUUID{})
+		suite.Error(err, "should fail")
+		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
+	}()
+
+	wait()
+}
+
+func (suite *ControllerDeleteAddressBookEntryWithChannelsByIDSuite) TestNotifyFail() {
+	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
+	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
+	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry, uuid.NullUUID{}).
+		Return(suite.sampleEntryDetailed, nil)
+	suite.ctrl.Store.On("IntelDeliveriesTo", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
+		Return(make([]store.IntelDelivery, 0), nil)
 	suite.ctrl.Store.On("DeleteAddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
 		Return(nil)
+	suite.ctrl.Store.On("DeleteInactiveIntelDeliveriesFor", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
+		Return(nil)
+	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
+		Return(make([]store.Channel, 0), nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
+
 	suite.ctrl.Notifier.On("NotifyAddressBookEntryDeleted", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
 		Return(errors.New("sad life"))
 	defer suite.ctrl.Notifier.AssertExpectations(suite.T())
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteAddressBookEntryByID(timeout, suite.sampleEntry, uuid.NullUUID{})
+		err := suite.ctrl.Ctrl.DeleteAddressBookEntryWithChannelsByID(timeout, suite.sampleEntry, uuid.NullUUID{})
 		suite.Error(err, "should fail")
 		suite.False(suite.ctrl.DB.Tx[0].IsCommitted, "should not commit tx")
 	}()
@@ -425,13 +546,19 @@ func (suite *ControllerDeleteAddressBookEntryByIDSuite) TestNotifyFail() {
 	wait()
 }
 
-func (suite *ControllerDeleteAddressBookEntryByIDSuite) TestOK() {
+func (suite *ControllerDeleteAddressBookEntryWithChannelsByIDSuite) TestOK() {
 	timeout, cancel, wait := testutil.NewTimeout(suite, timeout)
 	suite.ctrl.DB.Tx = []*testutil.DBTx{{}}
 	suite.ctrl.Store.On("AddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry, uuid.NullUUID{}).
 		Return(suite.sampleEntryDetailed, nil)
 	suite.ctrl.Store.On("DeleteAddressBookEntryByID", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
 		Return(nil)
+	suite.ctrl.Store.On("IntelDeliveriesTo", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
+		Return(make([]store.IntelDelivery, 0), nil)
+	suite.ctrl.Store.On("DeleteInactiveIntelDeliveriesFor", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
+		Return(nil)
+	suite.ctrl.Store.On("ChannelsByAddressBookEntry", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
+		Return(make([]store.Channel, 0), nil)
 	defer suite.ctrl.Store.AssertExpectations(suite.T())
 	suite.ctrl.Notifier.On("NotifyAddressBookEntryDeleted", timeout, suite.ctrl.DB.Tx[0], suite.sampleEntry).
 		Return(nil)
@@ -439,7 +566,7 @@ func (suite *ControllerDeleteAddressBookEntryByIDSuite) TestOK() {
 
 	go func() {
 		defer cancel()
-		err := suite.ctrl.Ctrl.DeleteAddressBookEntryByID(timeout, suite.sampleEntry, uuid.NullUUID{})
+		err := suite.ctrl.Ctrl.DeleteAddressBookEntryWithChannelsByID(timeout, suite.sampleEntry, uuid.NullUUID{})
 		suite.NoError(err, "should not fail")
 		suite.True(suite.ctrl.DB.Tx[0].IsCommitted, "should commit tx")
 	}()
@@ -447,8 +574,8 @@ func (suite *ControllerDeleteAddressBookEntryByIDSuite) TestOK() {
 	wait()
 }
 
-func TestController_DeleteAddressBookEntryByID(t *testing.T) {
-	suite.Run(t, new(ControllerDeleteAddressBookEntryByIDSuite))
+func TestController_DeleteAddressBookEntryWithChannelsByID(t *testing.T) {
+	suite.Run(t, new(ControllerDeleteAddressBookEntryWithChannelsByIDSuite))
 }
 
 // ControllerAddressBookEntryByIDSuite tests Controller.AddressBookEntryByID.

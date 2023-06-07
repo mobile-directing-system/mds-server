@@ -98,6 +98,8 @@ type Store interface {
 	CreateIntelDelivery(ctx context.Context, tx pgx.Tx, create store.IntelDelivery) (store.IntelDelivery, error)
 	// IntelDeliveryByID retrieves the store.IntelDelivery with the given id.
 	IntelDeliveryByID(ctx context.Context, tx pgx.Tx, deliveryID uuid.UUID) (store.IntelDelivery, error)
+	// IntelDeliveriesTo retrieves all intel deliveries that are addressed to the address book entry entryID
+	IntelDeliveriesTo(ctx context.Context, tx pgx.Tx, entryID uuid.UUID) ([]store.IntelDelivery, error)
 	// TimedOutIntelDeliveryAttemptsByDelivery retrieves a
 	// store.IntelDeliveryAttempt list with entries, that have been timed out (based
 	// on the associated channel).
@@ -137,6 +139,8 @@ type Store interface {
 	// DeleteIntelDeliveryAttemptsByChannel deletes all intel-delivery-attempts
 	// using the channel with the given id.
 	DeleteIntelDeliveryAttemptsByChannel(ctx context.Context, tx pgx.Tx, channelID uuid.UUID) error
+	// DeleteInactiveIntelDeliveriesFor deletes all inactive intel deliveries for a given address book entry
+	DeleteInactiveIntelDeliveriesFor(ctx context.Context, tx pgx.Tx, entryID uuid.UUID) error
 	// LockIntelDeliveryByIDOrWait locks the intel-delivery in the database with the
 	// given id or waits until it is available.
 	LockIntelDeliveryByIDOrWait(ctx context.Context, tx pgx.Tx, deliveryID uuid.UUID) error

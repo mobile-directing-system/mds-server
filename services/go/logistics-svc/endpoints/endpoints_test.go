@@ -43,7 +43,7 @@ func (m *StoreMock) AddressBookEntries(ctx context.Context, filters store.Addres
 	return args.Get(0).(pagination.Paginated[store.AddressBookEntryDetailed]), args.Error(1)
 }
 
-func (m *StoreMock) DeleteAddressBookEntryByID(ctx context.Context, entryID uuid.UUID, limitToUser uuid.NullUUID) error {
+func (m *StoreMock) DeleteAddressBookEntryWithChannelsByID(ctx context.Context, entryID uuid.UUID, limitToUser uuid.NullUUID) error {
 	return m.Called(ctx, entryID, limitToUser).Error(0)
 }
 
