@@ -253,6 +253,7 @@ func storeInAppNotificationChannelDetailsFromPublic(_ publicInAppNotificationCha
 // publicRadioChannelDetails is the public representation of
 // store.RadioChannelDetails.
 type publicRadioChannelDetails struct {
+	Name string `json:"name"`
 	Info string `json:"info"`
 }
 
@@ -260,6 +261,7 @@ type publicRadioChannelDetails struct {
 // store.RadioChannelDetails to publicRadioChannelDetails.
 func publicRadioChannelDetailsFromStore(s store.RadioChannelDetails) publicRadioChannelDetails {
 	return publicRadioChannelDetails{
+		Name: s.Name,
 		Info: s.Info,
 	}
 }
@@ -268,6 +270,7 @@ func publicRadioChannelDetailsFromStore(s store.RadioChannelDetails) publicRadio
 // publicRadioChannelDetails to store.RadioChannelDetails.
 func storeRadioChannelDetailsFromPublic(p publicRadioChannelDetails) store.ChannelDetails {
 	return store.RadioChannelDetails{
+		Name: p.Name,
 		Info: p.Info,
 	}
 }

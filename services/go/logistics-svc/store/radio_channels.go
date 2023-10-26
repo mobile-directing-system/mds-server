@@ -16,8 +16,9 @@ const ChannelTypeRadio ChannelType = "radio"
 
 // RadioChannelDetails holds Channel.Details for ChannelTypeRadio.
 type RadioChannelDetails struct {
-	// Info holds any free-text information until radio communication is further
-	// specified.
+	// Name of the channel (e.g. channel 1, channel 2)
+	Name string
+	// Info holds any free-text information about the radio channel (e.g. radio frequency)
 	Info string
 }
 
@@ -61,6 +62,7 @@ func (op *radioChannelOperator) setChannelDetailsByChannel(ctx context.Context, 
 	// Insert.
 	q, _, err := op.m.dialect.Insert(goqu.T("radio_channels")).Rows(goqu.Record{
 		"channel": channelID,
+		"name":    details.Name,
 		"info":    details.Info,
 	}).ToSQL()
 	if err != nil {
@@ -76,7 +78,7 @@ func (op *radioChannelOperator) setChannelDetailsByChannel(ctx context.Context, 
 func (op *radioChannelOperator) getChannelDetailsByChannel(ctx context.Context, tx pgx.Tx, channelID uuid.UUID) (ChannelDetails, error) {
 	// Build query.
 	q, _, err := op.m.dialect.From(goqu.T("radio_channels")).
-		Select(goqu.C("info")).
+		Select(goqu.C("name"), goqu.C("info")).
 		Where(goqu.C("channel").Eq(channelID)).ToSQL()
 	if err != nil {
 		return nil, meh.NewInternalErrFromErr(err, "query to sql", nil)
@@ -92,7 +94,7 @@ func (op *radioChannelOperator) getChannelDetailsByChannel(ctx context.Context, 
 		return nil, meh.NewNotFoundErr("not found", nil)
 	}
 	var details RadioChannelDetails
-	err = rows.Scan(&details.Info)
+	err = rows.Scan(&details.Name, &details.Info)
 	if err != nil {
 		return nil, mehpg.NewScanRowsErr(err, "scan row", q)
 	}
