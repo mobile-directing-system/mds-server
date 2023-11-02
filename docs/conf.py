@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'MDS Server'
-copyright = '2022, Yves Haas, Laurin Todt, Lennart Altenhof'
+copyright = '2023, Yves Haas, Laurin Todt, Lennart Altenhof'
 author = 'Yves Haas, Laurin Todt, Lennart Altenhof'
 
 
