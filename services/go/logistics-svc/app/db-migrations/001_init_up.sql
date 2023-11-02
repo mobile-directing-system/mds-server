@@ -121,6 +121,7 @@ create table radio_channels
 (
     channel uuid primary key not null references channels (id)
         on delete restrict on update restrict,
+    name    text             not null,
     "info"  text             not null
 );
 

@@ -258,6 +258,7 @@ For **Radio** channel:
 .. code-block:: json
 
     {
+        "name": "<plain_text>",
         "info": "<plain_text>"
     }
 
